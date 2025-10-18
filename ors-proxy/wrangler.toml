@@ -1,0 +1,10 @@
+name = "ors-proxy"
+main = "worker.js"
+compatibility_date = "2024-10-01"
+workers_dev = true
+
+[vars]
+# ここには平文キーを書きません（後で Secret を登録します）
+
+[observability]
+enabled = true
