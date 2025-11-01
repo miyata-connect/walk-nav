@@ -354,50 +354,90 @@
         const result = await response.json();
         console.log('[Navigation] Directions Response:', result);
 
-        if(result.status === 'OK' && result.routes && result.routes.length > 0){
-          const route = result.routes[0].legs[0];
-          const distance = route.distance.text;
-          const duration = route.duration.text;
+        if(result.routes && result.routes.length > 0){
+          const r0 = result.routes[0];
+          const l0 = (r0.legs && r0.legs[0]) ? r0.legs[0] : null;
 
-          // ルート情報を表示
+          const distanceText = l0 ? readLegDistanceText(l0) : '--';
+          const durationText = l0 ? readLegDurationText(l0) : '--';
+
           document.getElementById('destinationName').textContent = destination.name;
-          document.getElementById('routeDistance').textContent = distance;
-          document.getElementById('routeTime').textContent = `徒歩 ${duration}`;
+          document.getElementById('routeDistance').textContent = distanceText;
+          document.getElementById('routeTime').textContent = `徒歩 ${durationText}`;
           document.getElementById('routePanel').style.display = 'block';
 
           document.getElementById('searchPanel').style.display = 'none';
           document.getElementById('results').style.display = 'none';
 
-          // Polylineを描画（DirectionsRendererは使わない）
-          drawRoutePolyline(result.routes[0]);
+          drawRoutePolyline(r0);
 
           map.panTo({lat: destination.lat, lng: destination.lng});
           map.setZoom(15);
 
           console.log(`[Navigation] ルート案内開始: ${destination.name}`);
         }else{
-          console.error('[Navigation] ルート取得失敗:', result.status);
+          console.error('[Navigation] ルート取得失敗: routes配列が空');
           alert('ルートを取得できませんでした');
         }
       } catch(error) {
         console.error('[Navigation] Error:', error);
-        alert('ルートを取得できませんでした');
+        alert(`ルートエラー: ${error.message}\n\nWorker: ${WORKER_ORIGIN}/directions`);
       }
     }
 
     let currentPolyline = null;
 
+    // Safe getters for distance/time (Routes API or Directions API)
+    function readLegDistanceText(leg){
+      // Directions API: leg.distance.text
+      if (leg?.distance?.text) return leg.distance.text;
+      // Routes API: leg.distanceMeters -> format km
+      if (typeof leg?.distanceMeters === 'number') {
+        const km = (leg.distanceMeters / 1000).toFixed(1);
+        return `${km} km`;
+      }
+      // Routes API localized: leg.localizedValues?.distance?.text
+      return leg?.localizedValues?.distance?.text || '--';
+    }
+
+    function readLegDurationText(leg){
+      // Directions API: leg.duration.text
+      if (leg?.duration?.text) return leg.duration.text;
+      // Routes API: leg.duration (ISO 8601 like "123s")
+      if (typeof leg?.duration === 'string' && leg.duration.endsWith('s')) {
+        const sec = parseInt(leg.duration.replace('s',''), 10) || 0;
+        const min = Math.max(1, Math.round(sec / 60));
+        return `${min} 分`;
+      }
+      // Routes API localized
+      return leg?.localizedValues?.duration?.text || '--';
+    }
+
+    // Extract encoded polyline from multiple possible fields
+    function getEncodedPolylineFromRoute(route){
+      // Directions API
+      if (route?.overview_polyline?.points) return route.overview_polyline.points;
+      // Routes API v2
+      if (route?.polyline?.encodedPolyline) return route.polyline.encodedPolyline;
+      if (route?.overviewPolyline?.encodedPolyline) return route.overviewPolyline.encodedPolyline;
+      return null;
+    }
+
     // Polylineを手動描画
     function drawRoutePolyline(route){
-      // 既存のPolylineを削除
       if(currentPolyline){
         currentPolyline.setMap(null);
+        currentPolyline = null;
       }
 
-      // overview_polyline から経路を取得
-      const encodedPath = route.overview_polyline.points;
-      const path = google.maps.geometry.encoding.decodePath(encodedPath);
+      const encoded = getEncodedPolylineFromRoute(route);
+      if (!encoded) {
+        console.error('[Navigation] No encoded polyline found on route object:', route);
+        alert('ルート線の取得に失敗しました（polylineなし）');
+        return;
+      }
 
+      const path = google.maps.geometry.encoding.decodePath(encoded);
       currentPolyline = new google.maps.Polyline({
         path: path,
         geodesic: true,
@@ -811,7 +851,7 @@
   </script>
 
   <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker"
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry"
     async defer></script>
 </body>
 </html>
