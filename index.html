@@ -169,6 +169,7 @@
 
     <div class="fab-stack" id="fabStack">
       <div class="fab" id="btnLocate">現在地</div>
+      <div class="fab" id="btnDestination" style="display:none">目的地</div>
       <div class="fab" id="btnPause">一時停止</div>
       <div class="fab" id="btnReroute">リルート</div>
     </div>
@@ -369,10 +370,29 @@
           document.getElementById('searchPanel').style.display = 'none';
           document.getElementById('results').style.display = 'none';
 
+          // 目的地ボタンを表示
+          document.getElementById('btnDestination').style.display = 'flex';
+
           drawRoutePolyline(r0);
 
-          map.panTo({lat: destination.lat, lng: destination.lng});
-          map.setZoom(15);
+          // カメラワーク: 全体 → 目的地 → 現在地
+          // 1. ルート全体を表示（2秒）
+          const bounds = new google.maps.LatLngBounds();
+          bounds.extend(new google.maps.LatLng(currentPos.lat, currentPos.lng));
+          bounds.extend(new google.maps.LatLng(destination.lat, destination.lng));
+          map.fitBounds(bounds, { top: 100, right: 50, bottom: 200, left: 50 });
+
+          setTimeout(() => {
+            // 2. 目的地を拡大（2秒）
+            map.panTo({lat: destination.lat, lng: destination.lng});
+            map.setZoom(18);
+
+            setTimeout(() => {
+              // 3. 現在地を拡大
+              map.panTo(currentPos);
+              map.setZoom(18);
+            }, 2000);
+          }, 2000);
 
           console.log(`[Navigation] ルート案内開始: ${destination.name}`);
         }else{
@@ -460,6 +480,10 @@
       currentDestination = null;
       document.getElementById('routePanel').style.display = 'none';
       document.getElementById('searchPanel').style.display = 'block';
+      
+      // 目的地ボタンを非表示
+      document.getElementById('btnDestination').style.display = 'none';
+      
       console.log('[Navigation] ルート案内終了');
     }
 
@@ -766,6 +790,13 @@
       document.getElementById('btnLocate').onclick = ()=>{
         if(currentPos && map) {
           map.panTo(currentPos);
+          map.setZoom(18);
+        }
+      };
+      
+      document.getElementById('btnDestination').onclick = ()=>{
+        if(currentDestination && map) {
+          map.panTo({lat: currentDestination.lat, lng: currentDestination.lng});
           map.setZoom(18);
         }
       };
