@@ -172,7 +172,7 @@
     </div>
 
     <div class="fab-stack" id="fabStack">
-      <div class="fab" id="btnSearch">検索</div>
+      <div class="fab" id="btnSearch">検索パネル</div>
       <div class="fab" id="btnLocate">現在地</div>
       <div class="fab" id="btnDestination" style="display:none">目的地</div>
       <div class="fab" id="btnPause">一時停止</div>
@@ -800,9 +800,33 @@
           alert('現在地が取得できていません');
           return;
         }
-        // TODO: 現在地を保存する処理
-        console.log('[SaveLocation] 現在地を登録:', currentPos);
-        alert(`現在地を登録しました\n緯度: ${currentPos.lat.toFixed(6)}\n経度: ${currentPos.lng.toFixed(6)}`);
+        
+        // 現在地の住所を取得して初期値とする
+        const defaultName = document.getElementById('locLabel').textContent.replace('現在地：', '') || '登録地点';
+        
+        // promptでタイトルを「現在地点登録画面」に変更
+        const locationName = prompt('現在地点登録画面\n\n登録する地点名を入力してください:', defaultName);
+        
+        if(locationName === null){
+          // キャンセルされた
+          return;
+        }
+        
+        if(!locationName || locationName.trim() === ''){
+          alert('地点名を入力してください');
+          return;
+        }
+        
+        // TODO: LocalStorageに保存する処理
+        const savedLocation = {
+          name: locationName.trim(),
+          lat: currentPos.lat,
+          lng: currentPos.lng,
+          timestamp: Date.now()
+        };
+        
+        console.log('[SaveLocation] 現在地を登録:', savedLocation);
+        alert(`「${locationName.trim()}」を登録しました\n緯度: ${currentPos.lat.toFixed(6)}\n経度: ${currentPos.lng.toFixed(6)}`);
       };
 
       document.getElementById('btnEditLocation').onclick = ()=>{
