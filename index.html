@@ -726,8 +726,11 @@ let API_KEY = '';
 // Worker URL
 const WORKER_URL = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 
-// デフォルトAPIキー（開発用/デモ用）
-const DEFAULT_API_KEY = 'AIzaSyCKH6RLXlKvVMmbDQX_dq_kN_SIroqPyl4';
+// デフォルトAPIキー（新しいキー）
+const API_KEYS = [
+  'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk', // 最新のAPIキー
+];
+let currentKeyIndex = 0;
 
 // 初期化
 window.onload = () => {
@@ -735,13 +738,12 @@ window.onload = () => {
   const savedKey = localStorage.getItem('walkNavApiKey');
   if (savedKey) {
     API_KEY = savedKey;
-    loadGoogleMapsAPI();
   } else {
-    // APIキー設定画面を表示
-    document.getElementById('loadingScreen').style.display = 'none';
-    document.getElementById('apiSetup').classList.add('show');
+    // デフォルトキーを最初に試す
+    API_KEY = API_KEYS[currentKeyIndex];
   }
   
+  loadGoogleMapsAPI();
   loadSavedLocations();
 };
 
@@ -762,9 +764,17 @@ function setupApiKey() {
 
 // デフォルトキー使用
 function useDefaultKey() {
-  API_KEY = DEFAULT_API_KEY;
+  // すべてのデフォルトキーをリセット
+  currentKeyIndex = 0;
+  API_KEY = API_KEYS[currentKeyIndex];
+  
   document.getElementById('apiSetup').classList.remove('show');
   document.getElementById('loadingScreen').style.display = 'flex';
+  document.getElementById('loadingScreen').innerHTML = `
+    <div class="loading-logo">🚶</div>
+    <div class="loading-text">WalkNav v2.2</div>
+  `;
+  
   loadGoogleMapsAPI();
 }
 
@@ -792,26 +802,41 @@ window.gm_authFailure = function() {
 
 // APIエラー処理
 function handleApiError(errorType) {
-  localStorage.removeItem('walkNavApiKey');
+  console.log(`APIキー試行: ${currentKeyIndex + 1}/${API_KEYS.length}`);
   
-  document.getElementById('loadingScreen').innerHTML = `
-    <div style="padding:20px;text-align:center;">
-      <div style="font-size:48px;margin-bottom:20px;">⚠️</div>
-      <div style="font-size:18px;margin-bottom:10px;">${errorType}</div>
-      <div style="font-size:14px;color:#a7b8ce;margin-bottom:20px;">
-        APIキーの設定を確認してください
+  // 次のキーを試す
+  currentKeyIndex++;
+  if (currentKeyIndex < API_KEYS.length) {
+    API_KEY = API_KEYS[currentKeyIndex];
+    console.log('別のAPIキーを試します...');
+    
+    // 既存のscriptタグを削除
+    const oldScript = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (oldScript) {
+      oldScript.remove();
+    }
+    
+    // 新しいキーで再試行
+    setTimeout(() => {
+      loadGoogleMapsAPI();
+    }, 1000);
+  } else {
+    // すべてのキーが失敗した場合、設定画面を表示
+    localStorage.removeItem('walkNavApiKey');
+    
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('apiSetup').classList.add('show');
+    
+    // エラーメッセージを表示
+    const desc = document.querySelector('.api-setup-desc');
+    desc.innerHTML = `
+      <div style="color:var(--danger);margin-bottom:10px;">
+        ⚠️ デフォルトのAPIキーが利用できません
       </div>
-      <button onclick="location.reload()" style="
-        background:var(--primary);
-        border:none;
-        border-radius:8px;
-        padding:10px 20px;
-        color:#000;
-        font-weight:600;
-        cursor:pointer;
-      ">再読み込み</button>
-    </div>
-  `;
+      WalkNavを使用するには、Google Maps APIキーが必要です。<br>
+      既存のAPIキーをお持ちの場合は入力してください。
+    `;
+  }
 }
 
 // Google Maps初期化コールバック
