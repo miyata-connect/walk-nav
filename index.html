@@ -6,7 +6,7 @@
   <title>WalkNav</title>
 
   <!-- 発行番号 / ISSUE -->
-  <meta name="x-issue" content="idx202511012100" />
+  <meta name="x-issue" content="idx202511011945" />
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
   <style>
@@ -34,7 +34,7 @@
       z-index:2600;
     }
     .panel{
-      position:absolute;left:16px;right:16px;top:16px;
+      position:absolute;left:16px;right:140px;top:16px;
       background:var(--glass-strong);border:1px solid var(--stroke);
       border-radius:var(--radius);box-shadow:var(--shadow);
       padding:14px 14px 12px;backdrop-filter:blur(10px);
@@ -104,7 +104,7 @@
       position:absolute;
       left:16px;
       top:16px;
-      right:16px;
+      right:140px;
       background:var(--glass-strong);
       border:1px solid var(--stroke);
       border-radius:var(--radius);
@@ -127,20 +127,6 @@
       font-size:16px;
       color:var(--muted);
       margin-left:12px;
-    }
-
-    .navigation-panel{
-      position:absolute;
-      left:16px;
-      top:16px;
-      right:16px;
-      background:var(--glass-strong);
-      border:1px solid var(--stroke);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      padding:16px;
-      backdrop-filter:blur(10px);
-      z-index:2500;
     }
 
     .toast, .error-banner{display:none !important}
@@ -178,50 +164,31 @@
       <div class="route-info">
         <span id="destinationName">目的地</span>へのルート
       </div>
-      <div style="margin-bottom:12px;">
-        <div style="font-size:13px;color:var(--muted);margin-bottom:6px;">ルートタイプ:</div>
-        <div class="row" style="gap:8px;">
-          <button class="chip active" id="routeTypeShortest">⚡ 最短AI</button>
-          <button class="chip" id="routeTypeEasy">🚶 楽チンAI</button>
-        </div>
-      </div>
       <div>
         <span class="route-distance" id="routeDistance">--</span>
         <span class="route-time" id="routeTime">徒歩 --分</span>
       </div>
-    </div>
-
-    <div class="navigation-panel" id="navigationPanel" style="display:none">
-      <div style="font-size:24px;font-weight:bold;color:var(--text);margin-bottom:16px;line-height:1.4;" id="navigationInstruction">
-        直進してください
-      </div>
-      <div style="background:rgba(0,0,0,.3);border-radius:12px;padding:12px;max-height:200px;overflow-y:auto;">
-        <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px;">📍 周辺情報（10km圏内）</div>
-        <div id="incidentList" style="font-size:13px;color:var(--muted);">
-          情報を取得中...
-        </div>
-      </div>
+      <button id="btnStopRoute" class="btn danger" style="margin-top:10px;width:100%">ルート終了</button>
     </div>
 
     <div class="fab-stack" id="fabStack">
       <div class="fab" id="btnSearch">検索パネル</div>
       <div class="fab" id="btnLocate">現在地</div>
       <div class="fab" id="btnDestination" style="display:none">目的地</div>
-      <div class="fab" id="btnClearRoute" style="display:none">ルート消去</div>
+      <div class="fab" id="btnPause">一時停止</div>
       <div class="fab" id="btnReroute">リルート</div>
     </div>
 
     <div class="loading" id="loading">
       <div style="text-align:center">
-        <div style="font-size:48px;margin-bottom:16px">📍</div>
-        <div style="font-size:24px;margin-bottom:16px">現在地取得中</div>
+        <div style="font-size:24px;margin-bottom:16px">📍 現在地取得中</div>
         <div style="font-size:16px;opacity:0.8">しばらくお待ちください...</div>
       </div>
     </div>
   </div>
 
   <script>
-    const ISSUE_ID = 'idx202511012100';
+    const ISSUE_ID = 'idx202511011945';
     const API_KEY = 'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk'; // Maps表示用のみ
     const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev'; // 既存Worker
 
@@ -234,7 +201,6 @@
     let searchMarkers = [];
     let currentDestination = null;
     let recognition = null;
-    let currentRouteType = 'shortest'; // 'shortest' or 'easy'
 
     const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 
@@ -292,33 +258,26 @@
     }
 
     function initMap(center){
-      console.log('[WalkNav] 地図初期化開始:', center);
-      
-      try {
-        map = new google.maps.Map(document.getElementById('map'),{
-          center,
-          zoom: 17,
-          mapId: 'DEMO_MAP',
-          gestureHandling:'greedy',
-          clickableIcons:true,
-          disableDefaultUI:true
-        });
+      map = new google.maps.Map(document.getElementById('map'),{
+        center,
+        zoom: 17,
+        mapId: 'DEMO_MAP',
+        gestureHandling:'greedy',
+        clickableIcons:true,
+        disableDefaultUI:true
+      });
 
-        geocoder = new google.maps.Geocoder();
+      geocoder = new google.maps.Geocoder();
 
-        map.addListener('click', (e) => {
-          if(!pointSearchMode) return;
-          if(e.latLng){
-            setSearchPoint(e.latLng.lat(), e.latLng.lng());
-          }
-        });
+      map.addListener('click', (e) => {
+        if(!pointSearchMode) return;
+        if(e.latLng){
+          setSearchPoint(e.latLng.lat(), e.latLng.lng());
+        }
+      });
 
-        mapInitialized = true;
-        console.log('[WalkNav] Map initialized successfully');
-      } catch(error) {
-        console.error('[WalkNav] Map initialization error:', error);
-        alert('地図の初期化に失敗しました: ' + error.message);
-      }
+      mapInitialized = true;
+      console.log('[WalkNav] Map initialized');
     }
 
     function setSearchPoint(lat, lng){
@@ -372,7 +331,7 @@
       currentDestination = destination;
 
       try {
-        // ルートタイプに応じたパラメータ設定
+        // Worker経由でDirections APIを呼び出し
         const params = new URLSearchParams({
           origin: `${originLat},${originLng}`,
           destination: `${destination.lat},${destination.lng}`,
@@ -380,19 +339,10 @@
           language: 'ja'
         });
 
-        // 最短AI: alternatives=true で複数ルートを取得し、最短を選択
-        // 楽チンAI: avoid=stairs（仮想パラメータ、実際はレスポンス解析で判定）
-        if(currentRouteType === 'shortest'){
-          params.append('alternatives', 'true');
-          console.log('[Navigation] 最短AIモード: 坂道・階段OK、安全優先');
-        }else{
-          params.append('alternatives', 'true');
-          console.log('[Navigation] 楽チンAIモード: 坂道・階段回避、エレベーター優先');
-        }
-
         const response = await fetch(`${WORKER_ORIGIN}/directions?${params.toString()}`);
         
         console.log('[Navigation] Response status:', response.status);
+        console.log('[Navigation] Response headers:', Object.fromEntries(response.headers.entries()));
         
         if(!response.ok){
           const errorText = await response.text();
@@ -404,28 +354,8 @@
         console.log('[Navigation] Directions Response:', result);
 
         if(result.routes && result.routes.length > 0){
-          // ルートタイプに応じて最適なルートを選択
-          let selectedRoute;
-          
-          if(currentRouteType === 'shortest'){
-            // 最短AI: 最も距離が短いルートを選択
-            selectedRoute = result.routes.reduce((shortest, route) => {
-              const shortestDist = shortest.legs?.[0]?.distance?.value || Infinity;
-              const routeDist = route.legs?.[0]?.distance?.value || Infinity;
-              return routeDist < shortestDist ? route : shortest;
-            }, result.routes[0]);
-            console.log('[Navigation] 最短ルートを選択しました');
-          }else{
-            // 楽チンAI: 最も標高変化が少ないルート（代替として最も時間が短いルートを選択）
-            selectedRoute = result.routes.reduce((easiest, route) => {
-              const easiestTime = easiest.legs?.[0]?.duration?.value || Infinity;
-              const routeTime = route.legs?.[0]?.duration?.value || Infinity;
-              return routeTime < easiestTime ? route : easiest;
-            }, result.routes[0]);
-            console.log('[Navigation] 楽チンルートを選択しました（階段・坂道を考慮）');
-          }
-
-          const l0 = (selectedRoute.legs && selectedRoute.legs[0]) ? selectedRoute.legs[0] : null;
+          const r0 = result.routes[0];
+          const l0 = (r0.legs && r0.legs[0]) ? r0.legs[0] : null;
 
           const distanceText = l0 ? readLegDistanceText(l0) : '--';
           const durationText = l0 ? readLegDurationText(l0) : '--';
@@ -435,25 +365,13 @@
           document.getElementById('routeTime').textContent = `徒歩 ${durationText}`;
           document.getElementById('routePanel').style.display = 'block';
 
-          // 操作パネルを非表示、ナビゲーションパネルを表示
           document.getElementById('searchPanel').style.display = 'none';
           document.getElementById('results').style.display = 'none';
-          
-          // ナビゲーションパネルを表示
-          document.getElementById('navigationPanel').style.display = 'block';
-          document.getElementById('routePanel').style.display = 'none'; // ルート選択パネルは非表示
-          
-          // 初期案内メッセージ
-          document.getElementById('navigationInstruction').textContent = `${destination.name}へ向かっています`;
-          
-          // インシデント情報を取得（仮実装）
-          loadIncidents(originLat, originLng);
 
-          // 目的地ボタンとルート消去ボタンを表示
+          // 目的地ボタンを表示
           document.getElementById('btnDestination').style.display = 'flex';
-          document.getElementById('btnClearRoute').style.display = 'flex';
 
-          drawRoutePolyline(selectedRoute);
+          drawRoutePolyline(r0);
 
           // カメラワーク: 全体 → 目的地 → 起点
           const bounds = new google.maps.LatLngBounds();
@@ -471,7 +389,7 @@
             }, 2000);
           }, 2000);
 
-          console.log(`[Navigation] ルート案内開始: ${destination.name} (${currentRouteType})`);
+          console.log(`[Navigation] ルート案内開始: ${destination.name}`);
         }else{
           console.error('[Navigation] ルート取得失敗: routes配列が空');
           alert('ルートを取得できませんでした');
@@ -547,45 +465,6 @@
       console.log('[Navigation] Polyline drawn');
     }
 
-    // インシデント情報取得（10km圏内）
-    async function loadIncidents(lat, lng){
-      const incidentList = document.getElementById('incidentList');
-      incidentList.innerHTML = '情報を取得中...';
-      
-      try {
-        // Places API (New) で周辺の注意すべきスポットを検索
-        // 病院、警察署、駅などの重要施設を表示
-        const data = await placesNearby({
-          includedTypes: ['hospital', 'police', 'transit_station'],
-          maxResultCount: 5,
-          locationRestriction: {
-            circle: { center: { latitude: lat, longitude: lng }, radius: 10000 }
-          },
-          languageCode: 'ja'
-        }, 'places.displayName,places.location,places.types');
-        
-        if(data.places && data.places.length > 0){
-          let html = '';
-          data.places.forEach(place => {
-            const name = place.displayName?.text || '名称不明';
-            const types = place.types || [];
-            let icon = '📍';
-            if(types.includes('hospital')) icon = '🏥';
-            if(types.includes('police')) icon = '🚓';
-            if(types.includes('transit_station')) icon = '🚉';
-            
-            html += `<div style="margin-bottom:6px;">${icon} ${name}</div>`;
-          });
-          incidentList.innerHTML = html;
-        }else{
-          incidentList.innerHTML = '現在、特に注意すべき情報はありません';
-        }
-      } catch(e) {
-        console.error('[Incidents] エラー:', e);
-        incidentList.innerHTML = '情報の取得に失敗しました';
-      }
-    }
-
     function stopNavigation(){
       // Polylineを削除
       if(currentPolyline){
@@ -595,12 +474,10 @@
       
       currentDestination = null;
       document.getElementById('routePanel').style.display = 'none';
-      document.getElementById('navigationPanel').style.display = 'none';
       document.getElementById('searchPanel').style.display = 'block';
       
-      // 目的地ボタンとルート消去ボタンを非表示
+      // 目的地ボタンを非表示
       document.getElementById('btnDestination').style.display = 'none';
-      document.getElementById('btnClearRoute').style.display = 'none';
       
       // 検索結果をクリア
       document.getElementById('q').value = '';
@@ -853,55 +730,24 @@
     }
 
     function acquireLocation(){
-      console.log('[WalkNav] 現在地取得開始...');
-      
       const onOk = (pos)=>{
         const {latitude, longitude} = pos.coords;
-        console.log(`[WalkNav] 現在地取得成功: ${latitude}, ${longitude}`);
-        
-        const loadingEl = document.getElementById('loading');
-        if(loadingEl) loadingEl.remove();
-        
-        if(!map) {
-          console.log('[WalkNav] 地図初期化中...');
-          initMap({lat:latitude, lng:longitude});
-        }
+        document.getElementById('loading')?.remove();
+        if(!map) initMap({lat:latitude, lng:longitude});
         map.setCenter({lat:latitude,lng:longitude});
         setUserMarker(latitude, longitude);
 
         fetchLocationNameGoogle(latitude, longitude);
       };
-      
-      const onErr = (error)=>{
-        console.error('[WalkNav] 現在地取得エラー:', error);
-        console.error('[WalkNav] エラーコード:', error.code);
-        console.error('[WalkNav] エラーメッセージ:', error.message);
-        
-        const loadingEl = document.getElementById('loading');
-        if(loadingEl) loadingEl.remove();
-        
-        alert(`現在地の取得に失敗しました\nエラー: ${error.message}\n\nデフォルト位置（広島）で起動します`);
-        
-        if(!map) initMap({lat:34.04,lng:134.06});
-        console.log('[WalkNav] デフォルト位置で地図を初期化しました');
+      const onErr = (_e)=>{
+        console.log('[WalkNav] geolocation error', _e?.message||_e);
+        document.getElementById('loading')?.remove();
+        if(!map) initMap({lat:35.0,lng:135.0});
       };
-      
       try{
-        if(!navigator.geolocation){
-          console.error('[WalkNav] Geolocation API が利用できません');
-          onErr({code: 0, message: 'Geolocation非対応'});
-          return;
-        }
-        
-        console.log('[WalkNav] Geolocation API 呼び出し中...');
-        navigator.geolocation.getCurrentPosition(onOk, onErr, {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0
-        });
+        navigator.geolocation.getCurrentPosition(onOk,onErr,{enableHighAccuracy:true,timeout:30000,maximumAge:0});
       }catch(e){
-        console.error('[WalkNav] geolocation exception:', e);
-        onErr({code: 0, message: e.message || '不明なエラー'});
+        console.log('[WalkNav] geolocation exception', e);
       }
     }
 
@@ -1268,42 +1114,13 @@
         }
       };
       
-      document.getElementById('btnClearRoute').onclick = (e)=>{ 
+      document.getElementById('btnPause').onclick = (e)=>{ 
         e.preventDefault();
         e.stopPropagation();
-        console.log('[Navigation] ルート消去');
-        stopNavigation();
+        console.log('一時停止ボタンがクリックされました');
       };
       
-      document.getElementById('btnReroute').onclick = (e)=>{ 
-        e.preventDefault();
-        e.stopPropagation();
-        if(currentDestination){
-          console.log('[Navigation] リルート実行');
-          startNavigation(currentDestination);
-        }
-      };
-
-      // ルートタイプ切替ボタン
-      document.getElementById('routeTypeShortest').onclick = () => {
-        currentRouteType = 'shortest';
-        document.getElementById('routeTypeShortest').classList.add('active');
-        document.getElementById('routeTypeEasy').classList.remove('active');
-        console.log('[Navigation] ルートタイプ変更: 最短AI');
-        
-        // 即座にリルート
-        if(currentDestination){
-          startNavigation(currentDestination);
-        }
-      };
-
-      document.getElementById('routeTypeEasy').onclick = () => {
-        currentRouteType = 'easy';
-        document.getElementById('routeTypeEasy').classList.add('active');
-        document.getElementById('routeTypeShortest').classList.remove('active');
-        console.log('[Navigation] ルートタイプ変更: 楽チンAI');
-        
-        // 即座にリルート
+      document.getElementById('btnReroute').onclick = ()=>{ 
         if(currentDestination){
           startNavigation(currentDestination);
         }
@@ -1362,29 +1179,18 @@
     }
 
     function startApp(){
-      console.log('[WalkNav] アプリケーション起動開始...');
-      console.log('[WalkNav] ISSUE:', ISSUE_ID);
-      
+      console.log('[WalkNav] Starting app...');
       document.documentElement.lang = 'ja';
-      
-      console.log('[WalkNav] UI バインド開始...');
       bindUI();
-      
-      console.log('[WalkNav] 現在地取得開始...');
       acquireLocation();
-      
-      console.log('[WalkNav] 音声認識初期化...');
       initSpeechRecognition();
-      
-      console.log('[WalkNav] 起動完了');
+      console.log('[WalkNav] ISSUE', ISSUE_ID, 'boot');
     }
 
     function initializeWhenReady(){
       if(typeof google !== 'undefined' && google.maps && google.maps.Map){
-        console.log('[WalkNav] Google Maps API 読み込み完了');
         startApp();
       }else{
-        console.log('[WalkNav] Google Maps API 読み込み待機中...');
         setTimeout(initializeWhenReady, 100);
       }
     }
