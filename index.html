@@ -150,7 +150,7 @@
         <button id="btnReset" class="btn danger">リセット</button>
       </div>
       <div class="row" style="font-size:13px;color:var(--muted)">
-        現在地：<span id="locLabel">緯度 -- / 経度 --</span>
+        <span id="locLabel">現在地：取得中...</span>
       </div>
       
       <div id="results" class="results" style="display:none"></div>
@@ -484,6 +484,21 @@
       // 目的地ボタンを非表示
       document.getElementById('btnDestination').style.display = 'none';
       
+      // 検索結果をクリア
+      document.getElementById('q').value = '';
+      document.getElementById('results').style.display = 'none';
+      document.getElementById('results').innerHTML = '';
+      
+      // 検索マーカーを削除
+      searchMarkers.forEach(marker => marker.map = null);
+      searchMarkers = [];
+      
+      // 現在地に戻る
+      if(currentPos && map){
+        map.panTo(currentPos);
+        map.setZoom(17);
+      }
+      
       console.log('[Navigation] ルート案内終了');
     }
 
@@ -748,10 +763,12 @@
       geocoder.geocode({location: latlng, language: 'ja'}, (results, status) => {
         if(status === 'OK' && results[0]){
           const address = results[0].formatted_address;
-          document.getElementById('locLabel').textContent = address;
-          console.log('[Location] 地名:', address);
+          // 都道府県以降を表示（日本国を削除）
+          const cleanAddress = address.replace(/^日本、/, '').replace(/^〒[\d-]+\s*/, '');
+          document.getElementById('locLabel').textContent = `現在地：${cleanAddress}`;
+          console.log('[Location] 地名:', cleanAddress);
         }else{
-          document.getElementById('locLabel').textContent = `緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
+          document.getElementById('locLabel').textContent = `現在地：緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
         }
       });
     }
@@ -781,9 +798,13 @@
         if(pointSearchMode){
           btnPointSearch.classList.add('active');
           btnPointSearch.textContent = '📍 地点検索中...';
+          btnPointSearch.style.background = 'var(--ok)';
+          btnPointSearch.style.color = '#0a2818';
         }else{
           btnPointSearch.classList.remove('active');
           btnPointSearch.textContent = '📍 地点検索';
+          btnPointSearch.style.background = '';
+          btnPointSearch.style.color = '';
         }
       };
 
@@ -801,7 +822,9 @@
         }
       };
       
-      document.getElementById('btnPause').onclick = ()=>{ 
+      document.getElementById('btnPause').onclick = (e)=>{ 
+        e.preventDefault();
+        e.stopPropagation();
         console.log('一時停止ボタンがクリックされました');
       };
       
@@ -848,6 +871,8 @@
         pointSearchMode = false;
         btnPointSearch.classList.remove('active');
         btnPointSearch.textContent = '📍 地点検索';
+        btnPointSearch.style.background = '';
+        btnPointSearch.style.color = '';
         
         stopNavigation();
         
