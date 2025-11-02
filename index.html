@@ -144,6 +144,10 @@
         <button class="chip" id="btnPointSearch" style="margin-left:auto">📍 ポイント選択</button>
       </div>
       <div class="row" style="margin-bottom:8px">
+        <button class="btn" id="btnSaveLocation">現在地登録</button>
+        <button class="btn" id="btnEditLocation">登録地点修正</button>
+      </div>
+      <div class="row" style="margin-bottom:8px">
         <input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" />
         <button id="btnText" class="btn primary">テキスト検索</button>
         <button id="btnVoice" class="btn">音声検索</button>
@@ -789,6 +793,22 @@
         }else{
           panel.style.display = 'none';
         }
+      };
+
+      document.getElementById('btnSaveLocation').onclick = ()=>{
+        if(!currentPos){
+          alert('現在地が取得できていません');
+          return;
+        }
+        // TODO: 現在地を保存する処理
+        console.log('[SaveLocation] 現在地を登録:', currentPos);
+        alert(`現在地を登録しました\n緯度: ${currentPos.lat.toFixed(6)}\n経度: ${currentPos.lng.toFixed(6)}`);
+      };
+
+      document.getElementById('btnEditLocation').onclick = ()=>{
+        // TODO: 登録地点の修正画面を表示
+        console.log('[EditLocation] 登録地点修正');
+        alert('登録地点修正機能は準備中です');
       };
       
       r10.onclick = ()=>{ 
