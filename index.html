@@ -1378,17 +1378,22 @@
       
       console.log('[WalkNav] 起動完了');
     }
+
+    function initializeWhenReady(){
+      if(typeof google !== 'undefined' && google.maps && google.maps.Map){
+        console.log('[WalkNav] Google Maps API 読み込み完了');
+        startApp();
+      }else{
+        console.log('[WalkNav] Google Maps API 読み込み待機中...');
+        setTimeout(initializeWhenReady, 100);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', initializeWhenReady);
   </script>
 
   <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry&callback=initWalkNav"></script>
-  
-  <script>
-    // Google Maps APIのコールバック関数
-    window.initWalkNav = function() {
-      console.log('[WalkNav] Google Maps API callback triggered');
-      startApp();
-    };
-  </script>
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry"
+    async defer></script>
 </body>
 </html>
