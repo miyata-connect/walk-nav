@@ -145,7 +145,7 @@
       </div>
       <div class="row" style="margin-bottom:8px">
         <input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" />
-        <button id="btnText" class="btn primary">入力検索</button>
+        <button id="btnText" class="btn primary">検索</button>
         <button id="btnVoice" class="btn">🎤 音声検索</button>
         <button id="btnReset" class="btn danger">リセット</button>
       </div>
@@ -837,7 +837,7 @@
       document.getElementById('btnText').onclick = ()=>{
         const q = document.getElementById('q').value.trim();
         if(!q){
-          alert('検索ワードを入力してください');
+          // 空欄なら無反応
           return;
         }
         performSearch(q);
