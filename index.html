@@ -197,7 +197,6 @@
     let pointSearchMode = false;
     let searchPoint = null;
     let searchPointMarker = null;
-    let longPressTimer = null;
     let mapInitialized = false;
     let searchMarkers = [];
     let currentDestination = null;
@@ -270,31 +269,10 @@
 
       geocoder = new google.maps.Geocoder();
 
-      map.addListener('mousedown', (e) => {
+      map.addListener('click', (e) => {
         if(!pointSearchMode) return;
-        longPressTimer = setTimeout(() => {
+        if(e.latLng){
           setSearchPoint(e.latLng.lat(), e.latLng.lng());
-        }, 1000);
-      });
-
-      map.addListener('mouseup', () => {
-        if(longPressTimer){
-          clearTimeout(longPressTimer);
-          longPressTimer = null;
-        }
-      });
-
-      map.addListener('touchstart', (e) => {
-        if(!pointSearchMode || !e.latLng) return;
-        longPressTimer = setTimeout(() => {
-          setSearchPoint(e.latLng.lat(), e.latLng.lng());
-        }, 1000);
-      });
-
-      map.addListener('touchend', () => {
-        if(longPressTimer){
-          clearTimeout(longPressTimer);
-          longPressTimer = null;
         }
       });
 
