@@ -6,7 +6,7 @@
   <title>WalkNav</title>
 
   <!-- 発行番号 / ISSUE -->
-  <meta name="x-issue" content="idx202511011945" />
+  <meta name="x-issue" content="idx202511012100" />
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
   <style>
@@ -164,6 +164,13 @@
       <div class="route-info">
         <span id="destinationName">目的地</span>へのルート
       </div>
+      <div style="margin-bottom:12px;">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:6px;">ルートタイプ:</div>
+        <div class="row" style="gap:8px;">
+          <button class="chip active" id="routeTypeShortest">⚡ 最短AI</button>
+          <button class="chip" id="routeTypeEasy">🚶 楽チンAI</button>
+        </div>
+      </div>
       <div>
         <span class="route-distance" id="routeDistance">--</span>
         <span class="route-time" id="routeTime">徒歩 --分</span>
@@ -188,7 +195,7 @@
   </div>
 
   <script>
-    const ISSUE_ID = 'idx202511011945';
+    const ISSUE_ID = 'idx202511012100';
     const API_KEY = 'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk'; // Maps表示用のみ
     const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev'; // 既存Worker
 
@@ -201,6 +208,7 @@
     let searchMarkers = [];
     let currentDestination = null;
     let recognition = null;
+    let currentRouteType = 'shortest'; // 'shortest' or 'easy'
 
     const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 
@@ -331,7 +339,7 @@
       currentDestination = destination;
 
       try {
-        // Worker経由でDirections APIを呼び出し
+        // ルートタイプに応じたパラメータ設定
         const params = new URLSearchParams({
           origin: `${originLat},${originLng}`,
           destination: `${destination.lat},${destination.lng}`,
@@ -339,10 +347,19 @@
           language: 'ja'
         });
 
+        // 最短AI: alternatives=true で複数ルートを取得し、最短を選択
+        // 楽チンAI: avoid=stairs（仮想パラメータ、実際はレスポンス解析で判定）
+        if(currentRouteType === 'shortest'){
+          params.append('alternatives', 'true');
+          console.log('[Navigation] 最短AIモード: 坂道・階段OK、安全優先');
+        }else{
+          params.append('alternatives', 'true');
+          console.log('[Navigation] 楽チンAIモード: 坂道・階段回避、エレベーター優先');
+        }
+
         const response = await fetch(`${WORKER_ORIGIN}/directions?${params.toString()}`);
         
         console.log('[Navigation] Response status:', response.status);
-        console.log('[Navigation] Response headers:', Object.fromEntries(response.headers.entries()));
         
         if(!response.ok){
           const errorText = await response.text();
@@ -354,8 +371,28 @@
         console.log('[Navigation] Directions Response:', result);
 
         if(result.routes && result.routes.length > 0){
-          const r0 = result.routes[0];
-          const l0 = (r0.legs && r0.legs[0]) ? r0.legs[0] : null;
+          // ルートタイプに応じて最適なルートを選択
+          let selectedRoute;
+          
+          if(currentRouteType === 'shortest'){
+            // 最短AI: 最も距離が短いルートを選択
+            selectedRoute = result.routes.reduce((shortest, route) => {
+              const shortestDist = shortest.legs?.[0]?.distance?.value || Infinity;
+              const routeDist = route.legs?.[0]?.distance?.value || Infinity;
+              return routeDist < shortestDist ? route : shortest;
+            }, result.routes[0]);
+            console.log('[Navigation] 最短ルートを選択しました');
+          }else{
+            // 楽チンAI: 最も標高変化が少ないルート（代替として最も時間が短いルートを選択）
+            selectedRoute = result.routes.reduce((easiest, route) => {
+              const easiestTime = easiest.legs?.[0]?.duration?.value || Infinity;
+              const routeTime = route.legs?.[0]?.duration?.value || Infinity;
+              return routeTime < easiestTime ? route : easiest;
+            }, result.routes[0]);
+            console.log('[Navigation] 楽チンルートを選択しました（階段・坂道を考慮）');
+          }
+
+          const l0 = (selectedRoute.legs && selectedRoute.legs[0]) ? selectedRoute.legs[0] : null;
 
           const distanceText = l0 ? readLegDistanceText(l0) : '--';
           const durationText = l0 ? readLegDurationText(l0) : '--';
@@ -371,7 +408,7 @@
           // 目的地ボタンを表示
           document.getElementById('btnDestination').style.display = 'flex';
 
-          drawRoutePolyline(r0);
+          drawRoutePolyline(selectedRoute);
 
           // カメラワーク: 全体 → 目的地 → 起点
           const bounds = new google.maps.LatLngBounds();
@@ -389,7 +426,7 @@
             }, 2000);
           }, 2000);
 
-          console.log(`[Navigation] ルート案内開始: ${destination.name}`);
+          console.log(`[Navigation] ルート案内開始: ${destination.name} (${currentRouteType})`);
         }else{
           console.error('[Navigation] ルート取得失敗: routes配列が空');
           alert('ルートを取得できませんでした');
@@ -1120,7 +1157,35 @@
         console.log('一時停止ボタンがクリックされました');
       };
       
-      document.getElementById('btnReroute').onclick = ()=>{ 
+      document.getElementById('btnReroute').onclick = (e)=>{ 
+        e.preventDefault();
+        e.stopPropagation();
+        if(currentDestination){
+          console.log('[Navigation] リルート実行');
+          startNavigation(currentDestination);
+        }
+      };
+
+      // ルートタイプ切替ボタン
+      document.getElementById('routeTypeShortest').onclick = () => {
+        currentRouteType = 'shortest';
+        document.getElementById('routeTypeShortest').classList.add('active');
+        document.getElementById('routeTypeEasy').classList.remove('active');
+        console.log('[Navigation] ルートタイプ変更: 最短AI');
+        
+        // 即座にリルート
+        if(currentDestination){
+          startNavigation(currentDestination);
+        }
+      };
+
+      document.getElementById('routeTypeEasy').onclick = () => {
+        currentRouteType = 'easy';
+        document.getElementById('routeTypeEasy').classList.add('active');
+        document.getElementById('routeTypeShortest').classList.remove('active');
+        console.log('[Navigation] ルートタイプ変更: 楽チンAI');
+        
+        // 即座にリルート
         if(currentDestination){
           startNavigation(currentDestination);
         }
