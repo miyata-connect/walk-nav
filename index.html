@@ -213,7 +213,8 @@
 
     <div class="loading" id="loading">
       <div style="text-align:center">
-        <div style="font-size:24px;margin-bottom:16px">📍 現在地取得中</div>
+        <div style="font-size:48px;margin-bottom:16px">📍</div>
+        <div style="font-size:24px;margin-bottom:16px">現在地取得中</div>
         <div style="font-size:16px;opacity:0.8">しばらくお待ちください...</div>
       </div>
     </div>
@@ -291,26 +292,33 @@
     }
 
     function initMap(center){
-      map = new google.maps.Map(document.getElementById('map'),{
-        center,
-        zoom: 17,
-        mapId: 'DEMO_MAP',
-        gestureHandling:'greedy',
-        clickableIcons:true,
-        disableDefaultUI:true
-      });
+      console.log('[WalkNav] 地図初期化開始:', center);
+      
+      try {
+        map = new google.maps.Map(document.getElementById('map'),{
+          center,
+          zoom: 17,
+          mapId: 'DEMO_MAP',
+          gestureHandling:'greedy',
+          clickableIcons:true,
+          disableDefaultUI:true
+        });
 
-      geocoder = new google.maps.Geocoder();
+        geocoder = new google.maps.Geocoder();
 
-      map.addListener('click', (e) => {
-        if(!pointSearchMode) return;
-        if(e.latLng){
-          setSearchPoint(e.latLng.lat(), e.latLng.lng());
-        }
-      });
+        map.addListener('click', (e) => {
+          if(!pointSearchMode) return;
+          if(e.latLng){
+            setSearchPoint(e.latLng.lat(), e.latLng.lng());
+          }
+        });
 
-      mapInitialized = true;
-      console.log('[WalkNav] Map initialized');
+        mapInitialized = true;
+        console.log('[WalkNav] Map initialized successfully');
+      } catch(error) {
+        console.error('[WalkNav] Map initialization error:', error);
+        alert('地図の初期化に失敗しました: ' + error.message);
+      }
     }
 
     function setSearchPoint(lat, lng){
@@ -845,24 +853,55 @@
     }
 
     function acquireLocation(){
+      console.log('[WalkNav] 現在地取得開始...');
+      
       const onOk = (pos)=>{
         const {latitude, longitude} = pos.coords;
-        document.getElementById('loading')?.remove();
-        if(!map) initMap({lat:latitude, lng:longitude});
+        console.log(`[WalkNav] 現在地取得成功: ${latitude}, ${longitude}`);
+        
+        const loadingEl = document.getElementById('loading');
+        if(loadingEl) loadingEl.remove();
+        
+        if(!map) {
+          console.log('[WalkNav] 地図初期化中...');
+          initMap({lat:latitude, lng:longitude});
+        }
         map.setCenter({lat:latitude,lng:longitude});
         setUserMarker(latitude, longitude);
 
         fetchLocationNameGoogle(latitude, longitude);
       };
-      const onErr = (_e)=>{
-        console.log('[WalkNav] geolocation error', _e?.message||_e);
-        document.getElementById('loading')?.remove();
-        if(!map) initMap({lat:35.0,lng:135.0});
+      
+      const onErr = (error)=>{
+        console.error('[WalkNav] 現在地取得エラー:', error);
+        console.error('[WalkNav] エラーコード:', error.code);
+        console.error('[WalkNav] エラーメッセージ:', error.message);
+        
+        const loadingEl = document.getElementById('loading');
+        if(loadingEl) loadingEl.remove();
+        
+        alert(`現在地の取得に失敗しました\nエラー: ${error.message}\n\nデフォルト位置（広島）で起動します`);
+        
+        if(!map) initMap({lat:34.04,lng:134.06});
+        console.log('[WalkNav] デフォルト位置で地図を初期化しました');
       };
+      
       try{
-        navigator.geolocation.getCurrentPosition(onOk,onErr,{enableHighAccuracy:true,timeout:30000,maximumAge:0});
+        if(!navigator.geolocation){
+          console.error('[WalkNav] Geolocation API が利用できません');
+          onErr({code: 0, message: 'Geolocation非対応'});
+          return;
+        }
+        
+        console.log('[WalkNav] Geolocation API 呼び出し中...');
+        navigator.geolocation.getCurrentPosition(onOk, onErr, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
+        });
       }catch(e){
-        console.log('[WalkNav] geolocation exception', e);
+        console.error('[WalkNav] geolocation exception:', e);
+        onErr({code: 0, message: e.message || '不明なエラー'});
       }
     }
 
@@ -1323,18 +1362,29 @@
     }
 
     function startApp(){
-      console.log('[WalkNav] Starting app...');
+      console.log('[WalkNav] アプリケーション起動開始...');
+      console.log('[WalkNav] ISSUE:', ISSUE_ID);
+      
       document.documentElement.lang = 'ja';
+      
+      console.log('[WalkNav] UI バインド開始...');
       bindUI();
+      
+      console.log('[WalkNav] 現在地取得開始...');
       acquireLocation();
+      
+      console.log('[WalkNav] 音声認識初期化...');
       initSpeechRecognition();
-      console.log('[WalkNav] ISSUE', ISSUE_ID, 'boot');
+      
+      console.log('[WalkNav] 起動完了');
     }
 
     function initializeWhenReady(){
       if(typeof google !== 'undefined' && google.maps && google.maps.Map){
+        console.log('[WalkNav] Google Maps API 読み込み完了');
         startApp();
       }else{
+        console.log('[WalkNav] Google Maps API 読み込み待機中...');
         setTimeout(initializeWhenReady, 100);
       }
     }
