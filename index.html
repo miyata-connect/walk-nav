@@ -34,7 +34,7 @@
       z-index:2600;
     }
     .panel{
-      position:absolute;left:16px;right:110px;top:16px;
+      position:absolute;left:16px;right:140px;top:16px;
       background:var(--glass-strong);border:1px solid var(--stroke);
       border-radius:var(--radius);box-shadow:var(--shadow);
       padding:14px 14px 12px;backdrop-filter:blur(10px);
@@ -801,32 +801,83 @@
           return;
         }
         
-        // 現在地の住所を取得して初期値とする
-        const defaultName = document.getElementById('locLabel').textContent.replace('現在地：', '') || '登録地点';
+        // カスタムダイアログで地点名入力
+        const dialogHTML = `
+          <div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;" id="saveLocationDialog">
+            <div style="background:var(--glass-strong);border:1px solid var(--stroke);border-radius:var(--radius);padding:24px;max-width:400px;width:90%;">
+              <h3 style="margin:0 0 16px;font-size:18px;color:var(--text);">現在地点登録画面</h3>
+              <p style="margin:0 0 16px;font-size:14px;color:var(--muted);">登録する地点名を入力してください:</p>
+              <input type="text" id="locationNameInput" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--stroke);background:rgba(255,255,255,0.1);color:var(--text);font-size:16px;outline:none;margin-bottom:16px;" placeholder="地点名を入力" />
+              <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button id="btnCancelSave" style="padding:10px 20px;border-radius:8px;border:none;background:rgba(255,255,255,0.1);color:var(--text);cursor:pointer;">キャンセル</button>
+                <button id="btnConfirmSave" style="padding:10px 20px;border-radius:8px;border:none;background:var(--primary);color:#051a2a;cursor:pointer;">OK</button>
+              </div>
+            </div>
+          </div>
+        `;
         
-        // promptでタイトルを「現在地点登録画面」に変更
-        const locationName = prompt('現在地点登録画面\n\n登録する地点名を入力してください:', defaultName);
+        document.body.insertAdjacentHTML('beforeend', dialogHTML);
         
-        if(locationName === null){
-          // キャンセルされた
-          return;
-        }
+        const dialog = document.getElementById('saveLocationDialog');
+        const input = document.getElementById('locationNameInput');
+        const btnCancel = document.getElementById('btnCancelSave');
+        const btnConfirm = document.getElementById('btnConfirmSave');
         
-        if(!locationName || locationName.trim() === ''){
-          alert('地点名を入力してください');
-          return;
-        }
+        // 入力欄にフォーカス（カーソル点滅）
+        setTimeout(() => input.focus(), 100);
         
-        // TODO: LocalStorageに保存する処理
-        const savedLocation = {
-          name: locationName.trim(),
-          lat: currentPos.lat,
-          lng: currentPos.lng,
-          timestamp: Date.now()
+        // キャンセル
+        btnCancel.onclick = () => {
+          dialog.remove();
         };
         
-        console.log('[SaveLocation] 現在地を登録:', savedLocation);
-        alert(`「${locationName.trim()}」を登録しました\n緯度: ${currentPos.lat.toFixed(6)}\n経度: ${currentPos.lng.toFixed(6)}`);
+        // OK
+        btnConfirm.onclick = () => {
+          const locationName = input.value.trim();
+          
+          if(!locationName){
+            alert('地点名を入力してください');
+            return;
+          }
+          
+          // 保存処理（TODO: LocalStorage）
+          const savedLocation = {
+            name: locationName,
+            lat: currentPos.lat,
+            lng: currentPos.lng,
+            timestamp: Date.now()
+          };
+          
+          console.log('[SaveLocation] 現在地を登録:', savedLocation);
+          
+          // ダイアログを閉じる
+          dialog.remove();
+          
+          // 完了確認ダイアログ
+          const confirmHTML = `
+            <div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;" id="confirmDialog">
+              <div style="background:var(--glass-strong);border:1px solid var(--stroke);border-radius:var(--radius);padding:24px;max-width:400px;width:90%;">
+                <h3 style="margin:0 0 16px;font-size:18px;color:var(--text);">現在地点登録完了</h3>
+                <p style="margin:0 0 8px;font-size:14px;color:var(--text);">「${locationName}」を登録しました</p>
+                <p style="margin:0 0 16px;font-size:12px;color:var(--muted);">緯度: ${currentPos.lat.toFixed(6)}<br>経度: ${currentPos.lng.toFixed(6)}</p>
+                <button id="btnCloseConfirm" style="width:100%;padding:10px;border-radius:8px;border:none;background:var(--primary);color:#051a2a;cursor:pointer;">OK</button>
+              </div>
+            </div>
+          `;
+          
+          document.body.insertAdjacentHTML('beforeend', confirmHTML);
+          
+          document.getElementById('btnCloseConfirm').onclick = () => {
+            document.getElementById('confirmDialog').remove();
+          };
+        };
+        
+        // Enterキーで登録
+        input.addEventListener('keypress', (e) => {
+          if(e.key === 'Enter'){
+            btnConfirm.click();
+          }
+        });
       };
 
       document.getElementById('btnEditLocation').onclick = ()=>{
