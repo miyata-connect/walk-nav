@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WalkNav v2.3</title>
+<title>WalkNav v2.4</title>
 <style>
 :root{
   --glass:rgba(20,28,44,.7);
@@ -20,41 +20,6 @@
 html,body{height:100%;background:#0a1321;color:var(--text);font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif}
 .app{position:relative;height:100dvh;overflow:hidden}
 #map{position:absolute;inset:0;display:none}
-
-/* コントロールパネル */
-.control-panel{
-  position:absolute;
-  left:10px;
-  right:10px;
-  bottom:0;
-  z-index:500;
-  background:var(--glass);
-  border:1px solid var(--stroke);
-  border-radius:16px 16px 0 0;
-  backdrop-filter:blur(14px);
-  padding:16px;
-  transition:transform .3s;
-}
-.control-panel.hidden{transform:translateY(100%)}
-
-.panel-toggle{
-  position:fixed;
-  bottom:10px;
-  left:50%;
-  transform:translateX(-50%);
-  background:var(--accent);
-  border:none;
-  border-radius:12px;
-  padding:14px 40px;
-  color:#000;
-  font-size:15px;
-  font-weight:700;
-  cursor:pointer;
-  z-index:490;
-  display:none;
-  box-shadow:0 4px 12px rgba(0,0,0,.3);
-}
-.panel-toggle.show{display:block}
 
 /* ローディング画面 */
 .loading-screen{
@@ -78,7 +43,7 @@ html,body{height:100%;background:#0a1321;color:var(--text);font-family:system-ui
   position:absolute;
   top:10px;
   left:10px;
-  right:10px;
+  right:80px;
   background:var(--glass);
   border:1px solid var(--stroke);
   border-radius:12px;
@@ -99,9 +64,9 @@ html,body{height:100%;background:#0a1321;color:var(--text);font-family:system-ui
 /* 検索パネル */
 .search-panel{
   position:absolute;
-  top:60px;
+  bottom:10px;
   left:10px;
-  right:10px;
+  right:80px;
   background:var(--glass-strong);
   border:1px solid var(--stroke);
   border-radius:12px;
@@ -109,6 +74,8 @@ html,body{height:100%;background:#0a1321;color:var(--text);font-family:system-ui
   backdrop-filter:blur(14px);
   z-index:450;
   display:none;
+  max-height:60vh;
+  overflow-y:auto;
 }
 .search-box{
   display:flex;
@@ -163,6 +130,29 @@ html,body{height:100%;background:#0a1321;color:var(--text);font-family:system-ui
   font-weight:600;
 }
 
+.search-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-bottom:12px;
+}
+.search-action-btn{
+  background:rgba(255,255,255,.08);
+  border:1px solid var(--stroke);
+  border-radius:8px;
+  padding:10px;
+  color:var(--text);
+  font-size:13px;
+  cursor:pointer;
+  transition:background .2s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+}
+.search-action-btn:hover{background:rgba(255,255,255,.12)}
+.search-action-btn:active{transform:scale(.98)}
+
 .search-results{
   max-height:300px;
   overflow-y:auto;
@@ -197,7 +187,7 @@ html,body{height:100%;background:#0a1321;color:var(--text);font-family:system-ui
   position:absolute;
   top:10px;
   left:10px;
-  right:10px;
+  right:80px;
   background:var(--glass-strong);
   border:1px solid var(--stroke);
   border-radius:12px;
@@ -210,7 +200,6 @@ html,body{height:100%;background:#0a1321;color:var(--text);font-family:system-ui
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-bottom:12px;
 }
 .route-stats{
   display:flex;
@@ -230,21 +219,13 @@ html,body{height:100%;background:#0a1321;color:var(--text);font-family:system-ui
   font-weight:700;
   color:var(--accent);
 }
-.route-end-btn{
-  background:var(--danger);
-  border:none;
-  border-radius:8px;
-  padding:10px 20px;
-  color:#fff;
-  font-weight:600;
-  cursor:pointer;
-}
 
-/* FABボタン */
+/* 右側FABボタン */
 .fab-container{
   position:fixed;
-  right:16px;
-  bottom:80px;
+  right:10px;
+  top:50%;
+  transform:translateY(-50%);
   display:flex;
   flex-direction:column;
   gap:12px;
@@ -264,47 +245,16 @@ html,body{height:100%;background:#0a1321;color:var(--text);font-family:system-ui
   transition:transform .2s;
   color:var(--text);
   font-size:24px;
+  position:relative;
 }
 .fab-btn:active{transform:scale(.9)}
 .fab-btn.active{
   background:var(--ok);
   color:#000;
 }
-.fab-btn.processing{
-  animation:pulse 1s infinite;
-}
-
-/* コントロールボタングリッド */
-.control-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:8px;
-  margin-bottom:12px;
-}
-.control-btn{
-  background:rgba(255,255,255,.08);
-  border:1px solid var(--stroke);
-  border-radius:8px;
-  padding:12px;
-  color:var(--text);
-  font-size:13px;
-  cursor:pointer;
-  transition:background .2s;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:6px;
-}
-.control-btn:hover{background:rgba(255,255,255,.12)}
-.control-btn:active{transform:scale(.98)}
-.control-btn.active{
-  background:var(--primary);
-  color:#000;
-  font-weight:600;
-}
-.control-btn.disabled{
-  opacity:.4;
-  cursor:not-allowed;
+.fab-btn.danger{
+  background:var(--danger);
+  color:#fff;
 }
 
 /* 保存地点パネル */
@@ -494,107 +444,6 @@ html,body{height:100%;background:#0a1321;color:var(--text);font-family:system-ui
 }
 .toast.success{border-color:var(--ok);color:var(--ok)}
 .toast.error{border-color:var(--danger);color:var(--danger)}
-
-/* APIキー設定モーダル */
-.api-setup{
-  position:fixed;
-  inset:0;
-  background:linear-gradient(135deg,#0a1321 0%,#1e2a3e 100%);
-  z-index:9999;
-  display:none;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  padding:20px;
-}
-.api-setup.show{display:flex}
-.api-setup-content{
-  width:100%;
-  max-width:500px;
-  background:var(--glass-strong);
-  border:1px solid var(--stroke);
-  border-radius:16px;
-  backdrop-filter:blur(14px);
-  padding:30px;
-}
-.api-setup-title{
-  font-size:24px;
-  font-weight:700;
-  margin-bottom:20px;
-  text-align:center;
-}
-.api-setup-desc{
-  font-size:14px;
-  color:var(--muted);
-  margin-bottom:20px;
-  line-height:1.6;
-}
-.api-input-group{
-  margin-bottom:20px;
-}
-.api-input-label{
-  font-size:13px;
-  color:var(--accent);
-  margin-bottom:8px;
-  display:block;
-}
-.api-input{
-  width:100%;
-  background:rgba(255,255,255,.08);
-  border:1px solid var(--stroke);
-  border-radius:8px;
-  padding:12px;
-  color:var(--text);
-  font-size:14px;
-  font-family:monospace;
-}
-.api-input::placeholder{color:var(--muted)}
-.api-setup-btn{
-  width:100%;
-  background:var(--primary);
-  border:none;
-  border-radius:8px;
-  padding:14px;
-  color:#000;
-  font-size:15px;
-  font-weight:700;
-  cursor:pointer;
-  transition:transform .1s;
-}
-.api-setup-btn:active{transform:scale(.98)}
-.api-setup-note{
-  font-size:12px;
-  color:var(--muted);
-  margin-top:16px;
-  padding-top:16px;
-  border-top:1px solid var(--stroke);
-}
-
-/* デバッグパネル */
-.debug-panel{
-  position:fixed;
-  top:10px;
-  right:10px;
-  background:var(--glass-strong);
-  border:1px solid var(--accent);
-  border-radius:8px;
-  padding:10px;
-  max-width:300px;
-  max-height:200px;
-  overflow-y:auto;
-  z-index:9000;
-  display:none;
-  font-size:11px;
-  font-family:monospace;
-}
-.debug-panel.show{display:block}
-.debug-log{
-  margin-bottom:4px;
-  color:var(--muted);
-}
-.debug-log.error{color:var(--danger)}
-.debug-log.success{color:var(--ok)}
-.debug-log.info{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -605,43 +454,7 @@ html,body{height:100%;background:#0a1321;color:var(--text);font-family:system-ui
   <!-- ローディング画面 -->
   <div class="loading-screen" id="loadingScreen">
     <div class="loading-logo">🚶</div>
-    <div class="loading-text">WalkNav v2.3</div>
-  </div>
-  
-  <!-- APIキー設定画面(無効化) -->
-  <div class="api-setup" id="apiSetup" style="display:none !important;">
-    <div class="api-setup-content">
-      <div class="api-setup-title">🗺️ Google Maps API設定</div>
-      <div class="api-setup-desc">
-        WalkNavを使用するには、Google Maps APIキーが必要です。<br>
-        既存のAPIキーをお持ちの場合は入力してください。
-      </div>
-      
-      <div class="api-input-group">
-        <label class="api-input-label">APIキー</label>
-        <input type="text" class="api-input" id="apiKeyInput" 
-          placeholder="例: AIzaSyD..." 
-          value="">
-      </div>
-      
-      <button class="api-setup-btn" onclick="setupApiKey()">APIキーを設定</button>
-      <button class="api-setup-btn" onclick="useDefaultKey()" style="margin-top:10px;background:rgba(255,255,255,.1);color:var(--text);">
-        デモモードで続行(機能制限あり)
-      </button>
-      
-      <div class="api-setup-note">
-        ※ APIキーの取得方法:<br>
-        1. <a href="https://console.cloud.google.com/" target="_blank" style="color:var(--accent);">Google Cloud Console</a>にアクセス<br>
-        2. Maps JavaScript API, Places API, Geocoding APIを有効化<br>
-        3. APIキーを作成し、上記に入力
-      </div>
-    </div>
-  </div>
-  
-  <!-- デバッグパネル -->
-  <div class="debug-panel" id="debugPanel">
-    <div style="font-weight:bold;margin-bottom:8px;color:var(--accent)">🐛 Debug Log</div>
-    <div id="debugLog"></div>
+    <div class="loading-text">WalkNav v2.4</div>
   </div>
   
   <!-- 現在地表示パネル -->
@@ -650,21 +463,6 @@ html,body{height:100%;background:#0a1321;color:var(--text);font-family:system-ui
       <span class="icon">📍</span>
       <span id="locationText">現在地を取得中...</span>
     </div>
-  </div>
-  
-  <!-- 検索パネル -->
-  <div class="search-panel" id="searchPanel">
-    <div class="search-box">
-      <input type="text" class="search-input" id="searchInput" placeholder="場所を検索...">
-      <button class="search-button" onclick="searchPlaces()">検索</button>
-    </div>
-    <div class="search-options">
-      <div class="search-range">
-        <button class="range-btn active" data-range="10000" onclick="setSearchRange(this)">10km</button>
-        <button class="range-btn" data-range="20000" onclick="setSearchRange(this)">20km</button>
-      </div>
-    </div>
-    <div class="search-results" id="searchResults"></div>
   </div>
   
   <!-- ルート案内パネル -->
@@ -680,38 +478,46 @@ html,body{height:100%;background:#0a1321;color:var(--text);font-family:system-ui
           <div class="stat-value" id="routeDuration">--</div>
         </div>
       </div>
-      <button class="route-end-btn" onclick="endRoute()">ルート終了</button>
     </div>
   </div>
   
-  <!-- FABボタン群 -->
-  <div class="fab-container" id="fabContainer">
-    <button class="fab-btn" id="fabSearchToggle" onclick="toggleSearchPanel()" title="検索パネル">🔍</button>
-    <button class="fab-btn" id="fabPointSelect" onclick="togglePointSelect()" title="ポイント選択">📍</button>
-    <button class="fab-btn" id="fabSaved" onclick="showSavedLocations()" title="保存地点">⭐</button>
-    <button class="fab-btn" id="fabDebug" onclick="toggleDebug()" title="デバッグ">🐛</button>
-  </div>
-  
-  <!-- コントロールパネル -->
-  <div class="control-panel" id="controlPanel">
-    <div class="control-grid">
-      <button class="control-btn" id="btnTextSearch" onclick="focusSearch()">
-        <span>🔤</span>テキスト検索
-      </button>
-      <button class="control-btn" id="btnVoiceSearch" onclick="startVoiceSearch()">
+  <!-- 検索パネル -->
+  <div class="search-panel" id="searchPanel">
+    <div class="search-box">
+      <input type="text" class="search-input" id="searchInput" placeholder="場所を検索...">
+      <button class="search-button" onclick="searchPlaces()">検索</button>
+    </div>
+    <div class="search-options">
+      <div class="search-range">
+        <button class="range-btn active" data-range="10000" onclick="setSearchRange(this)">10km</button>
+        <button class="range-btn" data-range="20000" onclick="setSearchRange(this)">20km</button>
+      </div>
+    </div>
+    <div class="search-actions">
+      <button class="search-action-btn" onclick="startVoiceSearch()">
         <span>🎤</span>音声検索
       </button>
-      <button class="control-btn" id="btnSaveLocation" onclick="saveCurrentLocation()">
-        <span>📌</span>現在地登録
+      <button class="search-action-btn" onclick="togglePointSelect()">
+        <span>📍</span>地点選択
       </button>
-      <button class="control-btn" id="btnEditSaved" onclick="showSavedLocations(true)">
-        <span>✏️</span>登録地点修正
+      <button class="search-action-btn" onclick="saveCurrentLocation()">
+        <span>💾</span>現在地登録
+      </button>
+      <button class="search-action-btn" onclick="showSavedLocations()">
+        <span>⭐</span>保存地点
       </button>
     </div>
+    <div class="search-results" id="searchResults"></div>
   </div>
   
-  <!-- パネル開閉ボタン -->
-  <button class="panel-toggle" id="panelToggle" onclick="togglePanel()">コントロール</button>
+  <!-- 右側FABボタン群 -->
+  <div class="fab-container" id="fabContainer">
+    <button class="fab-btn" id="fabSearch" onclick="toggleSearchPanel()" title="検索パネル">🔍</button>
+    <button class="fab-btn" id="fabCurrentLocation" onclick="moveToCurrentLocation()" title="現在地">📍</button>
+    <button class="fab-btn" id="fabDestination" onclick="setDestinationMode()" title="目的地設定">🎯</button>
+    <button class="fab-btn danger" id="fabStopNav" onclick="stopNavigation()" title="案内停止" style="display:none">⏹️</button>
+    <button class="fab-btn" id="fabReroute" onclick="rerouteNavigation()" title="リルート" style="display:none">🔄</button>
+  </div>
   
   <!-- 保存地点パネル -->
   <div class="saved-panel" id="savedPanel">
@@ -741,44 +547,6 @@ html,body{height:100%;background:#0a1321;color:var(--text);font-family:system-ui
 </div>
 
 <script>
-// デバッグログ機能
-const DEBUG_ENABLED = true;
-const debugLogs = [];
-
-function debugLog(message, type = 'info') {
-  const timestamp = new Date().toLocaleTimeString('ja-JP');
-  const log = `[${timestamp}] ${message}`;
-  debugLogs.push({message: log, type});
-  
-  if (DEBUG_ENABLED) {
-    console.log(`[DEBUG] ${log}`);
-  }
-  
-  updateDebugPanel();
-}
-
-function updateDebugPanel() {
-  const panel = document.getElementById('debugLog');
-  if (panel) {
-    panel.innerHTML = debugLogs.slice(-20).reverse().map(log => 
-      `<div class="debug-log ${log.type}">${log.message}</div>`
-    ).join('');
-  }
-}
-
-function toggleDebug() {
-  const panel = document.getElementById('debugPanel');
-  const btn = document.getElementById('fabDebug');
-  
-  if (panel.classList.contains('show')) {
-    panel.classList.remove('show');
-    btn.classList.remove('active');
-  } else {
-    panel.classList.add('show');
-    btn.classList.add('active');
-  }
-}
-
 // グローバル変数
 let map;
 let currentPos = null;
@@ -788,10 +556,11 @@ let searchMarkers = [];
 let routePolyline = null;
 let searchRange = 10000;
 let pointSearchMode = false;
+let destinationMode = false;
 let searchPoint = null;
 let searchPointMarker = null;
 let savedLocations = [];
-let isEditMode = false;
+let isNavigating = false;
 
 // Worker URL
 const WORKER_URL = 'https://ors-proxy.miyata-connect-jp.workers.dev';
@@ -801,22 +570,18 @@ const API_KEY = 'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk';
 
 // 初期化
 window.onload = () => {
-  debugLog('アプリケーション起動', 'success');
   loadGoogleMapsAPI();
   loadSavedLocations();
 };
 
 // Google Maps API読み込み
 function loadGoogleMapsAPI() {
-  debugLog('Google Maps API読み込み開始');
-  
   const script = document.createElement('script');
   script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places,marker,geometry&callback=initMapCallback&language=ja`;
   script.async = true;
   script.defer = true;
   
   script.onerror = function() {
-    debugLog('Google Maps API読み込みエラー', 'error');
     console.error('Google Maps API読み込みエラー');
     setTimeout(() => {
       document.getElementById('loadingScreen').classList.add('fade-out');
@@ -828,27 +593,14 @@ function loadGoogleMapsAPI() {
 
 // API認証エラーハンドリング
 window.gm_authFailure = function() {
-  debugLog('Google Maps API認証失敗', 'error');
   console.error('Google Maps API認証失敗');
   setTimeout(() => {
     document.getElementById('loadingScreen').classList.add('fade-out');
   }, 500);
 };
 
-// APIエラー処理
-function handleApiError(errorType) {
-  debugLog(`APIエラー: ${errorType}`, 'error');
-  console.log(`APIエラー: ${errorType}`);
-  console.log('APIエラーが発生しましたが続行します');
-  
-  setTimeout(() => {
-    document.getElementById('loadingScreen').classList.add('fade-out');
-  }, 500);
-}
-
 // Google Maps初期化コールバック
 function initMapCallback() {
-  debugLog('地図初期化コールバック実行', 'info');
   initMap();
   
   setTimeout(() => {
@@ -859,7 +611,6 @@ function initMapCallback() {
 // Google Maps初期化
 function initMap() {
   const defaultPos = {lat: 35.681236, lng: 139.767125};
-  debugLog(`地図初期化開始: ${defaultPos.lat}, ${defaultPos.lng}`);
   
   map = new google.maps.Map(document.getElementById('map'), {
     center: defaultPos,
@@ -874,11 +625,9 @@ function initMap() {
   });
   
   document.getElementById('map').style.display = 'block';
-  debugLog('地図表示完了', 'success');
   
   // 現在地取得
   if (navigator.geolocation) {
-    debugLog('位置情報取得開始');
     navigator.geolocation.getCurrentPosition(
       position => {
         currentPos = {
@@ -886,7 +635,6 @@ function initMap() {
           lng: position.coords.longitude
         };
         
-        debugLog(`現在地取得成功: ${currentPos.lat}, ${currentPos.lng}`, 'success');
         map.setCenter(currentPos);
         
         // 現在地マーカー
@@ -905,7 +653,6 @@ function initMap() {
             content: pin,
             title: '現在地'
           });
-          debugLog('AdvancedMarkerElement使用', 'info');
         } else {
           currentMarker = new google.maps.Marker({
             map,
@@ -920,7 +667,6 @@ function initMap() {
               strokeWeight: 3
             }
           });
-          debugLog('従来のMarker使用', 'info');
         }
         
         // 住所取得
@@ -930,14 +676,10 @@ function initMap() {
             const address = results[0].formatted_address.replace('日本、', '');
             document.getElementById('locationText').textContent = `現在地: ${address}`;
             document.getElementById('locationPanel').style.display = 'block';
-            debugLog(`住所取得成功: ${address}`, 'success');
-          } else {
-            debugLog(`住所取得失敗: ${status}`, 'error');
           }
         });
       },
       error => {
-        debugLog(`位置情報取得エラー: ${error.message}`, 'error');
         console.error('位置情報取得エラー:', error);
         showToast('位置情報を取得できませんでした', 'error');
       },
@@ -947,15 +689,14 @@ function initMap() {
         maximumAge: 0
       }
     );
-  } else {
-    debugLog('位置情報API未対応', 'error');
   }
   
-  // 地図タップイベント(ポイント選択モード時)
+  // 地図タップイベント
   map.addListener('click', (e) => {
     if (pointSearchMode) {
-      debugLog(`地図タップ: ${e.latLng.lat()}, ${e.latLng.lng()}`);
       setSearchPoint(e.latLng.lat(), e.latLng.lng());
+    } else if (destinationMode) {
+      setDestination(e.latLng.lat(), e.latLng.lng());
     }
   });
 }
@@ -963,7 +704,6 @@ function initMap() {
 // 検索地点設定
 function setSearchPoint(lat, lng) {
   searchPoint = {lat, lng};
-  debugLog(`検索地点設定: ${lat}, ${lng}`);
   
   if (searchPointMarker) {
     if (searchPointMarker.map) {
@@ -1004,7 +744,6 @@ function setSearchPoint(lat, lng) {
     });
   }
   
-  // 地名取得
   const geocoder = new google.maps.Geocoder();
   geocoder.geocode({location: {lat, lng}}, (results, status) => {
     if (status === 'OK' && results[0]) {
@@ -1016,18 +755,60 @@ function setSearchPoint(lat, lng) {
   map.panTo({lat, lng});
 }
 
-// ポイント選択モード切替
-function togglePointSelect() {
-  const btn = document.getElementById('fabPointSelect');
-  pointSearchMode = !pointSearchMode;
+// 目的地設定
+function setDestination(lat, lng) {
+  destinationMode = false;
+  document.getElementById('fabDestination').classList.remove('active');
   
-  debugLog(`ポイント選択モード: ${pointSearchMode ? 'ON' : 'OFF'}`);
+  const place = {
+    location: {
+      latitude: lat,
+      longitude: lng
+    },
+    displayName: {
+      text: '選択した地点'
+    }
+  };
   
-  if (pointSearchMode) {
+  startNavigation(place);
+}
+
+// 現在地に移動
+function moveToCurrentLocation() {
+  if (currentPos) {
+    map.setCenter(currentPos);
+    map.setZoom(17);
+    showToast('現在地に移動しました', 'success');
+  } else {
+    showToast('現在地が取得できていません', 'error');
+  }
+}
+
+// 目的地設定モード切替
+function setDestinationMode() {
+  const btn = document.getElementById('fabDestination');
+  destinationMode = !destinationMode;
+  
+  if (destinationMode) {
     btn.classList.add('active');
-    showToast('地図上をタップして検索地点を設定', 'success');
+    showToast('地図上をタップして目的地を設定', 'success');
+    // ポイント選択モードは解除
+    pointSearchMode = false;
   } else {
     btn.classList.remove('active');
+  }
+}
+
+// ポイント選択モード切替
+function togglePointSelect() {
+  pointSearchMode = !pointSearchMode;
+  
+  if (pointSearchMode) {
+    showToast('地図上をタップして検索地点を設定', 'success');
+    // 目的地設定モードは解除
+    destinationMode = false;
+    document.getElementById('fabDestination').classList.remove('active');
+  } else {
     if (searchPointMarker) {
       if (searchPointMarker.map) {
         searchPointMarker.map = null;
@@ -1043,17 +824,15 @@ function togglePointSelect() {
 // 検索パネル切替
 function toggleSearchPanel() {
   const panel = document.getElementById('searchPanel');
-  const fab = document.getElementById('fabSearchToggle');
+  const fab = document.getElementById('fabSearch');
   
   if (panel.style.display === 'block') {
     panel.style.display = 'none';
     fab.classList.remove('active');
-    debugLog('検索パネルを閉じた');
   } else {
     panel.style.display = 'block';
     fab.classList.add('active');
     document.getElementById('searchInput').focus();
-    debugLog('検索パネルを開いた');
   }
 }
 
@@ -1062,7 +841,6 @@ function setSearchRange(btn) {
   document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   searchRange = parseInt(btn.dataset.range);
-  debugLog(`検索範囲設定: ${searchRange}m`);
 }
 
 // 場所検索
@@ -1073,12 +851,9 @@ async function searchPlaces() {
     return;
   }
   
-  debugLog(`検索開始: "${query}"`);
-  
   const searchOrigin = searchPoint || currentPos;
   if (!searchOrigin) {
     showToast('現在地が取得できていません', 'error');
-    debugLog('検索起点未設定', 'error');
     return;
   }
   
@@ -1105,7 +880,6 @@ async function searchPlaces() {
     });
     
     const data = await response.json();
-    debugLog(`検索結果: ${data.places ? data.places.length : 0}件`, 'success');
     
     if (data.places && data.places.length > 0) {
       displaySearchResults(data.places, searchOrigin);
@@ -1113,7 +887,6 @@ async function searchPlaces() {
       showToast('検索結果が見つかりませんでした', 'error');
     }
   } catch (error) {
-    debugLog(`検索エラー: ${error.message}`, 'error');
     console.error('検索エラー:', error);
     showToast('検索中にエラーが発生しました', 'error');
   }
@@ -1121,7 +894,6 @@ async function searchPlaces() {
 
 // 検索結果表示
 function displaySearchResults(places, origin) {
-  debugLog('検索結果表示開始');
   const resultsDiv = document.getElementById('searchResults');
   resultsDiv.innerHTML = '';
   
@@ -1213,15 +985,12 @@ function displaySearchResults(places, origin) {
       }
     });
     map.fitBounds(bounds);
-    debugLog('地図範囲を調整', 'success');
   }
 }
 
 // ナビゲーション開始
 async function startNavigation(place) {
   if (!place.location) return;
-  
-  debugLog(`ナビ開始: ${place.displayName?.text || '目的地'}`);
   
   const origin = searchPoint || currentPos;
   if (!origin) {
@@ -1280,7 +1049,6 @@ async function startNavigation(place) {
   }
   
   try {
-    debugLog('ルート取得開始');
     const response = await fetch(`${WORKER_URL}/directions`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -1303,14 +1071,16 @@ async function startNavigation(place) {
       document.getElementById('routeDuration').textContent = leg.duration.text;
       document.getElementById('routePanel').style.display = 'block';
       
-      debugLog(`ルート取得成功: ${leg.distance.text}, ${leg.duration.text}`, 'success');
+      // ナビゲーション中フラグ
+      isNavigating = true;
+      document.getElementById('fabStopNav').style.display = 'flex';
+      document.getElementById('fabReroute').style.display = 'flex';
       
       document.getElementById('searchPanel').style.display = 'none';
-      document.getElementById('fabSearchToggle').classList.remove('active');
+      document.getElementById('fabSearch').classList.remove('active');
       clearSearchMarkers();
     }
   } catch (error) {
-    debugLog(`ルート取得エラー: ${error.message}`, 'error');
     console.error('ルート取得エラー:', error);
     showToast('ルート取得に失敗しました', 'error');
   }
@@ -1333,8 +1103,6 @@ function drawRoute(route) {
     map: map
   });
   
-  debugLog('ルート描画完了', 'success');
-  
   const bounds = new google.maps.LatLngBounds();
   path.forEach(point => bounds.extend(point));
   map.fitBounds(bounds);
@@ -1354,10 +1122,8 @@ function drawRoute(route) {
   }, 4000);
 }
 
-// ルート終了
-function endRoute() {
-  debugLog('ルート終了');
-  
+// 案内停止
+function stopNavigation() {
   if (routePolyline) {
     routePolyline.setMap(null);
     routePolyline = null;
@@ -1377,15 +1143,44 @@ function endRoute() {
   document.getElementById('searchResults').innerHTML = '';
   document.getElementById('searchInput').value = '';
   
+  isNavigating = false;
+  document.getElementById('fabStopNav').style.display = 'none';
+  document.getElementById('fabReroute').style.display = 'none';
+  
   if (currentPos) {
     map.setCenter(currentPos);
     map.setZoom(17);
   }
+  
+  showToast('案内を停止しました', 'success');
+}
+
+// リルート
+function rerouteNavigation() {
+  if (!isNavigating || !destMarker) {
+    showToast('案内中ではありません', 'error');
+    return;
+  }
+  
+  const destPos = destMarker.position || destMarker.getPosition();
+  if (!destPos) return;
+  
+  const place = {
+    location: {
+      latitude: destPos.lat(),
+      lng: destPos.lng()
+    },
+    displayName: {
+      text: '目的地'
+    }
+  };
+  
+  showToast('ルートを再計算中...', 'success');
+  startNavigation(place);
 }
 
 // 検索マーカークリア
 function clearSearchMarkers() {
-  debugLog(`検索マーカークリア: ${searchMarkers.length}個`);
   searchMarkers.forEach(marker => {
     if (marker.map) {
       marker.map = null;
@@ -1396,23 +1191,12 @@ function clearSearchMarkers() {
   searchMarkers = [];
 }
 
-// 検索フォーカス
-function focusSearch() {
-  document.getElementById('searchPanel').style.display = 'block';
-  document.getElementById('fabSearchToggle').classList.add('active');
-  document.getElementById('searchInput').focus();
-  debugLog('検索入力フォーカス');
-}
-
 // 音声検索
 function startVoiceSearch() {
   if (!('webkitSpeechRecognition' in window)) {
     showToast('音声認識はこのブラウザでサポートされていません', 'error');
-    debugLog('音声認識API未対応', 'error');
     return;
   }
-  
-  debugLog('音声検索開始');
   
   const recognition = new webkitSpeechRecognition();
   recognition.lang = 'ja-JP';
@@ -1421,20 +1205,15 @@ function startVoiceSearch() {
   
   recognition.onstart = () => {
     showToast('🎤 音声入力中...', 'success');
-    debugLog('音声認識開始');
   };
   
   recognition.onresult = (event) => {
     const transcript = event.results[0][0].transcript;
-    debugLog(`音声認識結果: "${transcript}"`, 'success');
     document.getElementById('searchInput').value = transcript;
-    document.getElementById('searchPanel').style.display = 'block';
-    document.getElementById('fabSearchToggle').classList.add('active');
     searchPlaces();
   };
   
   recognition.onerror = (event) => {
-    debugLog(`音声認識エラー: ${event.error}`, 'error');
     showToast('音声認識エラー', 'error');
   };
   
@@ -1445,11 +1224,8 @@ function startVoiceSearch() {
 function saveCurrentLocation() {
   if (!currentPos) {
     showToast('現在地が取得できていません', 'error');
-    debugLog('現在地未設定のため登録不可', 'error');
     return;
   }
-  
-  debugLog('現在地登録開始');
   
   const geocoder = new google.maps.Geocoder();
   geocoder.geocode({location: currentPos}, (results, status) => {
@@ -1468,7 +1244,6 @@ function saveCurrentLocation() {
         });
         saveSavedLocations();
         showToast('地点を登録しました', 'success');
-        debugLog(`地点登録: ${name}`, 'success');
       }
     });
   });
@@ -1478,9 +1253,7 @@ function saveCurrentLocation() {
 function saveSavedLocations() {
   try {
     localStorage.setItem('walkNavSavedLocations', JSON.stringify(savedLocations));
-    debugLog(`保存地点を保存: ${savedLocations.length}件`, 'success');
   } catch (error) {
-    debugLog(`LocalStorage保存エラー: ${error.message}`, 'error');
     showToast('保存に失敗しました', 'error');
   }
 }
@@ -1491,24 +1264,19 @@ function loadSavedLocations() {
     const saved = localStorage.getItem('walkNavSavedLocations');
     if (saved) {
       savedLocations = JSON.parse(saved);
-      debugLog(`保存地点を読込: ${savedLocations.length}件`, 'success');
     }
   } catch (e) {
-    debugLog(`LocalStorage読込エラー: ${e.message}`, 'error');
     savedLocations = [];
   }
 }
 
 // 保存地点表示
-function showSavedLocations(editMode = false) {
-  isEditMode = editMode;
-  debugLog(`保存地点パネル表示: ${editMode ? '編集' : '通常'}モード`);
-  
+function showSavedLocations() {
   const panel = document.getElementById('savedPanel');
   const title = document.getElementById('savedTitle');
   const list = document.getElementById('savedList');
   
-  title.textContent = editMode ? '登録地点修正' : '保存地点';
+  title.textContent = '保存地点';
   list.innerHTML = '';
   
   if (savedLocations.length === 0) {
@@ -1536,25 +1304,23 @@ function showSavedLocations(editMode = false) {
       const actions = document.createElement('div');
       actions.className = 'saved-actions';
       
-      if (editMode) {
-        const editBtn = document.createElement('button');
-        editBtn.className = 'saved-btn edit';
-        editBtn.textContent = '名称変更';
-        editBtn.onclick = () => editLocation(index);
-        actions.appendChild(editBtn);
-        
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'saved-btn delete';
-        deleteBtn.textContent = '削除';
-        deleteBtn.onclick = () => deleteLocation(index);
-        actions.appendChild(deleteBtn);
-      } else {
-        const navBtn = document.createElement('button');
-        navBtn.className = 'saved-btn nav';
-        navBtn.textContent = 'ナビ開始';
-        navBtn.onclick = () => navigateToSaved(location);
-        actions.appendChild(navBtn);
-      }
+      const navBtn = document.createElement('button');
+      navBtn.className = 'saved-btn nav';
+      navBtn.textContent = 'ナビ開始';
+      navBtn.onclick = () => navigateToSaved(location);
+      actions.appendChild(navBtn);
+      
+      const editBtn = document.createElement('button');
+      editBtn.className = 'saved-btn edit';
+      editBtn.textContent = '名称変更';
+      editBtn.onclick = () => editLocation(index);
+      actions.appendChild(editBtn);
+      
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'saved-btn delete';
+      deleteBtn.textContent = '削除';
+      deleteBtn.onclick = () => deleteLocation(index);
+      actions.appendChild(deleteBtn);
       
       item.appendChild(actions);
       list.appendChild(item);
@@ -1566,7 +1332,6 @@ function showSavedLocations(editMode = false) {
 
 // 保存地点へナビゲーション
 function navigateToSaved(location) {
-  debugLog(`保存地点からナビ開始: ${location.name}`);
   closeSavedPanel();
   
   const place = {
@@ -1585,15 +1350,13 @@ function navigateToSaved(location) {
 // 地点名編集
 function editLocation(index) {
   const location = savedLocations[index];
-  debugLog(`地点名編集: ${location.name}`);
   
   showDialog('地点名を変更', location.name, (newName) => {
     if (newName && newName !== location.name) {
       savedLocations[index].name = newName;
       saveSavedLocations();
-      showSavedLocations(true);
+      showSavedLocations();
       showToast('地点名を変更しました', 'success');
-      debugLog(`地点名変更: ${location.name} → ${newName}`, 'success');
     }
   });
 }
@@ -1601,10 +1364,9 @@ function editLocation(index) {
 // 地点削除
 function deleteLocation(index) {
   if (confirm(`「${savedLocations[index].name}」を削除しますか?`)) {
-    debugLog(`地点削除: ${savedLocations[index].name}`);
     savedLocations.splice(index, 1);
     saveSavedLocations();
-    showSavedLocations(true);
+    showSavedLocations();
     showToast('地点を削除しました', 'success');
   }
 }
@@ -1612,13 +1374,10 @@ function deleteLocation(index) {
 // 保存地点パネル閉じる
 function closeSavedPanel() {
   document.getElementById('savedPanel').style.display = 'none';
-  debugLog('保存地点パネルを閉じた');
 }
 
 // カスタムダイアログ表示
 function showDialog(title, defaultValue, callback) {
-  debugLog(`ダイアログ表示: ${title}`);
-  
   const dialog = document.getElementById('customDialog');
   const dialogTitle = document.getElementById('dialogTitle');
   const dialogInput = document.getElementById('dialogInput');
@@ -1651,23 +1410,6 @@ function showDialog(title, defaultValue, callback) {
 // ダイアログ閉じる
 function closeDialog() {
   document.getElementById('customDialog').style.display = 'none';
-  debugLog('ダイアログを閉じた');
-}
-
-// パネル切替
-function togglePanel() {
-  const panel = document.getElementById('controlPanel');
-  const toggle = document.getElementById('panelToggle');
-  
-  if (panel.classList.contains('hidden')) {
-    panel.classList.remove('hidden');
-    toggle.classList.remove('show');
-    debugLog('コントロールパネルを表示');
-  } else {
-    panel.classList.add('hidden');
-    toggle.classList.add('show');
-    debugLog('コントロールパネルを非表示');
-  }
 }
 
 // トースト表示
@@ -1676,8 +1418,6 @@ function showToast(message, type = 'success') {
   toast.textContent = message;
   toast.className = `toast ${type}`;
   toast.classList.add('show');
-  
-  debugLog(`トースト: ${message} (${type})`);
   
   setTimeout(() => {
     toast.classList.remove('show');
@@ -1702,22 +1442,20 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 
 // Enterキーで検索
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('searchInput').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      searchPlaces();
-    }
-  });
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        searchPlaces();
+      }
+    });
+  }
   
   // ESCキーでダイアログを閉じる
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeDialog();
       closeSavedPanel();
-      
-      const debugPanel = document.getElementById('debugPanel');
-      if (debugPanel.classList.contains('show')) {
-        toggleDebug();
-      }
     }
   });
 });
