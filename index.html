@@ -840,13 +840,16 @@
             return;
           }
           
-          // 保存処理（TODO: LocalStorage）
+          // LocalStorageに保存
+          const locations = JSON.parse(localStorage.getItem('savedLocations') || '[]');
           const savedLocation = {
             name: locationName,
             lat: currentPos.lat,
             lng: currentPos.lng,
             timestamp: Date.now()
           };
+          locations.push(savedLocation);
+          localStorage.setItem('savedLocations', JSON.stringify(locations));
           
           console.log('[SaveLocation] 現在地を登録:', savedLocation);
           
@@ -881,9 +884,203 @@
       };
 
       document.getElementById('btnEditLocation').onclick = ()=>{
-        // TODO: 登録地点の修正画面を表示
-        console.log('[EditLocation] 登録地点修正');
-        alert('登録地点修正機能は準備中です');
+        // LocalStorageから登録地点を取得
+        const locations = JSON.parse(localStorage.getItem('savedLocations') || '[]');
+        
+        if(locations.length === 0){
+          const emptyHTML = `
+            <div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;" id="editDialog">
+              <div style="background:var(--glass-strong);border:1px solid var(--stroke);border-radius:var(--radius);padding:24px;max-width:400px;width:90%;">
+                <h3 style="margin:0 0 16px;font-size:18px;color:var(--text);">登録地点修正</h3>
+                <p style="margin:0 0 16px;font-size:14px;color:var(--muted);">登録された地点がありません</p>
+                <button id="btnCloseEmpty" style="width:100%;padding:10px;border-radius:8px;border:none;background:var(--primary);color:#051a2a;cursor:pointer;">閉じる</button>
+              </div>
+            </div>
+          `;
+          document.body.insertAdjacentHTML('beforeend', emptyHTML);
+          document.getElementById('btnCloseEmpty').onclick = () => {
+            document.getElementById('editDialog').remove();
+          };
+          return;
+        }
+        
+        // 地点リストを表示
+        let listHTML = '';
+        locations.forEach((loc, index) => {
+          listHTML += `
+            <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:12px;margin-bottom:8px;">
+              <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:4px;">${loc.name}</div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">緯度: ${loc.lat.toFixed(6)} / 経度: ${loc.lng.toFixed(6)}</div>
+              <div style="display:flex;gap:8px;">
+                <button class="btnNavTo" data-index="${index}" style="flex:1;padding:8px;border-radius:6px;border:none;background:var(--primary);color:#051a2a;cursor:pointer;font-size:13px;">ナビ開始</button>
+                <button class="btnEditName" data-index="${index}" style="flex:1;padding:8px;border-radius:6px;border:none;background:rgba(255,255,255,0.1);color:var(--text);cursor:pointer;font-size:13px;">名前変更</button>
+                <button class="btnDelete" data-index="${index}" style="flex:1;padding:8px;border-radius:6px;border:none;background:var(--danger);color:#240808;cursor:pointer;font-size:13px;">削除</button>
+              </div>
+            </div>
+          `;
+        });
+        
+        const dialogHTML = `
+          <div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;overflow:auto;" id="editDialog">
+            <div style="background:var(--glass-strong);border:1px solid var(--stroke);border-radius:var(--radius);padding:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;margin:20px;">
+              <h3 style="margin:0 0 16px;font-size:18px;color:var(--text);">登録地点修正</h3>
+              <div id="locationList">${listHTML}</div>
+              <button id="btnCloseEdit" style="width:100%;padding:10px;border-radius:8px;border:none;background:rgba(255,255,255,0.1);color:var(--text);cursor:pointer;margin-top:16px;">閉じる</button>
+            </div>
+          </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', dialogHTML);
+        
+        const dialog = document.getElementById('editDialog');
+        
+        // 閉じるボタン
+        document.getElementById('btnCloseEdit').onclick = () => {
+          dialog.remove();
+        };
+        
+        // ナビ開始ボタン
+        document.querySelectorAll('.btnNavTo').forEach(btn => {
+          btn.onclick = () => {
+            const index = parseInt(btn.dataset.index);
+            const loc = locations[index];
+            dialog.remove();
+            
+            // 検索パネルを非表示
+            document.getElementById('searchPanel').style.display = 'none';
+            
+            // ナビ開始
+            startNavigation({
+              name: loc.name,
+              lat: loc.lat,
+              lng: loc.lng
+            });
+          };
+        });
+        
+        // 名前変更ボタン
+        document.querySelectorAll('.btnEditName').forEach(btn => {
+          btn.onclick = () => {
+            const index = parseInt(btn.dataset.index);
+            const loc = locations[index];
+            
+            const renameHTML = `
+              <div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:10000;" id="renameDialog">
+                <div style="background:var(--glass-strong);border:1px solid var(--stroke);border-radius:var(--radius);padding:24px;max-width:400px;width:90%;">
+                  <h3 style="margin:0 0 16px;font-size:18px;color:var(--text);">地点名変更</h3>
+                  <input type="text" id="renameInput" value="${loc.name}" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--stroke);background:rgba(255,255,255,0.1);color:var(--text);font-size:16px;outline:none;margin-bottom:16px;" />
+                  <div style="display:flex;gap:10px;justify-content:flex-end;">
+                    <button id="btnCancelRename" style="padding:10px 20px;border-radius:8px;border:none;background:rgba(255,255,255,0.1);color:var(--text);cursor:pointer;">キャンセル</button>
+                    <button id="btnConfirmRename" style="padding:10px 20px;border-radius:8px;border:none;background:var(--primary);color:#051a2a;cursor:pointer;">OK</button>
+                  </div>
+                </div>
+              </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', renameHTML);
+            
+            const renameDialog = document.getElementById('renameDialog');
+            const renameInput = document.getElementById('renameInput');
+            
+            setTimeout(() => {
+              renameInput.focus();
+              renameInput.select();
+            }, 100);
+            
+            document.getElementById('btnCancelRename').onclick = () => {
+              renameDialog.remove();
+            };
+            
+            document.getElementById('btnConfirmRename').onclick = () => {
+              const newName = renameInput.value.trim();
+              if(!newName){
+                alert('地点名を入力してください');
+                return;
+              }
+              
+              locations[index].name = newName;
+              localStorage.setItem('savedLocations', JSON.stringify(locations));
+              
+              renameDialog.remove();
+              dialog.remove();
+              
+              // 完了通知
+              const successHTML = `
+                <div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;" id="successDialog">
+                  <div style="background:var(--glass-strong);border:1px solid var(--stroke);border-radius:var(--radius);padding:24px;max-width:400px;width:90%;">
+                    <h3 style="margin:0 0 16px;font-size:18px;color:var(--text);">変更完了</h3>
+                    <p style="margin:0 0 16px;font-size:14px;color:var(--text);">地点名を「${newName}」に変更しました</p>
+                    <button id="btnCloseSuccess" style="width:100%;padding:10px;border-radius:8px;border:none;background:var(--primary);color:#051a2a;cursor:pointer;">OK</button>
+                  </div>
+                </div>
+              `;
+              
+              document.body.insertAdjacentHTML('beforeend', successHTML);
+              document.getElementById('btnCloseSuccess').onclick = () => {
+                document.getElementById('successDialog').remove();
+              };
+            };
+            
+            renameInput.addEventListener('keypress', (e) => {
+              if(e.key === 'Enter'){
+                document.getElementById('btnConfirmRename').click();
+              }
+            });
+          };
+        });
+        
+        // 削除ボタン
+        document.querySelectorAll('.btnDelete').forEach(btn => {
+          btn.onclick = () => {
+            const index = parseInt(btn.dataset.index);
+            const loc = locations[index];
+            
+            const confirmHTML = `
+              <div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:10000;" id="confirmDeleteDialog">
+                <div style="background:var(--glass-strong);border:1px solid var(--stroke);border-radius:var(--radius);padding:24px;max-width:400px;width:90%;">
+                  <h3 style="margin:0 0 16px;font-size:18px;color:var(--text);">削除確認</h3>
+                  <p style="margin:0 0 16px;font-size:14px;color:var(--text);">「${loc.name}」を削除しますか？</p>
+                  <div style="display:flex;gap:10px;justify-content:flex-end;">
+                    <button id="btnCancelDelete" style="padding:10px 20px;border-radius:8px;border:none;background:rgba(255,255,255,0.1);color:var(--text);cursor:pointer;">キャンセル</button>
+                    <button id="btnConfirmDelete" style="padding:10px 20px;border-radius:8px;border:none;background:var(--danger);color:#240808;cursor:pointer;">削除</button>
+                  </div>
+                </div>
+              </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', confirmHTML);
+            
+            const confirmDialog = document.getElementById('confirmDeleteDialog');
+            
+            document.getElementById('btnCancelDelete').onclick = () => {
+              confirmDialog.remove();
+            };
+            
+            document.getElementById('btnConfirmDelete').onclick = () => {
+              locations.splice(index, 1);
+              localStorage.setItem('savedLocations', JSON.stringify(locations));
+              
+              confirmDialog.remove();
+              dialog.remove();
+              
+              // 削除完了通知
+              const deleteSuccessHTML = `
+                <div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;" id="deleteSuccessDialog">
+                  <div style="background:var(--glass-strong);border:1px solid var(--stroke);border-radius:var(--radius);padding:24px;max-width:400px;width:90%;">
+                    <h3 style="margin:0 0 16px;font-size:18px;color:var(--text);">削除完了</h3>
+                    <p style="margin:0 0 16px;font-size:14px;color:var(--text);">「${loc.name}」を削除しました</p>
+                    <button id="btnCloseDeleteSuccess" style="width:100%;padding:10px;border-radius:8px;border:none;background:var(--primary);color:#051a2a;cursor:pointer;">OK</button>
+                  </div>
+                </div>
+              `;
+              
+              document.body.insertAdjacentHTML('beforeend', deleteSuccessHTML);
+              document.getElementById('btnCloseDeleteSuccess').onclick = () => {
+                document.getElementById('deleteSuccessDialog').remove();
+              };
+            };
+          };
+        });
       };
       
       r10.onclick = ()=>{ 
