@@ -796,15 +796,15 @@
       btnPointSearch.onclick = ()=>{
         pointSearchMode = !pointSearchMode;
         if(pointSearchMode){
-          btnPointSearch.classList.add('active');
           btnPointSearch.textContent = '📍 地点検索中...';
-          btnPointSearch.style.background = 'var(--ok)';
+          btnPointSearch.style.background = '#25d07a';
           btnPointSearch.style.color = '#0a2818';
+          btnPointSearch.style.borderColor = 'transparent';
         }else{
-          btnPointSearch.classList.remove('active');
           btnPointSearch.textContent = '📍 地点検索';
-          btnPointSearch.style.background = '';
-          btnPointSearch.style.color = '';
+          btnPointSearch.style.background = 'rgba(255,255,255,.08)';
+          btnPointSearch.style.color = 'var(--text)';
+          btnPointSearch.style.borderColor = 'var(--stroke)';
         }
       };
 
@@ -869,10 +869,10 @@
         }
         
         pointSearchMode = false;
-        btnPointSearch.classList.remove('active');
         btnPointSearch.textContent = '📍 地点検索';
-        btnPointSearch.style.background = '';
-        btnPointSearch.style.color = '';
+        btnPointSearch.style.background = 'rgba(255,255,255,.08)';
+        btnPointSearch.style.color = 'var(--text)';
+        btnPointSearch.style.borderColor = 'var(--stroke)';
         
         stopNavigation();
         
