@@ -34,9 +34,15 @@ html,body{height:100%;background:#0a1321;color:var(--text);font-family:system-ui
   transition:opacity .3s,visibility .3s;
 }
 .loading-screen.fade-out{opacity:0;visibility:hidden}
-.loading-logo{font-size:48px;margin-bottom:20px;animation:pulse 2s infinite}
+.loading-logo{font-size:48px;margin-bottom:20px;animation:walk 1.5s infinite}
 .loading-text{font-size:18px;color:var(--muted)}
-@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.1);opacity:.8}}
+@keyframes walk{
+  0%{transform:translateX(-30px) translateY(0) rotate(-5deg)}
+  25%{transform:translateX(-15px) translateY(-5px) rotate(0deg)}
+  50%{transform:translateX(0) translateY(0) rotate(5deg)}
+  75%{transform:translateX(15px) translateY(-5px) rotate(0deg)}
+  100%{transform:translateX(30px) translateY(0) rotate(-5deg)}
+}
 
 /* 現在地パネル */
 .location-panel{
