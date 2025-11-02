@@ -129,6 +129,20 @@
       margin-left:12px;
     }
 
+    .navigation-panel{
+      position:absolute;
+      left:16px;
+      top:16px;
+      right:16px;
+      background:var(--glass-strong);
+      border:1px solid var(--stroke);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:16px;
+      backdrop-filter:blur(10px);
+      z-index:2500;
+    }
+
     .toast, .error-banner{display:none !important}
   </style>
 </head>
@@ -175,14 +189,25 @@
         <span class="route-distance" id="routeDistance">--</span>
         <span class="route-time" id="routeTime">徒歩 --分</span>
       </div>
-      <button id="btnStopRoute" class="btn danger" style="margin-top:10px;width:100%">ルート終了</button>
+    </div>
+
+    <div class="navigation-panel" id="navigationPanel" style="display:none">
+      <div style="font-size:24px;font-weight:bold;color:var(--text);margin-bottom:16px;line-height:1.4;" id="navigationInstruction">
+        直進してください
+      </div>
+      <div style="background:rgba(0,0,0,.3);border-radius:12px;padding:12px;max-height:200px;overflow-y:auto;">
+        <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px;">📍 周辺情報（10km圏内）</div>
+        <div id="incidentList" style="font-size:13px;color:var(--muted);">
+          情報を取得中...
+        </div>
+      </div>
     </div>
 
     <div class="fab-stack" id="fabStack">
       <div class="fab" id="btnSearch">検索パネル</div>
       <div class="fab" id="btnLocate">現在地</div>
       <div class="fab" id="btnDestination" style="display:none">目的地</div>
-      <div class="fab" id="btnPause">一時停止</div>
+      <div class="fab" id="btnClearRoute" style="display:none">ルート消去</div>
       <div class="fab" id="btnReroute">リルート</div>
     </div>
 
@@ -402,11 +427,23 @@
           document.getElementById('routeTime').textContent = `徒歩 ${durationText}`;
           document.getElementById('routePanel').style.display = 'block';
 
+          // 操作パネルを非表示、ナビゲーションパネルを表示
           document.getElementById('searchPanel').style.display = 'none';
           document.getElementById('results').style.display = 'none';
+          
+          // ナビゲーションパネルを表示
+          document.getElementById('navigationPanel').style.display = 'block';
+          document.getElementById('routePanel').style.display = 'none'; // ルート選択パネルは非表示
+          
+          // 初期案内メッセージ
+          document.getElementById('navigationInstruction').textContent = `${destination.name}へ向かっています`;
+          
+          // インシデント情報を取得（仮実装）
+          loadIncidents(originLat, originLng);
 
-          // 目的地ボタンを表示
+          // 目的地ボタンとルート消去ボタンを表示
           document.getElementById('btnDestination').style.display = 'flex';
+          document.getElementById('btnClearRoute').style.display = 'flex';
 
           drawRoutePolyline(selectedRoute);
 
@@ -502,6 +539,45 @@
       console.log('[Navigation] Polyline drawn');
     }
 
+    // インシデント情報取得（10km圏内）
+    async function loadIncidents(lat, lng){
+      const incidentList = document.getElementById('incidentList');
+      incidentList.innerHTML = '情報を取得中...';
+      
+      try {
+        // Places API (New) で周辺の注意すべきスポットを検索
+        // 病院、警察署、駅などの重要施設を表示
+        const data = await placesNearby({
+          includedTypes: ['hospital', 'police', 'transit_station'],
+          maxResultCount: 5,
+          locationRestriction: {
+            circle: { center: { latitude: lat, longitude: lng }, radius: 10000 }
+          },
+          languageCode: 'ja'
+        }, 'places.displayName,places.location,places.types');
+        
+        if(data.places && data.places.length > 0){
+          let html = '';
+          data.places.forEach(place => {
+            const name = place.displayName?.text || '名称不明';
+            const types = place.types || [];
+            let icon = '📍';
+            if(types.includes('hospital')) icon = '🏥';
+            if(types.includes('police')) icon = '🚓';
+            if(types.includes('transit_station')) icon = '🚉';
+            
+            html += `<div style="margin-bottom:6px;">${icon} ${name}</div>`;
+          });
+          incidentList.innerHTML = html;
+        }else{
+          incidentList.innerHTML = '現在、特に注意すべき情報はありません';
+        }
+      } catch(e) {
+        console.error('[Incidents] エラー:', e);
+        incidentList.innerHTML = '情報の取得に失敗しました';
+      }
+    }
+
     function stopNavigation(){
       // Polylineを削除
       if(currentPolyline){
@@ -511,10 +587,12 @@
       
       currentDestination = null;
       document.getElementById('routePanel').style.display = 'none';
+      document.getElementById('navigationPanel').style.display = 'none';
       document.getElementById('searchPanel').style.display = 'block';
       
-      // 目的地ボタンを非表示
+      // 目的地ボタンとルート消去ボタンを非表示
       document.getElementById('btnDestination').style.display = 'none';
+      document.getElementById('btnClearRoute').style.display = 'none';
       
       // 検索結果をクリア
       document.getElementById('q').value = '';
@@ -1151,10 +1229,11 @@
         }
       };
       
-      document.getElementById('btnPause').onclick = (e)=>{ 
+      document.getElementById('btnClearRoute').onclick = (e)=>{ 
         e.preventDefault();
         e.stopPropagation();
-        console.log('一時停止ボタンがクリックされました');
+        console.log('[Navigation] ルート消去');
+        stopNavigation();
       };
       
       document.getElementById('btnReroute').onclick = (e)=>{ 
