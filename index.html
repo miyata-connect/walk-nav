@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WalkNav v2.1</title>
+<title>WalkNav v2.2</title>
 <style>
 :root{
   --glass:rgba(20,28,44,.7);
@@ -494,6 +494,81 @@ html,body{height:100%;background:#0a1321;color:var(--text);font-family:system-ui
 }
 .toast.success{border-color:var(--ok);color:var(--ok)}
 .toast.error{border-color:var(--danger);color:var(--danger)}
+
+/* APIキー設定モーダル */
+.api-setup{
+  position:fixed;
+  inset:0;
+  background:linear-gradient(135deg,#0a1321 0%,#1e2a3e 100%);
+  z-index:9999;
+  display:none;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+}
+.api-setup.show{display:flex}
+.api-setup-content{
+  width:100%;
+  max-width:500px;
+  background:var(--glass-strong);
+  border:1px solid var(--stroke);
+  border-radius:16px;
+  backdrop-filter:blur(14px);
+  padding:30px;
+}
+.api-setup-title{
+  font-size:24px;
+  font-weight:700;
+  margin-bottom:20px;
+  text-align:center;
+}
+.api-setup-desc{
+  font-size:14px;
+  color:var(--muted);
+  margin-bottom:20px;
+  line-height:1.6;
+}
+.api-input-group{
+  margin-bottom:20px;
+}
+.api-input-label{
+  font-size:13px;
+  color:var(--accent);
+  margin-bottom:8px;
+  display:block;
+}
+.api-input{
+  width:100%;
+  background:rgba(255,255,255,.08);
+  border:1px solid var(--stroke);
+  border-radius:8px;
+  padding:12px;
+  color:var(--text);
+  font-size:14px;
+  font-family:monospace;
+}
+.api-input::placeholder{color:var(--muted)}
+.api-setup-btn{
+  width:100%;
+  background:var(--primary);
+  border:none;
+  border-radius:8px;
+  padding:14px;
+  color:#000;
+  font-size:15px;
+  font-weight:700;
+  cursor:pointer;
+  transition:transform .1s;
+}
+.api-setup-btn:active{transform:scale(.98)}
+.api-setup-note{
+  font-size:12px;
+  color:var(--muted);
+  margin-top:16px;
+  padding-top:16px;
+  border-top:1px solid var(--stroke);
+}
 </style>
 </head>
 <body>
@@ -504,7 +579,37 @@ html,body{height:100%;background:#0a1321;color:var(--text);font-family:system-ui
   <!-- ローディング画面 -->
   <div class="loading-screen" id="loadingScreen">
     <div class="loading-logo">🚶</div>
-    <div class="loading-text">WalkNav v2.1</div>
+    <div class="loading-text">WalkNav v2.2</div>
+  </div>
+  
+  <!-- APIキー設定画面 -->
+  <div class="api-setup" id="apiSetup">
+    <div class="api-setup-content">
+      <div class="api-setup-title">🗺️ Google Maps API設定</div>
+      <div class="api-setup-desc">
+        WalkNavを使用するには、Google Maps APIキーが必要です。<br>
+        既存のAPIキーをお持ちの場合は入力してください。
+      </div>
+      
+      <div class="api-input-group">
+        <label class="api-input-label">APIキー</label>
+        <input type="text" class="api-input" id="apiKeyInput" 
+          placeholder="例: AIzaSyD..." 
+          value="">
+      </div>
+      
+      <button class="api-setup-btn" onclick="setupApiKey()">APIキーを設定</button>
+      <button class="api-setup-btn" onclick="useDefaultKey()" style="margin-top:10px;background:rgba(255,255,255,.1);color:var(--text);">
+        デモモードで続行（機能制限あり）
+      </button>
+      
+      <div class="api-setup-note">
+        ※ APIキーの取得方法：<br>
+        1. <a href="https://console.cloud.google.com/" target="_blank" style="color:var(--accent);">Google Cloud Console</a>にアクセス<br>
+        2. Maps JavaScript API, Places API, Geocoding APIを有効化<br>
+        3. APIキーを作成し、上記に入力
+      </div>
+    </div>
   </div>
   
   <!-- 現在地表示パネル -->
@@ -616,19 +721,110 @@ let searchPoint = null;
 let searchPointMarker = null;
 let savedLocations = [];
 let isEditMode = false;
+let API_KEY = '';
 
 // Worker URL
 const WORKER_URL = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 
+// デフォルトAPIキー（開発用/デモ用）
+const DEFAULT_API_KEY = 'AIzaSyCKH6RLXlKvVMmbDQX_dq_kN_SIroqPyl4';
+
 // 初期化
 window.onload = () => {
+  // LocalStorageからAPIキー読み込み
+  const savedKey = localStorage.getItem('walkNavApiKey');
+  if (savedKey) {
+    API_KEY = savedKey;
+    loadGoogleMapsAPI();
+  } else {
+    // APIキー設定画面を表示
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('apiSetup').classList.add('show');
+  }
+  
   loadSavedLocations();
+};
+
+// APIキー設定
+function setupApiKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) {
+    showToast('APIキーを入力してください', 'error');
+    return;
+  }
+  
+  API_KEY = key;
+  localStorage.setItem('walkNavApiKey', key);
+  document.getElementById('apiSetup').classList.remove('show');
+  document.getElementById('loadingScreen').style.display = 'flex';
+  loadGoogleMapsAPI();
+}
+
+// デフォルトキー使用
+function useDefaultKey() {
+  API_KEY = DEFAULT_API_KEY;
+  document.getElementById('apiSetup').classList.remove('show');
+  document.getElementById('loadingScreen').style.display = 'flex';
+  loadGoogleMapsAPI();
+}
+
+// Google Maps API読み込み
+function loadGoogleMapsAPI() {
+  const script = document.createElement('script');
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places,marker,geometry&callback=initMapCallback&language=ja`;
+  script.async = true;
+  script.defer = true;
+  
+  // エラーハンドリング
+  script.onerror = function() {
+    console.error('Google Maps API読み込みエラー');
+    handleApiError('ネットワークエラー');
+  };
+  
+  document.head.appendChild(script);
+}
+
+// API認証エラーハンドリング
+window.gm_authFailure = function() {
+  console.error('Google Maps API認証失敗');
+  handleApiError('APIキー認証エラー');
+};
+
+// APIエラー処理
+function handleApiError(errorType) {
+  localStorage.removeItem('walkNavApiKey');
+  
+  document.getElementById('loadingScreen').innerHTML = `
+    <div style="padding:20px;text-align:center;">
+      <div style="font-size:48px;margin-bottom:20px;">⚠️</div>
+      <div style="font-size:18px;margin-bottom:10px;">${errorType}</div>
+      <div style="font-size:14px;color:#a7b8ce;margin-bottom:20px;">
+        APIキーの設定を確認してください
+      </div>
+      <button onclick="location.reload()" style="
+        background:var(--primary);
+        border:none;
+        border-radius:8px;
+        padding:10px 20px;
+        color:#000;
+        font-weight:600;
+        cursor:pointer;
+      ">再読み込み</button>
+    </div>
+  `;
+}
+
+// Google Maps初期化コールバック
+function initMapCallback() {
+  initMap();
+  
+  // ローディング画面フェードアウト
   setTimeout(() => {
     document.getElementById('loadingScreen').classList.add('fade-out');
   }, 1500);
-};
+}
 
-// Google Maps初期化コールバック
+// Google Maps初期化
 function initMap() {
   // デフォルト位置（東京駅）
   const defaultPos = {lat: 35.681236, lng: 139.767125};
@@ -636,10 +832,13 @@ function initMap() {
   map = new google.maps.Map(document.getElementById('map'), {
     center: defaultPos,
     zoom: 17,
-    mapId: 'DEMO_MAP',
+    mapId: 'DEMO_MAP_ID',
     gestureHandling: 'greedy',
     clickableIcons: true,
-    disableDefaultUI: true
+    disableDefaultUI: true,
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: false
   });
   
   document.getElementById('map').style.display = 'block';
@@ -664,12 +863,30 @@ function initMap() {
         pin.style.border = '3px solid #fff';
         pin.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
         
-        currentMarker = new google.maps.marker.AdvancedMarkerElement({
-          map,
-          position: currentPos,
-          content: pin,
-          title: '現在地'
-        });
+        // AdvancedMarkerElementが使用可能か確認
+        if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
+          currentMarker = new google.maps.marker.AdvancedMarkerElement({
+            map,
+            position: currentPos,
+            content: pin,
+            title: '現在地'
+          });
+        } else {
+          // 従来のMarkerを使用
+          currentMarker = new google.maps.Marker({
+            map,
+            position: currentPos,
+            title: '現在地',
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 10,
+              fillColor: '#5fb1ff',
+              fillOpacity: 0.8,
+              strokeColor: '#fff',
+              strokeWeight: 3
+            }
+          });
+        }
         
         // 住所取得
         const geocoder = new google.maps.Geocoder();
@@ -684,6 +901,11 @@ function initMap() {
       error => {
         console.error('位置情報取得エラー:', error);
         showToast('位置情報を取得できませんでした', 'error');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
       }
     );
   }
@@ -701,24 +923,45 @@ function setSearchPoint(lat, lng) {
   searchPoint = {lat, lng};
   
   if (searchPointMarker) {
-    searchPointMarker.map = null;
+    if (searchPointMarker.map) {
+      searchPointMarker.map = null;
+    } else if (searchPointMarker.setMap) {
+      searchPointMarker.setMap(null);
+    }
   }
   
-  const pin = document.createElement('div');
-  pin.style.width = '28px';
-  pin.style.height = '28px';
-  pin.style.borderRadius = '50%';
-  pin.style.background = '#ff6565';
-  pin.style.border = '3px solid #fff';
-  pin.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
-  pin.style.animation = 'pulse 2s infinite';
-  
-  searchPointMarker = new google.maps.marker.AdvancedMarkerElement({
-    map,
-    position: {lat, lng},
-    content: pin,
-    zIndex: 900
-  });
+  // AdvancedMarkerElementが使用可能か確認
+  if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
+    const pin = document.createElement('div');
+    pin.style.width = '28px';
+    pin.style.height = '28px';
+    pin.style.borderRadius = '50%';
+    pin.style.background = '#ff6565';
+    pin.style.border = '3px solid #fff';
+    pin.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+    
+    searchPointMarker = new google.maps.marker.AdvancedMarkerElement({
+      map,
+      position: {lat, lng},
+      content: pin,
+      zIndex: 900
+    });
+  } else {
+    // 従来のMarkerを使用
+    searchPointMarker = new google.maps.Marker({
+      map,
+      position: {lat, lng},
+      zIndex: 900,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 12,
+        fillColor: '#ff6565',
+        fillOpacity: 0.8,
+        strokeColor: '#fff',
+        strokeWeight: 3
+      }
+    });
+  }
   
   // 地名取得
   const geocoder = new google.maps.Geocoder();
@@ -743,7 +986,11 @@ function togglePointSelect() {
   } else {
     btn.classList.remove('active');
     if (searchPointMarker) {
-      searchPointMarker.map = null;
+      if (searchPointMarker.map) {
+        searchPointMarker.map = null;
+      } else if (searchPointMarker.setMap) {
+        searchPointMarker.setMap(null);
+      }
       searchPointMarker = null;
       searchPoint = null;
     }
@@ -844,30 +1091,57 @@ function displaySearchResults(places, origin) {
   places.slice(0, 5).forEach((place, index) => {
     if (place.location && place.distance <= 10000) {
       // マーカー追加
-      const pin = document.createElement('div');
-      pin.style.width = '32px';
-      pin.style.height = '32px';
-      pin.style.background = '#fff';
-      pin.style.border = '2px solid #5fb1ff';
-      pin.style.borderRadius = '50%';
-      pin.style.display = 'flex';
-      pin.style.alignItems = 'center';
-      pin.style.justifyContent = 'center';
-      pin.style.fontWeight = 'bold';
-      pin.style.color = '#5fb1ff';
-      pin.textContent = (index + 1).toString();
-      
-      const marker = new google.maps.marker.AdvancedMarkerElement({
-        map,
-        position: {
-          lat: place.location.latitude,
-          lng: place.location.longitude
-        },
-        content: pin,
-        title: place.displayName?.text || ''
-      });
-      
-      searchMarkers.push(marker);
+      if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
+        const pin = document.createElement('div');
+        pin.style.width = '32px';
+        pin.style.height = '32px';
+        pin.style.background = '#fff';
+        pin.style.border = '2px solid #5fb1ff';
+        pin.style.borderRadius = '50%';
+        pin.style.display = 'flex';
+        pin.style.alignItems = 'center';
+        pin.style.justifyContent = 'center';
+        pin.style.fontWeight = 'bold';
+        pin.style.color = '#5fb1ff';
+        pin.textContent = (index + 1).toString();
+        
+        const marker = new google.maps.marker.AdvancedMarkerElement({
+          map,
+          position: {
+            lat: place.location.latitude,
+            lng: place.location.longitude
+          },
+          content: pin,
+          title: place.displayName?.text || ''
+        });
+        
+        searchMarkers.push(marker);
+      } else {
+        // 従来のMarkerを使用
+        const marker = new google.maps.Marker({
+          map,
+          position: {
+            lat: place.location.latitude,
+            lng: place.location.longitude
+          },
+          title: place.displayName?.text || '',
+          label: {
+            text: (index + 1).toString(),
+            color: '#5fb1ff',
+            fontWeight: 'bold'
+          },
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 16,
+            fillColor: '#fff',
+            fillOpacity: 1,
+            strokeColor: '#5fb1ff',
+            strokeWeight: 2
+          }
+        });
+        
+        searchMarkers.push(marker);
+      }
       
       // 結果リスト追加
       const item = document.createElement('div');
@@ -887,7 +1161,13 @@ function displaySearchResults(places, origin) {
   if (searchMarkers.length > 0) {
     const bounds = new google.maps.LatLngBounds();
     bounds.extend(new google.maps.LatLng(origin.lat, origin.lng));
-    searchMarkers.forEach(marker => bounds.extend(marker.position));
+    searchMarkers.forEach(marker => {
+      if (marker.position) {
+        bounds.extend(marker.position);
+      } else if (marker.getPosition) {
+        bounds.extend(marker.getPosition());
+      }
+    });
     map.fitBounds(bounds);
   }
 }
@@ -904,31 +1184,54 @@ async function startNavigation(place) {
   
   // 目的地マーカー設置
   if (destMarker) {
-    destMarker.map = null;
+    if (destMarker.map) {
+      destMarker.map = null;
+    } else if (destMarker.setMap) {
+      destMarker.setMap(null);
+    }
   }
   
-  const pin = document.createElement('div');
-  pin.style.width = '32px';
-  pin.style.height = '32px';
-  pin.style.background = '#ff6565';
-  pin.style.border = '3px solid #fff';
-  pin.style.borderRadius = '50%';
-  pin.style.display = 'flex';
-  pin.style.alignItems = 'center';
-  pin.style.justifyContent = 'center';
-  pin.style.color = '#fff';
-  pin.style.fontSize = '18px';
-  pin.textContent = '🎯';
-  
-  destMarker = new google.maps.marker.AdvancedMarkerElement({
-    map,
-    position: {
-      lat: place.location.latitude,
-      lng: place.location.longitude
-    },
-    content: pin,
-    title: place.displayName?.text || '目的地'
-  });
+  if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
+    const pin = document.createElement('div');
+    pin.style.width = '32px';
+    pin.style.height = '32px';
+    pin.style.background = '#ff6565';
+    pin.style.border = '3px solid #fff';
+    pin.style.borderRadius = '50%';
+    pin.style.display = 'flex';
+    pin.style.alignItems = 'center';
+    pin.style.justifyContent = 'center';
+    pin.style.color = '#fff';
+    pin.style.fontSize = '18px';
+    pin.textContent = '🎯';
+    
+    destMarker = new google.maps.marker.AdvancedMarkerElement({
+      map,
+      position: {
+        lat: place.location.latitude,
+        lng: place.location.longitude
+      },
+      content: pin,
+      title: place.displayName?.text || '目的地'
+    });
+  } else {
+    destMarker = new google.maps.Marker({
+      map,
+      position: {
+        lat: place.location.latitude,
+        lng: place.location.longitude
+      },
+      title: place.displayName?.text || '目的地',
+      icon: {
+        path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+        scale: 8,
+        fillColor: '#ff6565',
+        fillOpacity: 1,
+        strokeColor: '#fff',
+        strokeWeight: 3
+      }
+    });
+  }
   
   // ルート取得
   try {
@@ -990,7 +1293,11 @@ function drawRoute(route) {
   
   setTimeout(() => {
     map.setZoom(18);
-    map.panTo(destMarker.position);
+    if (destMarker.position) {
+      map.panTo(destMarker.position);
+    } else if (destMarker.getPosition) {
+      map.panTo(destMarker.getPosition());
+    }
   }, 2000);
   
   setTimeout(() => {
@@ -1007,7 +1314,11 @@ function endRoute() {
   }
   
   if (destMarker) {
-    destMarker.map = null;
+    if (destMarker.map) {
+      destMarker.map = null;
+    } else if (destMarker.setMap) {
+      destMarker.setMap(null);
+    }
     destMarker = null;
   }
   
@@ -1024,7 +1335,13 @@ function endRoute() {
 
 // 検索マーカークリア
 function clearSearchMarkers() {
-  searchMarkers.forEach(marker => marker.map = null);
+  searchMarkers.forEach(marker => {
+    if (marker.map) {
+      marker.map = null;
+    } else if (marker.setMap) {
+      marker.setMap(null);
+    }
+  });
   searchMarkers = [];
 }
 
@@ -1309,11 +1626,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
-</script>
-
-<!-- Google Maps API -->
-<script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDdGxKkL79IagrFhdTQpSpkZX-6ikde-ww&libraries=places,marker,geometry&callback=initMap">
 </script>
 
 </body>
