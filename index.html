@@ -748,8 +748,12 @@
       appState.isNavigating = true;
       appState.isPaused = false;
       
-      // 検索パネルを閉じる
+      // 検索パネルを閉じてFABボタンを表示
       document.getElementById('searchPanel').style.display = 'none';
+      document.getElementById('btnLocate').style.display = 'flex';
+      document.getElementById('btnDestination').style.display = 'flex';
+      document.getElementById('btnPause').style.display = 'flex';
+      document.getElementById('btnReroute').style.display = 'flex';
 
       try {
         showToast('ルートを取得中...', 'info', 2000);
@@ -838,6 +842,11 @@
       document.getElementById('q').value = '';
       document.getElementById('results').style.display = 'none';
       document.getElementById('results').innerHTML = '';
+      
+      // FABボタンを非表示（検索パネル表示中）
+      document.getElementById('btnLocate').style.display = 'none';
+      document.getElementById('btnPause').style.display = 'none';
+      document.getElementById('btnReroute').style.display = 'none';
       
       // 一時停止ボタンをリセット
       const btnPause = document.getElementById('btnPause');
@@ -1192,7 +1201,7 @@
           return;
         }
         
-        // 座標は必ず表示
+        // 座標は必ず2行目に表示
         const coordsText = `緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
         coordsElement.textContent = coordsText;
         console.log('[DEBUG] Coords set:', coordsText);
@@ -1215,9 +1224,12 @@
           console.log('[DEBUG] Line 1:', addressElement.textContent);
           console.log('[DEBUG] Line 2:', coordsElement.textContent);
         } else {
-          console.log('[DEBUG] Geocode failed, using fallback');
-          addressElement.textContent = `現在地：緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
-          coordsElement.textContent = '';
+          // ジオコーディング失敗時も2行表示
+          console.log('[DEBUG] Geocode failed, using fallback with 2 lines');
+          addressElement.textContent = '現在地：位置情報取得済み';
+          // coordsTextは既に上で設定済み
+          console.log('[DEBUG] Fallback Line 1:', addressElement.textContent);
+          console.log('[DEBUG] Fallback Line 2:', coordsElement.textContent);
         }
       });
     }
@@ -1549,19 +1561,39 @@
       // 検索パネルボタン
       document.getElementById('btnSearch').onclick = () => {
         const panel = document.getElementById('searchPanel');
+        const fabStack = document.getElementById('fabStack');
         
         if (panel.style.display === 'none') {
           // パネルを開く
           panel.style.display = 'block';
+          // FABボタンを非表示（検索パネルボタン以外）
+          document.getElementById('btnLocate').style.display = 'none';
+          document.getElementById('btnDestination').style.display = 'none';
+          document.getElementById('btnPause').style.display = 'none';
+          document.getElementById('btnReroute').style.display = 'none';
         } else {
           // パネルを閉じる
           panel.style.display = 'none';
+          // FABボタンを表示
+          document.getElementById('btnLocate').style.display = 'flex';
+          if (appState.currentDestination) {
+            document.getElementById('btnDestination').style.display = 'flex';
+          }
+          document.getElementById('btnPause').style.display = 'flex';
+          document.getElementById('btnReroute').style.display = 'flex';
         }
       };
       
       // 検索パネルを閉じるボタン
       document.getElementById('btnClosePanel').onclick = () => {
         document.getElementById('searchPanel').style.display = 'none';
+        // FABボタンを表示
+        document.getElementById('btnLocate').style.display = 'flex';
+        if (appState.currentDestination) {
+          document.getElementById('btnDestination').style.display = 'flex';
+        }
+        document.getElementById('btnPause').style.display = 'flex';
+        document.getElementById('btnReroute').style.display = 'flex';
       };
 
       document.getElementById('btnLocate').onclick = () => {
@@ -1629,8 +1661,12 @@
       console.log('[WalkNav] Starting app...');
       document.documentElement.lang = 'ja';
       
-      // 初期状態：検索パネル表示、FABボタンも表示
+      // 初期状態：検索パネル表示、FABボタン非表示（検索パネルボタン以外）
       document.getElementById('searchPanel').style.display = 'block';
+      document.getElementById('btnLocate').style.display = 'none';
+      document.getElementById('btnDestination').style.display = 'none';
+      document.getElementById('btnPause').style.display = 'none';
+      document.getElementById('btnReroute').style.display = 'none';
       
       bindUI();
       acquireLocation();
