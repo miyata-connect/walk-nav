@@ -1,65 +1,180 @@
-// ISSUE_ID: wrk202511040404
-// ors-proxy Cloudflare Worker - stable build
-// Supports: /health, /geocode, /places:searchText, /directions
+// worker.js  (Cloudflare Workers - module syntax)
+// Purpose: HTTPS proxy for Google Places API (NEW v1) + Directions + Reverse Geocode
+// - Strict origin allowlist via env.ALLOWED_ORIGINS (comma-separated string)
+// - CORS for GET/POST/OPTIONS
+// - Endpoints:
+//    GET  /health
+//    POST /places:searchText
+//    POST /places:searchNearby
+//    GET  /geocode?lat=..&lng=..           (Maps Geocoding API)
+//    GET  /directions?origin=..&destination=..&mode=walking|driving|bicycling&language=ja
+//
+// Secrets / Vars:
+//   - Secret: GMAPS_API_KEY
+//   - Var   : ALLOWED_ORIGINS = "https://miyata-connect.github.io,https://localhost:8787,http://localhost:8787"
 
 export default {
   async fetch(request, env) {
-    const origin = request.headers.get("Origin") || "";
-    const url = new URL(request.url);
-    const method = request.method.toUpperCase();
-
-    if (method === "OPTIONS") return handleOptions(origin);
-
-    // Origin security
-    if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS)) {
-      return json(
-        {
-          ok: false,
-          error: "forbidden_origin",
-          message: "Only approved HTTPS origins may call this Worker.",
-        },
-        origin,
-        403
-      );
-    }
-
     try {
-      switch (url.pathname) {
-        case "/health":
-          return json({ ok: true, service: "ors-proxy" }, origin);
+      const origin = request.headers.get("Origin") || "";
+      const allowed = isAllowedOrigin(origin, env);
 
-        case "/geocode":
-          return await handleReverseGeocode(request, env, origin);
-
-        case "/places:searchText":
-          return await handlePlacesSearch(request, env, origin);
-
-        case "/directions":
-          return await handleDirections(request, env, origin);
-
-        default:
-          return json({ ok: false, error: "unknown_path" }, origin, 404);
+      // CORS preflight
+      if (request.method === "OPTIONS") {
+        return new Response(null, { status: 204, headers: corsHeaders(origin, allowed) });
       }
-    } catch (err) {
-      return json(
-        { ok: false, error: "server_error", message: String(err) },
-        origin,
-        500
-      );
+
+      if (!allowed) {
+        return json(
+          { ok: false, error: "forbidden_origin", message: "Only approved HTTPS origins may call this Worker." },
+          origin,
+          403
+        );
+      }
+
+      const url = new URL(request.url);
+      const { pathname } = url;
+
+      if (request.method === "GET" && pathname === "/health") {
+        return json({ ok: true, service: "ors-proxy" }, origin);
+      }
+
+      if (request.method === "POST" && pathname === "/places:searchText") {
+        return handlePlacesText(request, env, origin);
+      }
+
+      if (request.method === "POST" && pathname === "/places:searchNearby") {
+        return handlePlacesNearby(request, env, origin);
+      }
+
+      if (request.method === "GET" && pathname === "/geocode") {
+        return handleReverseGeocode(request, env, origin);
+      }
+
+      if (request.method === "GET" && pathname === "/directions") {
+        return handleDirections(request, env, origin);
+      }
+
+      return json({ ok: false, error: "not_found" }, origin, 404);
+    } catch (e) {
+      return json({ ok: false, error: "proxy_error", message: String(e) }, "", 502);
     }
-  },
+  }
 };
 
-// --- Reverse Geocode ---
+/* ----------------------------- Helpers ----------------------------- */
+
+function corsHeaders(origin, allowed) {
+  const h = new Headers();
+  h.set("Access-Control-Allow-Credentials", "true");
+  h.set("Access-Control-Allow-Headers", "Content-Type, X-Goog-FieldMask");
+  h.set("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  if (allowed && origin) h.set("Access-Control-Allow-Origin", origin);
+  return h;
+}
+
+function json(obj, origin, status = 200, extra = {}) {
+  const h = {
+    "Content-Type": "application/json",
+    ...corsHeaders(origin, !!origin)
+  };
+  return new Response(JSON.stringify(obj), { status, headers: { ...h, ...extra } });
+}
+
+function isAllowedOrigin(origin, env) {
+  if (!origin) return false;
+  // Accept only https/http origins explicitly listed
+  const raw = (env.ALLOWED_ORIGINS || "").trim();
+  if (!raw) return false;
+  const list = raw
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
+  return list.includes(origin);
+}
+
+function parseJSONSafely(text, fallback = {}) {
+  try { return JSON.parse(text); } catch { return fallback; }
+}
+
+/* ----------------------------- Places: Text Search ----------------------------- */
+
+async function handlePlacesText(request, env, origin) {
+  const apiKey = env.GMAPS_API_KEY;
+  if (!apiKey) return json({ ok: false, error: "missing_api_key" }, origin, 500);
+
+  const body = await request.text();
+  const payload = parseJSONSafely(body, {});
+  // Default languageCode if not provided
+  if (!payload.languageCode) payload.languageCode = "ja";
+
+  const fieldMask = request.headers.get("X-Goog-FieldMask") ||
+    "places.displayName,places.formattedAddress,places.location,places.id,places.types";
+
+  const upstream = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": apiKey,
+      "X-Goog-FieldMask": fieldMask
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const text = await upstream.text();
+  const status = upstream.status;
+  if (!upstream.ok) {
+    return json({ ok: false, error: "places_text_error", status, body: tryParse(text) }, origin, 502);
+  }
+  return new Response(text, { status: 200, headers: corsHeaders(origin, true) });
+}
+
+/* ----------------------------- Places: Nearby Search ----------------------------- */
+
+async function handlePlacesNearby(request, env, origin) {
+  const apiKey = env.GMAPS_API_KEY;
+  if (!apiKey) return json({ ok: false, error: "missing_api_key" }, origin, 500);
+
+  const body = await request.text();
+  const payload = parseJSONSafely(body, {});
+  if (!payload.languageCode) payload.languageCode = "ja";
+
+  const fieldMask = request.headers.get("X-Goog-FieldMask") ||
+    "places.displayName,places.formattedAddress,places.location,places.id,places.types";
+
+  const upstream = await fetch("https://places.googleapis.com/v1/places:searchNearby", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": apiKey,
+      "X-Goog-FieldMask": fieldMask
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const text = await upstream.text();
+  const status = upstream.status;
+  if (!upstream.ok) {
+    return json({ ok: false, error: "places_nearby_error", status, body: tryParse(text) }, origin, 502);
+  }
+  return new Response(text, { status: 200, headers: corsHeaders(origin, true) });
+}
+
+/* ----------------------------- Reverse Geocode (GET /geocode) ----------------------------- */
+
 async function handleReverseGeocode(request, env, origin) {
+  const apiKey = env.GMAPS_API_KEY;
+  if (!apiKey) return json({ ok: false, error: "missing_api_key" }, origin, 500);
+
   const url = new URL(request.url);
 
-  // Robust parameter parsing
+  // Accept multiple aliases for robustness
   const latParam =
     url.searchParams.get("lat") ||
     url.searchParams.get("latitude") ||
     url.searchParams.get("LAT") ||
     url.searchParams.get("Latitude");
+
   const lngParam =
     url.searchParams.get("lng") ||
     url.searchParams.get("lon") ||
@@ -67,89 +182,79 @@ async function handleReverseGeocode(request, env, origin) {
     url.searchParams.get("LON") ||
     url.searchParams.get("Longitude");
 
-  const lat = latParam ? parseFloat(latParam) : NaN;
-  const lng = lngParam ? parseFloat(lngParam) : NaN;
+  const lat = latParam != null ? Number(latParam) : NaN;
+  const lng = lngParam != null ? Number(lngParam) : NaN;
 
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return json({ ok: false, error: "missing_latlng" }, origin, 400);
+    return json(
+      {
+        ok: false,
+        error: "missing_latlng",
+        debug: {
+          url: url.toString(),
+          receivedParams: Object.fromEntries(url.searchParams.entries()),
+          latParam, lngParam, latParsed: String(lat), lngParsed: String(lng)
+        }
+      },
+      origin,
+      400
+    );
   }
 
-  const api = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=ja&key=${env.GMAPS_API_KEY}`;
-  const res = await fetch(api);
-  const data = await res.json().catch(() => ({}));
+  // Maps Geocoding API (must be enabled in your project)
+  const api = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=ja&key=${apiKey}`;
+  const resp = await fetch(api);
+  const text = await resp.text();
+  const data = tryParse(text);
 
-  if (!res.ok || !data.results) {
-    return json({ ok: false, error: "geocode_failed" }, origin, 502);
+  if (!resp.ok) {
+    return json({ ok: false, error: "geocode_upstream_error", status: resp.status, body: data }, origin, 502);
   }
 
   const formatted =
-    data.results?.[0]?.formatted_address ||
-    data.plus_code?.compound_code ||
-    "住所不明";
+    data?.results?.[0]?.formatted_address ??
+    data?.plus_code?.compound_code ??
+    "";
 
   return json({ ok: true, formattedAddress: formatted, lat, lng }, origin);
 }
 
-// --- Places Search ---
-async function handlePlacesSearch(request, env, origin) {
-  const body = await request.text();
-  if (!body) return json({ ok: false, error: "missing_body" }, origin, 400);
-  const payload = JSON.parse(body);
+/* ----------------------------- Directions (GET /directions) ----------------------------- */
 
-  const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Goog-Api-Key": env.GMAPS_API_KEY,
-      "X-Goog-FieldMask":
-        "places.displayName,places.formattedAddress,places.location",
-    },
-    body: JSON.stringify({
-      textQuery: payload.textQuery,
-      maxResultCount: payload.maxResultCount || 5,
-    }),
-  });
-
-  const jsonData = await res.json().catch(() => ({}));
-  return new Response(JSON.stringify(jsonData), {
-    status: res.status,
-    headers: { "Content-Type": "application/json", ...cors(origin) },
-  });
-}
-
-// --- Directions ---
 async function handleDirections(request, env, origin) {
+  const apiKey = env.GMAPS_API_KEY;
+  if (!apiKey) return json({ ok: false, error: "missing_api_key" }, origin, 500);
+
   const url = new URL(request.url);
-  const params = url.searchParams.toString();
-  const gUrl = `https://maps.googleapis.com/maps/api/directions/json?${params}&key=${env.GMAPS_API_KEY}`;
-  const res = await fetch(gUrl);
-  const data = await res.json().catch(() => ({}));
-  return json(data, origin, res.status);
+  const originStr = url.searchParams.get("origin");
+  const destStr = url.searchParams.get("destination");
+  const mode = (url.searchParams.get("mode") || "walking").toLowerCase();
+  const language = url.searchParams.get("language") || "ja";
+
+  if (!originStr || !destStr) {
+    return json({ ok: false, error: "missing_params", message: "origin and destination are required" }, origin, 400);
+  }
+
+  // Try Maps Directions API (v1) first
+  // If you intend to use Routes API, adapt accordingly.
+  const api =
+    `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(originStr)}` +
+    `&destination=${encodeURIComponent(destStr)}&mode=${encodeURIComponent(mode)}&language=${encodeURIComponent(language)}` +
+    `&key=${apiKey}`;
+
+  const resp = await fetch(api);
+  const text = await resp.text();
+  const data = tryParse(text);
+
+  if (!resp.ok) {
+    return json({ ok: false, error: "directions_upstream_error", status: resp.status, body: data }, origin, 502);
+  }
+
+  return json(data, origin);
 }
 
-// --- Utility Functions ---
-function json(obj, origin, status = 200) {
-  return new Response(JSON.stringify(obj), {
-    status,
-    headers: { "Content-Type": "application/json", ...cors(origin) },
-  });
-}
+/* ----------------------------- Utils ----------------------------- */
 
-function cors(origin) {
-  return {
-    "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, X-Goog-FieldMask",
-    "Access-Control-Allow-Credentials": "true",
-  };
-}
-
-function handleOptions(origin) {
-  return new Response(null, { status: 204, headers: cors(origin) });
-}
-
-function isAllowedOrigin(origin, allowed) {
-  if (!allowed || !origin) return false;
-  const list = allowed.split(",").map((x) => x.trim());
-  return list.includes(origin);
+function tryParse(s) {
+  try { return JSON.parse(s); } catch { return { raw: s }; }
 }
