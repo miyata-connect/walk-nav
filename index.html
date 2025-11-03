@@ -263,6 +263,15 @@
       color:#240808;
     }
 
+    /* 現在地ラベルのスタイル */
+    #locLabel{
+      display:block;
+      white-space:pre-line;
+      line-height:1.6;
+      word-break:break-word;
+      max-width:100%;
+    }
+
     /* トースト通知 */
     .toast-container{
       position:fixed;
@@ -1124,9 +1133,10 @@
       appState.geocoder.geocode({ location: latlng, language: 'ja' }, (results, status) => {
         if (status === 'OK' && results[0]) {
           const address = results[0].formatted_address;
-          const cleanAddress = address.replace(/^日本、/, '').replace(/^〒[\d-]+\s*/, '');
-          document.getElementById('locLabel').textContent = `現在地：${cleanAddress}`;
-          console.log('[Location] 地名:', cleanAddress);
+          // 「日本、」を「日本 」に変更し、郵便番号はそのまま残す、末尾に「付近」を追加
+          const formattedAddress = address.replace(/^日本、/, '日本 ') + ' 付近';
+          document.getElementById('locLabel').innerHTML = `現在地：${formattedAddress}`;
+          console.log('[Location] 地名:', formattedAddress);
         } else {
           document.getElementById('locLabel').textContent = `現在地：緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
         }
