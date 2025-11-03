@@ -748,8 +748,9 @@
       appState.isNavigating = true;
       appState.isPaused = false;
       
-      // 検索パネルを閉じてFABボタンを表示
+      // 検索パネルを閉じて全FABボタンを表示
       document.getElementById('searchPanel').style.display = 'none';
+      document.getElementById('btnSearch').style.display = 'flex';
       document.getElementById('btnLocate').style.display = 'flex';
       document.getElementById('btnDestination').style.display = 'flex';
       document.getElementById('btnPause').style.display = 'flex';
@@ -843,7 +844,8 @@
       document.getElementById('results').style.display = 'none';
       document.getElementById('results').innerHTML = '';
       
-      // FABボタンを非表示（検索パネル表示中）
+      // 全FABボタンを非表示（検索パネル表示中）
+      document.getElementById('btnSearch').style.display = 'none';
       document.getElementById('btnLocate').style.display = 'none';
       document.getElementById('btnPause').style.display = 'none';
       document.getElementById('btnReroute').style.display = 'none';
@@ -1179,59 +1181,90 @@
     // 地名取得（逆ジオコーディング）
     // ==========================================
     function fetchLocationNameGoogle(lat, lng) {
+      console.log('=== [GEOCODING] Start ===');
+      console.log('[GEOCODING] Input lat:', lat);
+      console.log('[GEOCODING] Input lng:', lng);
+      
       if (!appState.geocoder) {
-        console.log('[Location] Geocoder not available');
+        console.error('[GEOCODING] Geocoder not available!');
+        console.error('[GEOCODING] appState.geocoder:', appState.geocoder);
+        
+        // Geocoderが無い場合の表示
+        const addressElement = document.getElementById('locAddress');
+        const coordsElement = document.getElementById('locCoords');
+        if (addressElement && coordsElement) {
+          addressElement.textContent = '現在地：位置情報取得済み（住所取得不可）';
+          coordsElement.textContent = `緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
+        }
         return;
       }
 
+      console.log('[GEOCODING] Geocoder available');
       const latlng = { lat, lng };
+      console.log('[GEOCODING] Calling geocode with:', latlng);
       
       appState.geocoder.geocode({ location: latlng, language: 'ja' }, (results, status) => {
-        console.log('=== [DEBUG] Geocode Start ===');
-        console.log('[DEBUG] Status:', status);
-        console.log('[DEBUG] Results:', results);
+        console.log('=== [GEOCODING] Callback received ===');
+        console.log('[GEOCODING] Status:', status);
+        console.log('[GEOCODING] Status === "OK":', status === 'OK');
+        console.log('[GEOCODING] Results:', results);
+        console.log('[GEOCODING] Results length:', results ? results.length : 'null');
         
         const addressElement = document.getElementById('locAddress');
         const coordsElement = document.getElementById('locCoords');
         
         if (!addressElement || !coordsElement) {
-          console.error('[DEBUG] Elements not found!');
-          console.error('[DEBUG] locAddress:', addressElement);
-          console.error('[DEBUG] locCoords:', coordsElement);
+          console.error('[GEOCODING] DOM elements not found!');
+          console.error('[GEOCODING] locAddress:', addressElement);
+          console.error('[GEOCODING] locCoords:', coordsElement);
           return;
         }
+        
+        console.log('[GEOCODING] DOM elements found');
         
         // 座標は必ず2行目に表示
         const coordsText = `緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
         coordsElement.textContent = coordsText;
-        console.log('[DEBUG] Coords set:', coordsText);
+        console.log('[GEOCODING] Coords set:', coordsText);
         
-        if (status === 'OK' && results[0]) {
+        if (status === 'OK' && results && results[0]) {
+          console.log('[GEOCODING] Success path');
           const address = results[0].formatted_address;
-          console.log('[DEBUG] Raw address:', address);
+          console.log('[GEOCODING] Raw address:', address);
+          console.log('[GEOCODING] Raw address type:', typeof address);
+          console.log('[GEOCODING] Raw address length:', address.length);
           
           // 「日本、」のみ削除、郵便番号は残す
           const cleanAddress = address.replace(/^日本、\s*/, '');
-          console.log('[DEBUG] Clean address:', cleanAddress);
+          console.log('[GEOCODING] Clean address:', cleanAddress);
           
           const formattedAddress = '現在地：' + cleanAddress + ' 付近';
-          console.log('[DEBUG] Formatted address:', formattedAddress);
+          console.log('[GEOCODING] Formatted address:', formattedAddress);
+          console.log('[GEOCODING] Formatted address length:', formattedAddress.length);
           
           addressElement.textContent = formattedAddress;
-          console.log('[DEBUG] Address set successfully');
+          console.log('[GEOCODING] Address element textContent set');
+          console.log('[GEOCODING] Address element textContent value:', addressElement.textContent);
           
-          console.log('=== [DEBUG] Display Complete ===');
-          console.log('[DEBUG] Line 1:', addressElement.textContent);
-          console.log('[DEBUG] Line 2:', coordsElement.textContent);
+          console.log('=== [GEOCODING] Success Complete ===');
+          console.log('[GEOCODING] Display Line 1:', addressElement.textContent);
+          console.log('[GEOCODING] Display Line 2:', coordsElement.textContent);
         } else {
           // ジオコーディング失敗時も2行表示
-          console.log('[DEBUG] Geocode failed, using fallback with 2 lines');
+          console.log('[GEOCODING] Failure path');
+          console.log('[GEOCODING] Failure reason - Status:', status);
+          console.log('[GEOCODING] Failure reason - Results:', results);
+          
           addressElement.textContent = '現在地：位置情報取得済み';
-          // coordsTextは既に上で設定済み
-          console.log('[DEBUG] Fallback Line 1:', addressElement.textContent);
-          console.log('[DEBUG] Fallback Line 2:', coordsElement.textContent);
+          console.log('[GEOCODING] Fallback address set');
+          
+          console.log('=== [GEOCODING] Fallback Complete ===');
+          console.log('[GEOCODING] Display Line 1:', addressElement.textContent);
+          console.log('[GEOCODING] Display Line 2:', coordsElement.textContent);
         }
       });
+      
+      console.log('[GEOCODING] Geocode call initiated');
     }
 
     // ==========================================
@@ -1561,12 +1594,13 @@
       // 検索パネルボタン
       document.getElementById('btnSearch').onclick = () => {
         const panel = document.getElementById('searchPanel');
-        const fabStack = document.getElementById('fabStack');
+        const btnSearch = document.getElementById('btnSearch');
         
         if (panel.style.display === 'none') {
           // パネルを開く
           panel.style.display = 'block';
-          // FABボタンを非表示（検索パネルボタン以外）
+          // 全てのFABボタンを非表示
+          btnSearch.style.display = 'none';
           document.getElementById('btnLocate').style.display = 'none';
           document.getElementById('btnDestination').style.display = 'none';
           document.getElementById('btnPause').style.display = 'none';
@@ -1575,6 +1609,7 @@
           // パネルを閉じる
           panel.style.display = 'none';
           // FABボタンを表示
+          btnSearch.style.display = 'flex';
           document.getElementById('btnLocate').style.display = 'flex';
           if (appState.currentDestination) {
             document.getElementById('btnDestination').style.display = 'flex';
@@ -1587,7 +1622,8 @@
       // 検索パネルを閉じるボタン
       document.getElementById('btnClosePanel').onclick = () => {
         document.getElementById('searchPanel').style.display = 'none';
-        // FABボタンを表示
+        // 全てのFABボタンを表示
+        document.getElementById('btnSearch').style.display = 'flex';
         document.getElementById('btnLocate').style.display = 'flex';
         if (appState.currentDestination) {
           document.getElementById('btnDestination').style.display = 'flex';
@@ -1661,8 +1697,9 @@
       console.log('[WalkNav] Starting app...');
       document.documentElement.lang = 'ja';
       
-      // 初期状態：検索パネル表示、FABボタン非表示（検索パネルボタン以外）
+      // 初期状態：検索パネル表示、全FABボタン非表示
       document.getElementById('searchPanel').style.display = 'block';
+      document.getElementById('btnSearch').style.display = 'none';
       document.getElementById('btnLocate').style.display = 'none';
       document.getElementById('btnDestination').style.display = 'none';
       document.getElementById('btnPause').style.display = 'none';
