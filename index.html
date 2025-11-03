@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>WalkNav</title>
 
-  <meta name="x-issue" content="idx202511040608" />
+  <meta name="x-issue" content="idx202511040615" />
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
   <style>
@@ -420,7 +420,7 @@
     // ==========================================
     // 定数定義
     // ==========================================
-    const ISSUE_ID = 'idx202511040608'; // 更新：エラーハンドリング強化
+    const ISSUE_ID = 'idx202511040615'; // 更新：Geocodeエラーを明示
     const API_KEY = 'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk'; // Maps表示用のみ
     const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
     const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -1150,8 +1150,6 @@
         showToast('現在地を取得しました', 'success');
       };
       
-      // ===== 変更点 =====
-      // onErrorの処理を詳細化
       const onError = (error) => {
         console.log('[WalkNav] geolocation error', error?.message || error);
         document.getElementById('loading')?.remove();
@@ -1171,7 +1169,6 @@
           coordsElement.textContent = '位置情報を確認できません';
         }
 
-        // エラーコードに基づいてトーストメッセージを詳細化
         let errorMessage = '現在地の取得に失敗しました';
         if (error.code === 1) { // PERMISSION_DENIED
           errorMessage = '位置情報が許可されていません';
@@ -1182,7 +1179,6 @@
         }
         showToast(errorMessage, 'error');
       };
-      // ===== 変更ここまで =====
       
       try {
         navigator.geolocation.getCurrentPosition(onSuccess, onError, {
@@ -1217,8 +1213,6 @@
         
         if (!addressElement || !coordsElement) {
           console.error('[DEBUG] Elements not found!');
-          console.error('[DEBUG] locAddress:', addressElement);
-          console.error('[DEBUG] locCoords:', coordsElement);
           return;
         }
         
@@ -1241,16 +1235,28 @@
           addressElement.textContent = formattedAddress;
           console.log('[DEBUG] Address set successfully');
           
-          console.log('=== [DEBUG] Display Complete ===');
-          console.log('[DEBUG] Line 1:', addressElement.textContent);
-          console.log('[DEBUG] Line 2:', coordsElement.textContent);
         } else {
-          // ジオコーディング失敗時も2行表示
-          console.log('[DEBUG] Geocode failed, using fallback with 2 lines');
-          addressElement.textContent = '現在地：位置情報取得済み';
-          // coordsTextは既に上で設定済み
+          // ===== 変更点 =====
+          console.error('[Geocode] Geocode failed. Status:', status);
+          
+          // UIにエラーを表示
+          addressElement.textContent = '現在地：住所取得エラー';
+          
+          // トーストで具体的なエラーを表示
+          let errorMessage = `住所取得エラー: ${status}`;
+          if (status === 'REQUEST_DENIED') {
+            errorMessage = '住所取得エラー: APIキーまたは設定を確認してください (Geocoding API)';
+          } else if (status === 'ZERO_RESULTS') {
+            errorMessage = 'この場所の住所情報が見つかりません';
+          } else if (status === 'OVER_QUERY_LIMIT') {
+            errorMessage = '住所取得APIの利用制限を超えました';
+          }
+          showToast(errorMessage, 'error', 5000); // 5秒間表示
+
+          console.log('[DEBUG] Geocode failed, fallback displayed');
           console.log('[DEBUG] Fallback Line 1:', addressElement.textContent);
           console.log('[DEBUG] Fallback Line 2:', coordsElement.textContent);
+          // ===== 変更ここまで =====
         }
       });
     }
@@ -1465,7 +1471,7 @@
           
           document.getElementById('btnConfirmDelete').onclick = () => {
             locations.splice(index, 1);
-            localStorage.setItem('savedLocations', JSON.stringify(locations));
+            localStorage.setItem('savedLocations', JSON.stringify(list));
             
             confirmDialog.remove();
             dialog.remove();
