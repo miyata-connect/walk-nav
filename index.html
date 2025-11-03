@@ -6,7 +6,7 @@
   <title>WalkNav</title>
 
   <!-- 発行番号 / ISSUE -->
-  <meta name="x-issue" content="idx202511032100" />
+  <meta name="x-issue" content="idx202511032101" />
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
   <style>
@@ -422,8 +422,8 @@
     // ==========================================
     // 定数定義
     // ==========================================
-    const ISSUE_ID = 'idx202511032100'; // 更新：現在地表示修正版
-    const API_KEY = 'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk'; // Maps表示用のみ
+    const ISSUE_ID = 'idx202511032101';
+    const API_KEY = 'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk';
     const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
     const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
     const MAX_RETRY = 3;
@@ -458,7 +458,6 @@
     function showToast(message, type = 'info', duration = 3000) {
       const now = Date.now();
       
-      // 同じメッセージが1500ms以内に表示済みなら無視（デバウンス）
       if (message === lastToastMessage && now - lastToastTime < 1500) {
         console.log(`[Toast:${type}] Debounced: ${message}`);
         return;
@@ -569,6 +568,8 @@
     // 地図初期化
     // ==========================================
     function initMap(center) {
+      console.log('[Map] Initializing with center:', center);
+      
       appState.map = new google.maps.Map(document.getElementById('map'), {
         center,
         zoom: 17,
@@ -580,7 +581,6 @@
 
       appState.geocoder = new google.maps.Geocoder();
 
-      // 地図クリックイベント（ポイント選択用）
       appState.map.addListener('click', (e) => {
         if (!appState.pointSearchMode) return;
         if (e.latLng) {
@@ -589,7 +589,7 @@
       });
 
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized');
+      console.log('[Map] Initialized successfully');
     }
 
     // ==========================================
@@ -639,10 +639,7 @@
         appState.userMarker.position = { lat, lng };
       }
       
-      // 緯度・経度表示
       document.getElementById('locCoords').textContent = `緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
-      
-      // 住所取得して表示
       fetchCurrentAddress(lat, lng);
     }
 
@@ -681,7 +678,7 @@
     // 距離計算（Haversine公式）
     // ==========================================
     function calculateDistance(lat1, lon1, lat2, lon2) {
-      const R = 6371000; // 地球の半径（メートル）
+      const R = 6371000;
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLon = (lon2 - lon1) * Math.PI / 180;
       const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -758,7 +755,6 @@
     async function startNavigation(destination) {
       let originLat, originLng;
       
-      // 起点決定
       if (appState.pointSearchMode && appState.searchPoint) {
         originLat = appState.searchPoint.lat;
         originLng = appState.searchPoint.lng;
@@ -776,7 +772,6 @@
       appState.isNavigating = true;
       appState.isPaused = false;
       
-      // 検索パネルを閉じて全FABボタンを表示
       document.getElementById('searchPanel').style.display = 'none';
       document.getElementById('btnSearch').style.display = 'flex';
       document.getElementById('btnLocate').style.display = 'flex';
@@ -811,7 +806,6 @@
           const distanceText = l0 ? readLegDistanceText(l0) : '--';
           const durationText = l0 ? readLegDurationText(l0) : '--';
 
-          // UI更新
           document.getElementById('destinationName').textContent = destination.name;
           document.getElementById('routeDistance').textContent = distanceText;
           document.getElementById('routeTime').textContent = `徒歩 ${durationText}`;
@@ -820,10 +814,8 @@
           document.getElementById('results').style.display = 'none';
           document.getElementById('btnDestination').style.display = 'flex';
 
-          // ポリライン描画
           drawRoutePolyline(r0);
 
-          // カメラワーク: 全体 → 目的地 → 起点
           const bounds = new google.maps.LatLngBounds();
           bounds.extend(new google.maps.LatLng(originLat, originLng));
           bounds.extend(new google.maps.LatLng(destination.lat, destination.lng));
@@ -864,7 +856,6 @@
       appState.isNavigating = false;
       appState.isPaused = false;
       
-      // UI更新
       document.getElementById('routePanel').style.display = 'none';
       document.getElementById('searchPanel').style.display = 'block';
       document.getElementById('btnDestination').style.display = 'none';
@@ -872,22 +863,18 @@
       document.getElementById('results').style.display = 'none';
       document.getElementById('results').innerHTML = '';
       
-      // 全FABボタンを非表示（検索パネル表示中）
       document.getElementById('btnSearch').style.display = 'none';
       document.getElementById('btnLocate').style.display = 'none';
       document.getElementById('btnPause').style.display = 'none';
       document.getElementById('btnReroute').style.display = 'none';
       
-      // 一時停止ボタンをリセット
       const btnPause = document.getElementById('btnPause');
       btnPause.textContent = '一時停止';
       btnPause.classList.remove('paused');
       
-      // 検索マーカー削除
       appState.searchMarkers.forEach(marker => marker.map = null);
       appState.searchMarkers = [];
       
-      // 現在地に戻る
       if (appState.currentPos && appState.map) {
         appState.map.panTo(appState.currentPos);
         appState.map.setZoom(17);
@@ -964,7 +951,6 @@
 
       showToast('検索中...', 'info', 2000);
 
-      // Text Search優先
       try {
         const data = await placesTextSearch({
           textQuery: query.trim(),
@@ -983,7 +969,6 @@
         console.error('[Search] Text Search Error:', e);
       }
 
-      // Nearby Search（タイプが一致する場合のみ）
       const typeKey = TYPE_MAP[query.trim()] || TYPE_MAP[query.trim().replace(/\s/g, '')];
 
       if (typeKey) {
@@ -1014,11 +999,9 @@
     // 検索結果表示
     // ==========================================
     function displayResults(places, centerLat, centerLng) {
-      // 既存の検索マーカーを削除
       appState.searchMarkers.forEach(marker => marker.map = null);
       appState.searchMarkers = [];
 
-      // 距離計算とソート
       const placesWithDistance = places.map(place => {
         const lat = place.location.latitude;
         const lng = place.location.longitude;
@@ -1040,7 +1023,6 @@
         const lng = place.location.longitude;
         const distanceKm = (place.distance / 1000).toFixed(2);
 
-        // 結果アイテム作成
         const item = document.createElement('div');
         item.className = 'result-item';
         item.innerHTML = `
@@ -1061,7 +1043,6 @@
 
         resultsDiv.appendChild(item);
 
-        // マーカー作成
         const markerPin = document.createElement('div');
         markerPin.style.width = '24px';
         markerPin.style.height = '24px';
@@ -1165,97 +1146,57 @@
     }
 
     // ==========================================
-    // 現在地取得
+    // 現在地取得（シンプル版）
     // ==========================================
     function acquireLocation(retry = 0) {
-      const MAX_RETRY = 5;                 // up to ~1.5s * 1..5 backoff
-      const RETRY_DELAY_MS = 1500 * Math.max(1, retry + 1);
-      const WATCH_MAX_MS = 60000;          // warm-up window (60s)
-      const BASE_MIN_ACC = 100;            // base accuracy threshold
-      const dynamicMinAcc = (retry <= 1) ? BASE_MIN_ACC : (retry <= 3 ? 300 : 1000);
-      const finish = (ok, posOrErr) => {
-        const ld = document.getElementById('loading');
-        if (ld) ld.remove();
-        if (!ok) {
-          if (!appState.map) initMap({ lat: 35.0, lng: 135.0 });
-          showToast('現在地の取得に失敗しました', 'error');
-        }
+      const MAX_RETRY = 3;
+      const TIMEOUT = 15000;
+
+      console.log(`[Location] 位置情報取得開始 (試行 ${retry + 1}/${MAX_RETRY + 1})`);
+
+      const options = {
+        enableHighAccuracy: true,
+        timeout: TIMEOUT,
+        maximumAge: 0
       };
-      try {
-        let settled = false;
-        let watchId = null;
-        let watchTimer = null;
-        const acceptIfGood = (pos) => {
-          if (settled) return false;
-          const acc = typeof pos.coords.accuracy === 'number' ? pos.coords.accuracy : 9999;
-          // iOS often returns coarse accuracy first; accept when reasonable
-          if (acc <= dynamicMinAcc) {
-            settled = true;
-            if (watchId != null) navigator.geolocation.clearWatch(watchId);
-            if (watchTimer != null) clearTimeout(watchTimer);
-            const { latitude, longitude } = pos.coords;
-            if (!appState.map) initMap({ lat: latitude, lng: longitude });
-            appState.map.setCenter({ lat: latitude, lng: longitude });
-            setUserMarker(latitude, longitude);
-            showToast('現在地を取得しました', 'success');
-            return true;
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude, accuracy } = position.coords;
+          console.log(`[Location] 取得成功 - 精度: ${accuracy}m`);
+          
+          const loading = document.getElementById('loading');
+          if (loading) loading.remove();
+
+          if (!appState.map) {
+            initMap({ lat: latitude, lng: longitude });
           }
-          return false;
-        };
-        const onOneShotSuccess = (pos) => {
-          if (acceptIfGood(pos)) return;
-          // keep warming by watch until accuracy improves
-        };
-        const onError = (err) => {
-          const code = err?.code;
-          const message = String(err?.message || '');
-          const transient =
-            code === 2 /* POSITION_UNAVAILABLE */ ||
-            /LocationUnknown/i.test(message) ||
-            code === 0; /* unknown */
-          if (!settled && transient && retry < MAX_RETRY) {
-            showToast('位置情報の取得を再試行します…', 'info');
-            if (watchId != null) navigator.geolocation.clearWatch(watchId);
-            if (watchTimer != null) clearTimeout(watchTimer);
-            setTimeout(() => acquireLocation(retry + 1), RETRY_DELAY_MS);
-            return;
+          
+          appState.map.setCenter({ lat: latitude, lng: longitude });
+          setUserMarker(latitude, longitude);
+          showToast('現在地を取得しました', 'success');
+        },
+        (error) => {
+          console.error('[Location] エラー:', error.code, error.message);
+          
+          if (retry < MAX_RETRY) {
+            showToast(`位置情報取得を再試行中... (${retry + 1}/${MAX_RETRY})`, 'warning', 2000);
+            setTimeout(() => acquireLocation(retry + 1), 2000);
+          } else {
+            const loading = document.getElementById('loading');
+            if (loading) loading.remove();
+            
+            if (!appState.map) {
+              initMap({ lat: 35.6812, lng: 139.7671 });
+            }
+            
+            showToast('位置情報の取得に失敗しました。デフォルト位置を表示します', 'error', 5000);
           }
-          if (!settled) {
-            settled = true;
-            if (watchId != null) navigator.geolocation.clearWatch(watchId);
-            if (watchTimer != null) clearTimeout(watchTimer);
-            finish(false, err);
-          }
-        };
-        // Start watchPosition first (warm-up radios/sensors)
-        watchId = navigator.geolocation.watchPosition(
-          (pos) => {
-            if (acceptIfGood(pos)) finish(true, pos);
-          },
-          (err) => {
-            console.log('[WalkNav] watchPosition error', err?.message || err);
-          },
-          { enableHighAccuracy: true, maximumAge: 10000, timeout: WATCH_MAX_MS }
-        );
-        // Hard stop for watch
-        watchTimer = setTimeout(() => {
-          if (watchId != null) navigator.geolocation.clearWatch(watchId);
-        }, WATCH_MAX_MS + 5000);
-        // Race with a single high-accuracy snapshot
-        navigator.geolocation.getCurrentPosition(
-          onOneShotSuccess,
-          onError,
-          { enableHighAccuracy: true, timeout: 45000, maximumAge: 10000 }
-        );
-      } catch (e) {
-        console.log('[WalkNav] geolocation exception', e);
-        finish(false, e);
-      }
+        },
+        options
+      );
     }
 
-    // ==========================================
-    // 地名取得（逆ジオコーディング）
-    // ==========================================
     // ==========================================
     // ダイアログユーティリティ
     // ==========================================
@@ -1382,7 +1323,6 @@
       
       document.getElementById('btnCloseEdit').onclick = () => dialog.remove();
       
-      // ナビ開始ボタン
       document.querySelectorAll('.location-item-btn.nav').forEach(btn => {
         btn.onclick = () => {
           const index = parseInt(btn.dataset.index);
@@ -1397,7 +1337,6 @@
         };
       });
       
-      // 名前変更ボタン
       document.querySelectorAll('.location-item-btn.edit').forEach(btn => {
         btn.onclick = () => {
           const index = parseInt(btn.dataset.index);
@@ -1444,7 +1383,6 @@
         };
       });
       
-      // 削除ボタン
       document.querySelectorAll('.location-item-btn.delete').forEach(btn => {
         btn.onclick = () => {
           const index = parseInt(btn.dataset.index);
@@ -1565,7 +1503,6 @@
         btnPointSearch.style.color = 'var(--text)';
         btnPointSearch.style.borderColor = 'var(--stroke)';
         
-        // 半径を10kmにリセット
         document.getElementById('r10').classList.add('active');
         document.getElementById('r20').classList.remove('active');
         document.getElementById('r30').classList.remove('active');
@@ -1580,24 +1517,19 @@
     function bindFABEvents() {
       let lastLocateTime = 0;
       
-      // 検索パネルボタン
       document.getElementById('btnSearch').onclick = () => {
         const panel = document.getElementById('searchPanel');
         const btnSearch = document.getElementById('btnSearch');
         
         if (panel.style.display === 'none') {
-          // パネルを開く
           panel.style.display = 'block';
-          // 全てのFABボタンを非表示
           btnSearch.style.display = 'none';
           document.getElementById('btnLocate').style.display = 'none';
           document.getElementById('btnDestination').style.display = 'none';
           document.getElementById('btnPause').style.display = 'none';
           document.getElementById('btnReroute').style.display = 'none';
         } else {
-          // パネルを閉じる
           panel.style.display = 'none';
-          // FABボタンを表示
           btnSearch.style.display = 'flex';
           document.getElementById('btnLocate').style.display = 'flex';
           if (appState.currentDestination) {
@@ -1608,10 +1540,8 @@
         }
       };
       
-      // 検索パネルを閉じるボタン
       document.getElementById('btnClosePanel').onclick = () => {
         document.getElementById('searchPanel').style.display = 'none';
-        // 全てのFABボタンを表示
         document.getElementById('btnSearch').style.display = 'flex';
         document.getElementById('btnLocate').style.display = 'flex';
         if (appState.currentDestination) {
@@ -1623,7 +1553,7 @@
 
       document.getElementById('btnLocate').onclick = () => {
         const now = Date.now();
-        if (now - lastLocateTime < 1000) return; // simple cooldown
+        if (now - lastLocateTime < 1000) return;
         lastLocateTime = now;
         if (appState.currentPos && appState.map) {
           appState.map.panTo(appState.currentPos);
@@ -1631,14 +1561,13 @@
           showToast('現在地に移動しました', 'info');
         } else {
           showToast('現在地を取得します…', 'info');
-          acquireLocation(); // まだ取れていない時は再取得をキック
+          acquireLocation();
         }
       };
       
       document.getElementById('btnDestination').onclick = () => {
         const now = Date.now();
         
-        // 1秒以内の連打を防止
         if (now - lastLocateTime < 1000) {
           console.log('[Destination] クールダウン中');
           return;
@@ -1684,17 +1613,21 @@
         const s = await navigator.permissions.query({ name: 'geolocation' });
         console.log('[WalkNav] geolocation permission:', s.state);
         if (s.state === 'denied') {
-          showToast('位置情報がブロックされています。Safariの設定を確認してください', 'error', 5000);
+          showToast('位置情報がブロックされています。ブラウザの設定を確認してください', 'error', 5000);
         }
-      } catch {}
+      } catch (e) {
+        console.log('[WalkNav] Permission query error:', e);
+      }
     }
 
     function startApp() {
       console.log('[WalkNav] Starting app...');
+      console.log('[WalkNav] Google Maps available:', typeof google !== 'undefined');
+      console.log('[WalkNav] Navigator geolocation:', 'geolocation' in navigator);
+      
       checkGeoPermission();
       document.documentElement.lang = 'ja';
       
-      // 初期状態：検索パネル表示、全FABボタン非表示
       document.getElementById('searchPanel').style.display = 'block';
       document.getElementById('btnSearch').style.display = 'none';
       document.getElementById('btnLocate').style.display = 'none';
@@ -1703,24 +1636,41 @@
       document.getElementById('btnReroute').style.display = 'none';
       
       bindUI();
-      acquireLocation();
-      initSpeechRecognition();
-      console.log('[WalkNav] ISSUE', ISSUE_ID, 'boot');
-    }
-
-    function initializeWhenReady() {
-      if (typeof google !== 'undefined' && google.maps && google.maps.Map) {
-        startApp();
+      
+      if ('geolocation' in navigator) {
+        acquireLocation();
       } else {
-        setTimeout(initializeWhenReady, 100);
+        document.getElementById('loading').remove();
+        showToast('お使いのブラウザは位置情報に対応していません', 'error');
+        initMap({ lat: 35.6812, lng: 139.7671 });
       }
+      
+      initSpeechRecognition();
+      console.log('[WalkNav] ISSUE', ISSUE_ID, 'boot complete');
     }
 
-    window.addEventListener('DOMContentLoaded', initializeWhenReady);
+    // ==========================================
+    // Google Maps API コールバック
+    // ==========================================
+    window.initApp = function() {
+      console.log('[WalkNav] Google Maps API loaded via callback');
+      startApp();
+    };
+
+    // ==========================================
+    // DOMContentLoaded
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('[WalkNav] DOM ready');
+      if (typeof google !== 'undefined' && google.maps && google.maps.Map) {
+        console.log('[WalkNav] Google Maps already loaded');
+        startApp();
+      }
+    });
   </script>
 
   <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry&language=ja&region=JP&loading=async"
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry&language=ja&region=JP&callback=initApp"
     async defer></script>
 </body>
 </html>
