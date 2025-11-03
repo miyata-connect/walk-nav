@@ -306,7 +306,8 @@
     .toast-message{
       flex:1;
       font-size:14px;
-      color:var(--text);
+      color:#ffffff;
+      font-weight:500;
     }
     @keyframes slideUp{
       from{
@@ -596,8 +597,6 @@
       });
 
       console.log(`[WalkNav] 検索地点設定: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
-      appState.map.panTo({ lat, lng });
-      appState.map.setOptions({ zoom: 17 });
       showToast('検索地点を設定しました', 'success');
     }
 
