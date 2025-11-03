@@ -276,10 +276,10 @@
     .toast-container{
       position:fixed;
       bottom:90px;
-      left:50%;
-      transform:translateX(-50%);
+      left:16px;
       z-index:10000;
       pointer-events:none;
+      max-width:calc(100% - 160px);
     }
     .toast{
       background:var(--glass-strong);
@@ -292,7 +292,8 @@
       display:flex;
       align-items:center;
       gap:10px;
-      min-width:250px;
+      min-width:200px;
+      max-width:100%;
       animation:slideUp 0.3s ease-out;
       pointer-events:auto;
     }
@@ -426,7 +427,21 @@
     // ==========================================
     // トースト通知システム
     // ==========================================
+    let lastToastTime = 0;
+    let lastToastMessage = '';
+
     function showToast(message, type = 'info', duration = 3000) {
+      const now = Date.now();
+      
+      // 同じメッセージが500ms以内に表示済みなら無視（デバウンス）
+      if (message === lastToastMessage && now - lastToastTime < 500) {
+        console.log(`[Toast:${type}] Debounced: ${message}`);
+        return;
+      }
+      
+      lastToastTime = now;
+      lastToastMessage = message;
+      
       const container = document.getElementById('toastContainer');
       const toast = document.createElement('div');
       toast.className = `toast ${type}`;
