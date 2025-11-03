@@ -514,7 +514,7 @@
     }
 
     // ==========================================
-    // Places API - Text Search
+    // Places API - Text Search (Worker経由)
     // ==========================================
     async function placesTextSearch(payload, fieldMask) {
       try {
@@ -539,7 +539,7 @@
     }
 
     // ==========================================
-    // Places API - Nearby Search
+    // Places API - Nearby Search (Worker経由)
     // ==========================================
     async function placesNearby(payload, fieldMask) {
       try {
@@ -725,7 +725,7 @@
     }
 
     // ==========================================
-    // ナビゲーション開始
+    // ナビゲーション開始 (Worker経由)
     // ==========================================
     async function startNavigation(destination) {
       let originLat, originLng;
@@ -893,7 +893,7 @@
     }
 
     // ==========================================
-    // 検索実行
+    // 検索実行 (Worker経由)
     // ==========================================
     const TYPE_MAP = {
       "コンビニ": "convenience_store",
