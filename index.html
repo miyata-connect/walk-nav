@@ -595,35 +595,30 @@
     // ==========================================
     // ユーザー位置マーカー設定
     // ==========================================
-    // Safer version using Cloudflare proxy instead of direct Geocoder
     async function fetchCurrentAddress(lat, lng) {
       try {
-        const resp = await fetch(`${WORKER_ORIGIN}/places:searchText`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Goog-FieldMask': 'places.formattedAddress'
-          },
-          body: JSON.stringify({
-            textQuery: `${lat},${lng}`,
-            languageCode: 'ja'
-          })
-        });
-        
-        if (!resp.ok) {
-          throw new Error(`HTTP ${resp.status}`);
+        // Cloudflare Worker 経由で Places API(New) を使用
+        const data = await placesTextSearch({
+          textQuery: `${lat},${lng}`,
+          languageCode: 'ja'
+        }, 'places.formattedAddress');
+
+        const el = document.getElementById('locAddress');
+        const raw = data?.places?.[0]?.formattedAddress;
+
+        if (raw) {
+          const clean = String(raw).replace(/^日本、\s*/, '');
+          if (el) el.textContent = `現在地：${clean} 付近`;
+          console.log('[ReverseGeocode][PlacesNew] OK:', clean);
+        } else {
+          if (el) el.textContent = '現在地：位置情報取得済み';
+          console.warn('[ReverseGeocode][PlacesNew] empty places');
         }
-        
-        const data = await resp.json();
-        const place = data.places?.[0];
-        const address = place?.formattedAddress || '位置情報取得済み';
-        const clean = address.replace(/^日本、\s*/, '');
-        
-        document.getElementById('locAddress').textContent = `現在地：${clean} 付近`;
-        console.log('[Proxy Geocode OK]', clean);
       } catch (err) {
-        console.error('[Proxy Geocode Error]', err);
-        document.getElementById('locAddress').textContent = '現在地：位置情報取得済み';
+        // Worker 側の一時失敗などでも UI を止めない
+        const el = document.getElementById('locAddress');
+        if (el) el.textContent = '現在地：位置情報取得済み';
+        console.error('[ReverseGeocode][PlacesNew] error:', err);
       }
     }
 
