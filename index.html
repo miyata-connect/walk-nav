@@ -596,30 +596,40 @@
     // ユーザー位置マーカー設定
     // ==========================================
     function fetchCurrentAddress(lat, lng) {
-      console.log('[Geocoder] 住所取得開始:', lat, lng);
-      const geocoder = new google.maps.Geocoder();
-      const latlng = { lat, lng };
+      try {
+        const geocoder = new google.maps.Geocoder();
+        const latlng = { lat, lng };
 
-      geocoder.geocode({ location: latlng, language: 'ja' }, (results, status) => {
-        console.log('[Geocoder] Status:', status);
-        console.log('[Geocoder] Results:', results);
-        
-        if (status === 'OK' && results[0]) {
-          const address = results[0].formatted_address;
-          console.log('[Geocoder] Raw address:', address);
-          
-          // 「日本、」を削除
-          const cleanAddress = address.replace(/^日本、\s*/, '');
-          console.log('[Geocoder] Clean address:', cleanAddress);
-          
-          const formattedAddress = `現在地：${cleanAddress} 付近`;
-          document.getElementById('locAddress').textContent = formattedAddress;
-          console.log('[Geocoder] 住所表示完了:', formattedAddress);
-        } else {
-          document.getElementById('locAddress').textContent = '現在地：位置情報取得済み';
-          console.error('[Geocoder] 住所取得失敗:', status);
-        }
-      });
+        // Use promise-style geocoder to avoid callback edge cases
+        geocoder.geocode({ location: latlng })
+          .then(({ results }) => {
+            if (Array.isArray(results) && results[0]?.formatted_address) {
+              const raw = results[0].formatted_address;
+
+              // Remove leading "日本、" and similar variants
+              const clean = raw.replace(/^日本、\s*/, '');
+
+              // Show as "現在地：<address> 付近"
+              const el = document.getElementById('locAddress');
+              if (el) el.textContent = `現在地：${clean} 付近`;
+
+              console.log('[Geocoder] OK:', clean);
+            } else {
+              const el = document.getElementById('locAddress');
+              if (el) el.textContent = '現在地：位置情報取得済み';
+              console.warn('[Geocoder] No results');
+            }
+          })
+          .catch((err) => {
+            const el = document.getElementById('locAddress');
+            if (el) el.textContent = '現在地：位置情報取得済み';
+            console.error('[Geocoder] Error:', err);
+          });
+      } catch (e) {
+        const el = document.getElementById('locAddress');
+        if (el) el.textContent = '現在地：位置情報取得済み';
+        console.error('[Geocoder] Exception:', e);
+      }
     }
 
     function setUserMarker(lat, lng) {
@@ -1668,7 +1678,7 @@
   </script>
 
   <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry"
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry&language=ja&region=JP"
     async defer></script>
 </body>
 </html>
