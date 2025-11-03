@@ -35,15 +35,26 @@
       z-index:2600;
     }
     .panel{
-      position:absolute;left:16px;right:140px;top:16px;
+      position:absolute;
+      left:16px;
+      right:140px;
+      bottom:90px;
+      top:auto;
       background:var(--glass-strong);border:1px solid var(--stroke);
       border-radius:var(--radius);box-shadow:var(--shadow);
       padding:14px 14px 12px;backdrop-filter:blur(10px);
       z-index:2500;
-      max-height:calc(100vh - 32px);
+      max-height:calc(100vh - 110px);
       overflow-y:auto;
     }
-    .panel h2{margin:0 0 10px;font-size:20px;letter-spacing:.5px}
+    .panel h2{
+      margin:0 0 10px;
+      font-size:17px;
+      letter-spacing:.3px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .chip{padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--stroke);color:var(--text);font-size:14px;cursor:pointer;user-select:none}
     .chip.active{background:var(--primary);color:#05233a;border-color:transparent}
@@ -105,7 +116,8 @@
     .route-panel{
       position:absolute;
       left:16px;
-      top:16px;
+      bottom:90px;
+      top:auto;
       right:140px;
       background:var(--glass-strong);
       border:1px solid var(--stroke);
@@ -275,7 +287,7 @@
     /* トースト通知 */
     .toast-container{
       position:fixed;
-      bottom:90px;
+      bottom:16px;
       left:16px;
       z-index:10000;
       pointer-events:none;
@@ -338,7 +350,7 @@
     <div id="map" aria-label="地図"></div>
 
     <section class="panel" id="searchPanel" aria-label="検索パネル">
-      <h2>近くを検索（<span id="radiusLabel">10km</span> / 5件）</h2>
+      <h2>近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
       <div class="row" style="margin-bottom:8px">
         <button class="chip active" id="r10">10km</button>
         <button class="chip" id="r20">20km</button>
@@ -433,8 +445,8 @@
     function showToast(message, type = 'info', duration = 3000) {
       const now = Date.now();
       
-      // 同じメッセージが500ms以内に表示済みなら無視（デバウンス）
-      if (message === lastToastMessage && now - lastToastTime < 500) {
+      // 同じメッセージが1500ms以内に表示済みなら無視（デバウンス）
+      if (message === lastToastMessage && now - lastToastTime < 1500) {
         console.log(`[Toast:${type}] Debounced: ${message}`);
         return;
       }
@@ -1464,12 +1476,24 @@
     }
 
     function bindFABEvents() {
+      let lastLocateTime = 0;
+      
       document.getElementById('btnSearch').onclick = () => {
         const panel = document.getElementById('searchPanel');
         panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
       };
 
       document.getElementById('btnLocate').onclick = () => {
+        const now = Date.now();
+        
+        // 1秒以内の連打を防止
+        if (now - lastLocateTime < 1000) {
+          console.log('[Locate] クールダウン中');
+          return;
+        }
+        
+        lastLocateTime = now;
+        
         if (appState.currentPos && appState.map) {
           appState.map.panTo(appState.currentPos);
           appState.map.setZoom(18);
@@ -1478,6 +1502,16 @@
       };
       
       document.getElementById('btnDestination').onclick = () => {
+        const now = Date.now();
+        
+        // 1秒以内の連打を防止
+        if (now - lastLocateTime < 1000) {
+          console.log('[Destination] クールダウン中');
+          return;
+        }
+        
+        lastLocateTime = now;
+        
         if (appState.currentDestination && appState.map) {
           appState.map.panTo({ lat: appState.currentDestination.lat, lng: appState.currentDestination.lng });
           appState.map.setZoom(18);
