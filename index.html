@@ -598,18 +598,18 @@
     async function fetchCurrentAddress(lat, lng) {
       const el = document.getElementById("locAddress");
       try {
-        const url = `${WORKER_ORIGIN}/geocode?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`;
-        const res = await fetch(url, { method: "GET", credentials: "omit" });
+        const url = `${WORKER_ORIGIN}/reverse-geocode?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}&lang=ja`;
+        const res = await fetch(url, { method: "GET" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const raw = data?.formattedAddress || "";
+        const data = await res.json().catch(() => ({}));
+        const raw = data.formattedAddress || data.address || "";
         const clean = raw.replace(/^日本、\s*/, "");
         if (clean) {
           if (el) el.textContent = `現在地：${clean} 付近`;
           console.log("[ReverseGeocode] OK:", clean);
         } else {
           if (el) el.textContent = "現在地：住所情報なし";
-          console.warn("[ReverseGeocode] No formattedAddress");
+          console.warn("[ReverseGeocode] No formattedAddress/address");
         }
       } catch (e) {
         if (el) el.textContent = "現在地：住所取得エラー";
@@ -1171,9 +1171,11 @@
       const MAX_RETRY = 5;                 // up to ~1.5s * 1..5 backoff
       const RETRY_DELAY_MS = 1500 * Math.max(1, retry + 1);
       const WATCH_MAX_MS = 60000;          // warm-up window (60s)
-      const MIN_ACCURACY_M = 100;          // accept if accuracy <= 100m
+      const BASE_MIN_ACC = 100;            // base accuracy threshold
+      const dynamicMinAcc = (retry <= 1) ? BASE_MIN_ACC : (retry <= 3 ? 300 : 1000);
       const finish = (ok, posOrErr) => {
-        document.getElementById('loading')?.remove();
+        const ld = document.getElementById('loading');
+        if (ld) ld.remove();
         if (!ok) {
           if (!appState.map) initMap({ lat: 35.0, lng: 135.0 });
           showToast('現在地の取得に失敗しました', 'error');
@@ -1187,7 +1189,7 @@
           if (settled) return false;
           const acc = typeof pos.coords.accuracy === 'number' ? pos.coords.accuracy : 9999;
           // iOS often returns coarse accuracy first; accept when reasonable
-          if (acc <= MIN_ACCURACY_M || retry >= 3) {
+          if (acc <= dynamicMinAcc) {
             settled = true;
             if (watchId != null) navigator.geolocation.clearWatch(watchId);
             if (watchTimer != null) clearTimeout(watchTimer);
@@ -1233,7 +1235,7 @@
           (err) => {
             console.log('[WalkNav] watchPosition error', err?.message || err);
           },
-          { enableHighAccuracy: true, maximumAge: 0, timeout: WATCH_MAX_MS }
+          { enableHighAccuracy: true, maximumAge: 10000, timeout: WATCH_MAX_MS }
         );
         // Hard stop for watch
         watchTimer = setTimeout(() => {
@@ -1243,7 +1245,7 @@
         navigator.geolocation.getCurrentPosition(
           onOneShotSuccess,
           onError,
-          { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
+          { enableHighAccuracy: true, timeout: 45000, maximumAge: 10000 }
         );
       } catch (e) {
         console.log('[WalkNav] geolocation exception', e);
@@ -1676,8 +1678,20 @@
     // ==========================================
     // アプリケーション起動
     // ==========================================
+    async function checkGeoPermission() {
+      try {
+        if (!('permissions' in navigator)) return;
+        const s = await navigator.permissions.query({ name: 'geolocation' });
+        console.log('[WalkNav] geolocation permission:', s.state);
+        if (s.state === 'denied') {
+          showToast('位置情報がブロックされています。Safariの設定を確認してください', 'error', 5000);
+        }
+      } catch {}
+    }
+
     function startApp() {
       console.log('[WalkNav] Starting app...');
+      checkGeoPermission();
       document.documentElement.lang = 'ja';
       
       // 初期状態：検索パネル表示、全FABボタン非表示
