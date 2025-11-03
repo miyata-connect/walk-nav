@@ -596,22 +596,24 @@
     // ユーザー位置マーカー設定
     // ==========================================
     async function fetchCurrentAddress(lat, lng) {
+      const el = document.getElementById("locAddress");
       try {
-        const resp = await fetch(`${WORKER_ORIGIN}/geocode?lat=${lat}&lng=${lng}&lang=ja`);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-
+        const url = `${WORKER_ORIGIN}/reverse-geocode?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`;
+        const res = await fetch(url, { method: "GET", credentials: "omit" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
         const raw = data?.formattedAddress || "";
-        const clean = raw.replace(/^日本、\s*/, "") || "位置情報取得済み";
-
-        const el = document.getElementById("locAddress");
-        if (el) el.textContent = `現在地：${clean} 付近`;
-
-        console.log("[ReverseGeocode OK]", clean);
-      } catch (err) {
-        console.error("[ReverseGeocode Error]", err);
-        const el = document.getElementById("locAddress");
-        if (el) el.textContent = "現在地：位置情報取得済み";
+        const clean = raw.replace(/^日本、\s*/, "");
+        if (clean) {
+          if (el) el.textContent = `現在地：${clean} 付近`;
+          console.log("[ReverseGeocode] OK:", clean);
+        } else {
+          if (el) el.textContent = "現在地：住所情報なし";
+          console.warn("[ReverseGeocode] No formattedAddress");
+        }
+      } catch (e) {
+        if (el) el.textContent = "現在地：住所取得エラー";
+        console.error("[ReverseGeocode] Error:", e);
       }
     }
 
