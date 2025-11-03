@@ -597,28 +597,21 @@
     // ==========================================
     async function fetchCurrentAddress(lat, lng) {
       try {
-        // Cloudflare Worker 経由で Places API(New) を使用
-        const data = await placesTextSearch({
-          textQuery: `${lat},${lng}`,
-          languageCode: 'ja'
-        }, 'places.formattedAddress');
+        const resp = await fetch(`${WORKER_ORIGIN}/geocode?lat=${lat}&lng=${lng}&lang=ja`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
 
-        const el = document.getElementById('locAddress');
-        const raw = data?.places?.[0]?.formattedAddress;
+        const raw = data?.formattedAddress || "";
+        const clean = raw.replace(/^日本、\s*/, "") || "位置情報取得済み";
 
-        if (raw) {
-          const clean = String(raw).replace(/^日本、\s*/, '');
-          if (el) el.textContent = `現在地：${clean} 付近`;
-          console.log('[ReverseGeocode][PlacesNew] OK:', clean);
-        } else {
-          if (el) el.textContent = '現在地：位置情報取得済み';
-          console.warn('[ReverseGeocode][PlacesNew] empty places');
-        }
+        const el = document.getElementById("locAddress");
+        if (el) el.textContent = `現在地：${clean} 付近`;
+
+        console.log("[ReverseGeocode OK]", clean);
       } catch (err) {
-        // Worker 側の一時失敗などでも UI を止めない
-        const el = document.getElementById('locAddress');
-        if (el) el.textContent = '現在地：位置情報取得済み';
-        console.error('[ReverseGeocode][PlacesNew] error:', err);
+        console.error("[ReverseGeocode Error]", err);
+        const el = document.getElementById("locAddress");
+        if (el) el.textContent = "現在地：位置情報取得済み";
       }
     }
 
