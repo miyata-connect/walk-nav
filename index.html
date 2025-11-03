@@ -374,8 +374,9 @@
       <div class="row" style="margin-bottom:8px">
         <button id="btnReset" class="btn danger" style="width:100%">リセット</button>
       </div>
-      <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px">
-        <span id="locLabel">現在地：取得中...</span>
+      <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px;flex-direction:column;align-items:flex-start;gap:2px">
+        <div id="locAddress" style="line-height:1.5">現在地：取得中...</div>
+        <div id="locCoords" style="line-height:1.5;font-size:12px"></div>
       </div>
       
       <div id="results" class="results" style="display:none"></div>
@@ -397,6 +398,7 @@
     </div>
 
     <div class="fab-stack" id="fabStack">
+      <div class="fab" id="btnSearch">検索パネル</div>
       <div class="fab" id="btnLocate">現在地</div>
       <div class="fab" id="btnDestination" style="display:none">目的地</div>
       <div class="fab" id="btnPause">一時停止</div>
@@ -746,12 +748,8 @@
       appState.isNavigating = true;
       appState.isPaused = false;
       
-      // 検索パネルを閉じてFABボタンを表示
+      // 検索パネルを閉じる
       document.getElementById('searchPanel').style.display = 'none';
-      document.getElementById('btnLocate').style.display = 'flex';
-      document.getElementById('btnDestination').style.display = 'flex';
-      document.getElementById('btnPause').style.display = 'flex';
-      document.getElementById('btnReroute').style.display = 'flex';
 
       try {
         showToast('ルートを取得中...', 'info', 2000);
@@ -840,11 +838,6 @@
       document.getElementById('q').value = '';
       document.getElementById('results').style.display = 'none';
       document.getElementById('results').innerHTML = '';
-      
-      // FABボタンを非表示（検索パネル表示中）
-      document.getElementById('btnLocate').style.display = 'none';
-      document.getElementById('btnPause').style.display = 'none';
-      document.getElementById('btnReroute').style.display = 'none';
       
       // 一時停止ボタンをリセット
       const btnPause = document.getElementById('btnPause');
@@ -1177,36 +1170,54 @@
     // 地名取得（逆ジオコーディング）
     // ==========================================
     function fetchLocationNameGoogle(lat, lng) {
-      if (!appState.geocoder) return;
+      if (!appState.geocoder) {
+        console.log('[Location] Geocoder not available');
+        return;
+      }
 
       const latlng = { lat, lng };
+      
       appState.geocoder.geocode({ location: latlng, language: 'ja' }, (results, status) => {
-        console.log('[DEBUG] Geocode status:', status);
-        console.log('[DEBUG] Geocode results:', results);
+        console.log('=== [DEBUG] Geocode Start ===');
+        console.log('[DEBUG] Status:', status);
+        console.log('[DEBUG] Results:', results);
+        
+        const addressElement = document.getElementById('locAddress');
+        const coordsElement = document.getElementById('locCoords');
+        
+        if (!addressElement || !coordsElement) {
+          console.error('[DEBUG] Elements not found!');
+          console.error('[DEBUG] locAddress:', addressElement);
+          console.error('[DEBUG] locCoords:', coordsElement);
+          return;
+        }
+        
+        // 座標は必ず表示
+        const coordsText = `緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
+        coordsElement.textContent = coordsText;
+        console.log('[DEBUG] Coords set:', coordsText);
         
         if (status === 'OK' && results[0]) {
           const address = results[0].formatted_address;
           console.log('[DEBUG] Raw address:', address);
           
           // 「日本、」のみ削除、郵便番号は残す
-          const cleanAddress = address.replace(/^日本、/, '');
+          const cleanAddress = address.replace(/^日本、\s*/, '');
           console.log('[DEBUG] Clean address:', cleanAddress);
           
-          const formattedAddress = cleanAddress + ' 付近';
+          const formattedAddress = '現在地：' + cleanAddress + ' 付近';
           console.log('[DEBUG] Formatted address:', formattedAddress);
           
-          const coordsText = `緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
-          console.log('[DEBUG] Coords text:', coordsText);
+          addressElement.textContent = formattedAddress;
+          console.log('[DEBUG] Address set successfully');
           
-          const finalHTML = `現在地：${formattedAddress}<br>${coordsText}`;
-          console.log('[DEBUG] Final HTML:', finalHTML);
-          
-          document.getElementById('locLabel').innerHTML = finalHTML;
-          console.log('[Location] 地名設定完了');
+          console.log('=== [DEBUG] Display Complete ===');
+          console.log('[DEBUG] Line 1:', addressElement.textContent);
+          console.log('[DEBUG] Line 2:', coordsElement.textContent);
         } else {
-          const fallbackText = `現在地：緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
-          console.log('[DEBUG] Fallback text:', fallbackText);
-          document.getElementById('locLabel').textContent = fallbackText;
+          console.log('[DEBUG] Geocode failed, using fallback');
+          addressElement.textContent = `現在地：緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
+          coordsElement.textContent = '';
         }
       });
     }
@@ -1535,16 +1546,22 @@
     function bindFABEvents() {
       let lastLocateTime = 0;
       
+      // 検索パネルボタン
+      document.getElementById('btnSearch').onclick = () => {
+        const panel = document.getElementById('searchPanel');
+        
+        if (panel.style.display === 'none') {
+          // パネルを開く
+          panel.style.display = 'block';
+        } else {
+          // パネルを閉じる
+          panel.style.display = 'none';
+        }
+      };
+      
       // 検索パネルを閉じるボタン
       document.getElementById('btnClosePanel').onclick = () => {
         document.getElementById('searchPanel').style.display = 'none';
-        // FABボタンを表示
-        document.getElementById('btnLocate').style.display = 'flex';
-        if (appState.currentDestination) {
-          document.getElementById('btnDestination').style.display = 'flex';
-        }
-        document.getElementById('btnPause').style.display = 'flex';
-        document.getElementById('btnReroute').style.display = 'flex';
       };
 
       document.getElementById('btnLocate').onclick = () => {
@@ -1612,12 +1629,8 @@
       console.log('[WalkNav] Starting app...');
       document.documentElement.lang = 'ja';
       
-      // 初期状態：検索パネル表示、FABボタン非表示（検索ボタン以外）
+      // 初期状態：検索パネル表示、FABボタンも表示
       document.getElementById('searchPanel').style.display = 'block';
-      document.getElementById('btnLocate').style.display = 'none';
-      document.getElementById('btnDestination').style.display = 'none';
-      document.getElementById('btnPause').style.display = 'none';
-      document.getElementById('btnReroute').style.display = 'none';
       
       bindUI();
       acquireLocation();
