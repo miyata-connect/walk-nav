@@ -595,6 +595,33 @@
     // ==========================================
     // ユーザー位置マーカー設定
     // ==========================================
+    function fetchCurrentAddress(lat, lng) {
+      console.log('[Geocoder] 住所取得開始:', lat, lng);
+      const geocoder = new google.maps.Geocoder();
+      const latlng = { lat, lng };
+
+      geocoder.geocode({ location: latlng, language: 'ja' }, (results, status) => {
+        console.log('[Geocoder] Status:', status);
+        console.log('[Geocoder] Results:', results);
+        
+        if (status === 'OK' && results[0]) {
+          const address = results[0].formatted_address;
+          console.log('[Geocoder] Raw address:', address);
+          
+          // 「日本、」を削除
+          const cleanAddress = address.replace(/^日本、\s*/, '');
+          console.log('[Geocoder] Clean address:', cleanAddress);
+          
+          const formattedAddress = `現在地：${cleanAddress} 付近`;
+          document.getElementById('locAddress').textContent = formattedAddress;
+          console.log('[Geocoder] 住所表示完了:', formattedAddress);
+        } else {
+          document.getElementById('locAddress').textContent = '現在地：位置情報取得済み';
+          console.error('[Geocoder] 住所取得失敗:', status);
+        }
+      });
+    }
+
     function setUserMarker(lat, lng) {
       appState.currentPos = { lat, lng };
       
@@ -616,6 +643,12 @@
       } else {
         appState.userMarker.position = { lat, lng };
       }
+      
+      // 緯度・経度表示
+      document.getElementById('locCoords').textContent = `緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
+      
+      // 住所取得して表示
+      fetchCurrentAddress(lat, lng);
     }
 
     // ==========================================
@@ -1150,7 +1183,6 @@
         
         appState.map.setCenter({ lat: latitude, lng: longitude });
         setUserMarker(latitude, longitude);
-        fetchLocationNameGoogle(latitude, longitude);
         showToast('現在地を取得しました', 'success');
       };
       
@@ -1180,93 +1212,6 @@
     // ==========================================
     // 地名取得（逆ジオコーディング）
     // ==========================================
-    function fetchLocationNameGoogle(lat, lng) {
-      console.log('=== [GEOCODING] Start ===');
-      console.log('[GEOCODING] Input lat:', lat);
-      console.log('[GEOCODING] Input lng:', lng);
-      
-      if (!appState.geocoder) {
-        console.error('[GEOCODING] Geocoder not available!');
-        console.error('[GEOCODING] appState.geocoder:', appState.geocoder);
-        
-        // Geocoderが無い場合の表示
-        const addressElement = document.getElementById('locAddress');
-        const coordsElement = document.getElementById('locCoords');
-        if (addressElement && coordsElement) {
-          addressElement.textContent = '現在地：位置情報取得済み（住所取得不可）';
-          coordsElement.textContent = `緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
-        }
-        return;
-      }
-
-      console.log('[GEOCODING] Geocoder available');
-      const latlng = { lat, lng };
-      console.log('[GEOCODING] Calling geocode with:', latlng);
-      
-      appState.geocoder.geocode({ location: latlng, language: 'ja' }, (results, status) => {
-        console.log('=== [GEOCODING] Callback received ===');
-        console.log('[GEOCODING] Status:', status);
-        console.log('[GEOCODING] Status === "OK":', status === 'OK');
-        console.log('[GEOCODING] Results:', results);
-        console.log('[GEOCODING] Results length:', results ? results.length : 'null');
-        
-        const addressElement = document.getElementById('locAddress');
-        const coordsElement = document.getElementById('locCoords');
-        
-        if (!addressElement || !coordsElement) {
-          console.error('[GEOCODING] DOM elements not found!');
-          console.error('[GEOCODING] locAddress:', addressElement);
-          console.error('[GEOCODING] locCoords:', coordsElement);
-          return;
-        }
-        
-        console.log('[GEOCODING] DOM elements found');
-        
-        // 座標は必ず2行目に表示
-        const coordsText = `緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
-        coordsElement.textContent = coordsText;
-        console.log('[GEOCODING] Coords set:', coordsText);
-        
-        if (status === 'OK' && results && results[0]) {
-          console.log('[GEOCODING] Success path');
-          const address = results[0].formatted_address;
-          console.log('[GEOCODING] Raw address:', address);
-          console.log('[GEOCODING] Raw address type:', typeof address);
-          console.log('[GEOCODING] Raw address length:', address.length);
-          
-          // 「日本、」のみ削除、郵便番号は残す
-          const cleanAddress = address.replace(/^日本、\s*/, '');
-          console.log('[GEOCODING] Clean address:', cleanAddress);
-          
-          const formattedAddress = '現在地：' + cleanAddress + ' 付近';
-          console.log('[GEOCODING] Formatted address:', formattedAddress);
-          console.log('[GEOCODING] Formatted address length:', formattedAddress.length);
-          
-          addressElement.textContent = formattedAddress;
-          console.log('[GEOCODING] Address element textContent set');
-          console.log('[GEOCODING] Address element textContent value:', addressElement.textContent);
-          
-          console.log('=== [GEOCODING] Success Complete ===');
-          console.log('[GEOCODING] Display Line 1:', addressElement.textContent);
-          console.log('[GEOCODING] Display Line 2:', coordsElement.textContent);
-        } else {
-          // ジオコーディング失敗時も2行表示
-          console.log('[GEOCODING] Failure path');
-          console.log('[GEOCODING] Failure reason - Status:', status);
-          console.log('[GEOCODING] Failure reason - Results:', results);
-          
-          addressElement.textContent = '現在地：位置情報取得済み';
-          console.log('[GEOCODING] Fallback address set');
-          
-          console.log('=== [GEOCODING] Fallback Complete ===');
-          console.log('[GEOCODING] Display Line 1:', addressElement.textContent);
-          console.log('[GEOCODING] Display Line 2:', coordsElement.textContent);
-        }
-      });
-      
-      console.log('[GEOCODING] Geocode call initiated');
-    }
-
     // ==========================================
     // ダイアログユーティリティ
     // ==========================================
