@@ -598,7 +598,7 @@
     async function fetchCurrentAddress(lat, lng) {
       const el = document.getElementById("locAddress");
       try {
-        const url = `${WORKER_ORIGIN}/reverse-geocode?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`;
+        const url = `${WORKER_ORIGIN}/geocode?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`;
         const res = await fetch(url, { method: "GET", credentials: "omit" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
@@ -1167,40 +1167,67 @@
     // ==========================================
     // 現在地取得
     // ==========================================
-    function acquireLocation() {
+    function acquireLocation(retry = 0) {
+      const MAX_RETRY = 3;
+      const RETRY_DELAY_MS = 1500 * Math.max(1, retry + 1);
       const onSuccess = (pos) => {
         const { latitude, longitude } = pos.coords;
         document.getElementById('loading')?.remove();
-        
         if (!appState.map) {
           initMap({ lat: latitude, lng: longitude });
         }
-        
         appState.map.setCenter({ lat: latitude, lng: longitude });
         setUserMarker(latitude, longitude);
         showToast('現在地を取得しました', 'success');
       };
-      
-      const onError = (error) => {
-        console.log('[WalkNav] geolocation error', error?.message || error);
-        document.getElementById('loading')?.remove();
-        
+      const onError = (err) => {
+        console.log('[WalkNav] geolocation error', err?.message || err);
+        // CoreLocation の一時的な不明（kCLErrorLocationUnknown 相当）や POSITION_UNAVAILABLE はリトライ対象
+        const code = err?.code;
+        const TEMP_UNAVAILABLE =
+          code === 2 /* POSITION_UNAVAILABLE */ ||
+          /LocationUnknown/i.test(err?.message || '');
+        if (TEMP_UNAVAILABLE && retry < MAX_RETRY) {
+          showToast('位置情報の取得を再試行します…', 'info');
+          setTimeout(() => acquireLocation(retry + 1), RETRY_DELAY_MS);
+          return;
+        }
+        // 初期化されていなければ適当な中心で地図だけ出す
         if (!appState.map) {
           initMap({ lat: 35.0, lng: 135.0 });
         }
-        
+        document.getElementById('loading')?.remove();
         showToast('現在地の取得に失敗しました', 'error');
       };
-      
       try {
+        // まずは通常の一発取得
         navigator.geolocation.getCurrentPosition(onSuccess, onError, {
           enableHighAccuracy: true,
-          timeout: 30000,
+          timeout: 15000,
           maximumAge: 0
         });
+        // 併走のフォールバック（先に成功した方を採用し、もう一方は停止）
+        let watchId = null;
+        const watchSuccess = (pos) => {
+          if (watchId != null) navigator.geolocation.clearWatch(watchId);
+          onSuccess(pos);
+        };
+        const watchError = (err) => {
+          if (watchId != null) navigator.geolocation.clearWatch(watchId);
+          // watch が失敗でも getCurrentPosition 側が成功する可能性があるので、ここでは黙っておく
+          console.log('[WalkNav] watchPosition error', err?.message || err);
+        };
+        watchId = navigator.geolocation.watchPosition(watchSuccess, watchError, {
+          enableHighAccuracy: true,
+          maximumAge: 0
+        });
+        // 念のため20秒でwatchを打ち切る
+        setTimeout(() => {
+          if (watchId != null) navigator.geolocation.clearWatch(watchId);
+        }, 20000);
       } catch (e) {
         console.log('[WalkNav] geolocation exception', e);
-        showToast('位置情報へのアクセスが拒否されました', 'error');
+        onError(e);
       }
     }
 
@@ -1574,19 +1601,15 @@
 
       document.getElementById('btnLocate').onclick = () => {
         const now = Date.now();
-        
-        // 1秒以内の連打を防止
-        if (now - lastLocateTime < 1000) {
-          console.log('[Locate] クールダウン中');
-          return;
-        }
-        
+        if (now - lastLocateTime < 1000) return; // simple cooldown
         lastLocateTime = now;
-        
         if (appState.currentPos && appState.map) {
           appState.map.panTo(appState.currentPos);
           appState.map.setZoom(18);
           showToast('現在地に移動しました', 'info');
+        } else {
+          showToast('現在地を取得します…', 'info');
+          acquireLocation(); // まだ取れていない時は再取得をキック
         }
       };
       
@@ -1663,7 +1686,7 @@
   </script>
 
   <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry&language=ja&region=JP"
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry&language=ja&region=JP&loading=async"
     async defer></script>
 </body>
 </html>
