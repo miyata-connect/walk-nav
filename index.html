@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>WalkNav</title>
 
-  <meta name="x-issue" content="idx202511040615" />
+  <meta name="x-issue" content="idx202511040630" />
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
   <style>
@@ -420,7 +420,7 @@
     // ==========================================
     // 定数定義
     // ==========================================
-    const ISSUE_ID = 'idx202511040615'; // 更新：Geocodeエラーを明示
+    const ISSUE_ID = 'idx202511040630'; // 更新：GeocodeをCloudflare経由に変更
     const API_KEY = 'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk'; // Maps表示用のみ
     const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
     const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -433,7 +433,7 @@
     const appState = {
       map: null,
       userMarker: null,
-      geocoder: null,
+      geocoder: null, // ★★★注：この変数はもう使いません
       currentPos: null,
       pointSearchMode: false,
       searchPoint: null,
@@ -576,7 +576,7 @@
         disableDefaultUI: true
       });
 
-      appState.geocoder = new google.maps.Geocoder();
+      // appState.geocoder = new google.maps.Geocoder(); // ★★★ 使わないので削除
 
       // 地図クリックイベント（ポイント選択用）
       appState.map.addListener('click', (e) => {
@@ -589,6 +589,8 @@
       appState.mapInitialized = true;
       console.log('[WalkNav] Map initialized');
     }
+
+
 
     // ==========================================
     // ユーザー位置マーカー設定
@@ -1146,7 +1148,7 @@
         
         appState.map.setCenter({ lat: latitude, lng: longitude });
         setUserMarker(latitude, longitude);
-        fetchLocationNameGoogle(latitude, longitude);
+        fetchLocationNameGoogle(latitude, longitude); // ★★★ 変更後の関数を呼び出す
         showToast('現在地を取得しました', 'success');
       };
       
@@ -1193,73 +1195,62 @@
     }
 
     // ==========================================
-    // 地名取得（逆ジオコーディング）
+    // ★★★ 変更点 ★★★
+    // 地名取得（逆ジオコーディング）- Cloudflare経由
     // ==========================================
-    function fetchLocationNameGoogle(lat, lng) {
-      if (!appState.geocoder) {
-        console.log('[Location] Geocoder not available');
+    async function fetchLocationNameGoogle(lat, lng) {
+      const addressElement = document.getElementById('locAddress');
+      const coordsElement = document.getElementById('locCoords');
+
+      if (!addressElement || !coordsElement) {
+        console.error('[DEBUG] Elements not found!');
         return;
       }
 
-      const latlng = { lat, lng };
-      
-      appState.geocoder.geocode({ location: latlng, language: 'ja' }, (results, status) => {
-        console.log('=== [DEBUG] Geocode Start ===');
-        console.log('[DEBUG] Status:', status);
-        console.log('[DEBUG] Results:', results);
+      // 座標は先に表示
+      const coordsText = `緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
+      coordsElement.textContent = coordsText;
+
+      try {
+        console.log('[Geocode] Fetching address from Cloudflare...');
+        const params = new URLSearchParams({ lat: lat, lng: lng, language: 'ja' });
         
-        const addressElement = document.getElementById('locAddress');
-        const coordsElement = document.getElementById('locCoords');
+        //
+        // ※【重要】: この /geocode エンドポイントは、
+        // ※ Cloudflare Worker (ors-proxy) 側で実装する必要があります。
+        //
+        const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode?${params.toString()}`);
         
-        if (!addressElement || !coordsElement) {
-          console.error('[DEBUG] Elements not found!');
-          return;
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
         }
-        
-        // 座標は必ず2行目に表示
-        const coordsText = `緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
-        coordsElement.textContent = coordsText;
-        console.log('[DEBUG] Coords set:', coordsText);
-        
-        if (status === 'OK' && results[0]) {
-          const address = results[0].formatted_address;
-          console.log('[DEBUG] Raw address:', address);
-          
-          // 「日本、」のみ削除、郵便番号は残す
+
+        const data = await response.json();
+
+        // Google Geocoding API (REST) のレスポンス形式を想定
+        if (data.status === 'OK' && data.results[0]) {
+          const address = data.results[0].formatted_address;
           const cleanAddress = address.replace(/^日本、\s*/, '');
-          console.log('[DEBUG] Clean address:', cleanAddress);
-          
           const formattedAddress = '現在地：' + cleanAddress + ' 付近';
-          console.log('[DEBUG] Formatted address:', formattedAddress);
           
           addressElement.textContent = formattedAddress;
-          console.log('[DEBUG] Address set successfully');
-          
+          console.log('[Geocode] Address set successfully via Cloudflare');
         } else {
-          // ===== 変更点 =====
-          console.error('[Geocode] Geocode failed. Status:', status);
-          
-          // UIにエラーを表示
-          addressElement.textContent = '現在地：住所取得エラー';
-          
-          // トーストで具体的なエラーを表示
-          let errorMessage = `住所取得エラー: ${status}`;
-          if (status === 'REQUEST_DENIED') {
-            errorMessage = '住所取得エラー: APIキーまたは設定を確認してください (Geocoding API)';
-          } else if (status === 'ZERO_RESULTS') {
-            errorMessage = 'この場所の住所情報が見つかりません';
-          } else if (status === 'OVER_QUERY_LIMIT') {
-            errorMessage = '住所取得APIの利用制限を超えました';
+          // WorkerからのレスポンスがOKでも、Google側がZERO_RESULTSなどを返した場合
+          console.error('[Geocode] Geocode failed via Cloudflare. Status:', data.status);
+          addressElement.textContent = '現在地：住所情報なし';
+          if (data.status !== 'ZERO_RESULTS') {
+             showToast(`住所取得エラー: ${data.status}`, 'error', 5000);
           }
-          showToast(errorMessage, 'error', 5000); // 5秒間表示
-
-          console.log('[DEBUG] Geocode failed, fallback displayed');
-          console.log('[DEBUG] Fallback Line 1:', addressElement.textContent);
-          console.log('[DEBUG] Fallback Line 2:', coordsElement.textContent);
-          // ===== 変更ここまで =====
         }
-      });
+      } catch (error) {
+        console.error('[Geocode] Fetch error:', error);
+        addressElement.textContent = '現在地：住所取得エラー';
+        showToast(`住所取得エラー: ${error.message}`, 'error', 5000);
+      }
     }
+
 
     // ==========================================
     // ダイアログユーティリティ
@@ -1471,7 +1462,7 @@
           
           document.getElementById('btnConfirmDelete').onclick = () => {
             locations.splice(index, 1);
-            localStorage.setItem('savedLocations', JSON.stringify(list));
+            localStorage.setItem('savedLocations', JSON.stringify(locations));
             
             confirmDialog.remove();
             dialog.remove();
