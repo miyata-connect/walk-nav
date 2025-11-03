@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>WalkNav</title>
 
-  <meta name="x-issue" content="idx202511040630" />
+  <meta name="x-issue" content="idx202511040710" />
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
   <style>
@@ -31,7 +31,8 @@
 
     .fab-stack{
       position:fixed;right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;
-      z-index:2600;
+      z-index:2550; /* ★変更：検索パネルより手前に来ないように */
+      display:none; /* ★追加：デフォルト非表示 */
     }
     .panel{
       position:absolute;
@@ -142,6 +143,55 @@
       color:var(--muted);
       margin-left:12px;
     }
+
+    /* ★★★ ここから追加 ★★★ */
+    /* 道順案内パネル */
+    .nav-panel{
+      position:absolute;
+      left:16px;
+      right:16px;
+      /* ルートパネルの上に配置 */
+      bottom: calc(16px + 90px + 10px); 
+      top:auto;
+      background:var(--glass-strong);
+      border:1px solid var(--stroke);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:14px;
+      backdrop-filter:blur(10px);
+      z-index:2500;
+      display:none;
+      max-height: 40vh; /* 高さを制限 */
+      overflow-y: auto; /* スクロール可能に */
+    }
+    .nav-location{
+      font-size:13px;
+      color:var(--muted);
+      margin-bottom:12px;
+      flex-direction:column;
+      align-items:flex-start;
+      gap:2px;
+      border-bottom: 1px solid var(--stroke);
+      padding-bottom: 10px;
+    }
+    .nav-instructions-list{
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+    .nav-instruction-item{
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text);
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .nav-instruction-item:last-child{
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    /* ★★★ 追加ここまで ★★★ */
+
 
     /* ダイアログ共通スタイル */
     .dialog-overlay{
@@ -287,12 +337,18 @@
     /* トースト通知 */
     .toast-container{
       position:fixed;
-      bottom:420px;
+      /* ★変更：道順パネルの高さを考慮 */
+      bottom:calc(16px + 90px + 10px + 40vh + 10px); 
       left:16px;
       z-index:10000;
       pointer-events:none;
       max-width:calc(100% - 32px);
     }
+    /* ★変更：検索パネル表示中のトースト位置 */
+    .panel-open .toast-container{
+       bottom: 420px;
+    }
+
     .toast{
       background:var(--glass-strong);
       border:1px solid var(--stroke);
@@ -345,8 +401,7 @@
     .error-banner{display:none !important}
   </style>
 </head>
-<body>
-  <div class="app">
+<body id="appBody"> <div class="app">
     <div id="map" aria-label="地図"></div>
 
     <section class="panel" id="searchPanel" aria-label="検索パネル">
@@ -373,10 +428,6 @@
       <div class="row" style="margin-bottom:8px">
         <button id="btnReset" class="btn danger" style="width:100%">リセット</button>
       </div>
-      <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px;flex-direction:column;align-items:flex-start;gap:2px">
-        <div id="locAddress" style="line-height:1.5">現在地：取得中...</div>
-        <div id="locCoords" style="line-height:1.5;font-size:12px"></div>
-      </div>
       
       <div id="results" class="results" style="display:none"></div>
       
@@ -385,6 +436,14 @@
       </div>
     </section>
 
+    <div class="nav-panel" id="navPanel">
+      <div class="nav-location">
+        <div id="locAddress" style="line-height:1.5">現在地：取得中...</div>
+        <div id="locCoords" style="line-height:1.5;font-size:12px"></div>
+      </div>
+      <div class="nav-instructions-list" id="navPanelInstructions">
+        </div>
+    </div>
     <div class="route-panel" id="routePanel">
       <div class="route-info">
         <span id="destinationName">目的地</span>へのルート
@@ -420,7 +479,7 @@
     // ==========================================
     // 定数定義
     // ==========================================
-    const ISSUE_ID = 'idx202511040630'; // 更新：GeocodeをCloudflare経由に変更
+    const ISSUE_ID = 'idx202511040710'; // 更新：UI改修（案内パネル・FAB制御）
     const API_KEY = 'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk'; // Maps表示用のみ
     const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
     const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -433,7 +492,7 @@
     const appState = {
       map: null,
       userMarker: null,
-      geocoder: null, // ★★★注：この変数はもう使いません
+      // geocoder: null, // ★★★ 使わない
       currentPos: null,
       pointSearchMode: false,
       searchPoint: null,
@@ -575,8 +634,6 @@
         clickableIcons: true,
         disableDefaultUI: true
       });
-
-      // appState.geocoder = new google.maps.Geocoder(); // ★★★ 使わないので削除
 
       // 地図クリックイベント（ポイント選択用）
       appState.map.addListener('click', (e) => {
@@ -725,6 +782,7 @@
     }
 
     // ==========================================
+    // ★★★ 変更点 ★★★
     // ナビゲーション開始 (Worker経由)
     // ==========================================
     async function startNavigation(destination) {
@@ -748,13 +806,11 @@
       appState.isNavigating = true;
       appState.isPaused = false;
       
-      // 検索パネルを閉じてFABボタンを表示
+      // UI制御
       document.getElementById('searchPanel').style.display = 'none';
-      document.getElementById('btnLocate').style.display = 'flex';
-      document.getElementById('btnDestination').style.display = 'flex';
-      document.getElementById('btnPause').style.display = 'flex';
-      document.getElementById('btnReroute').style.display = 'flex';
-
+      document.getElementById('fabStack').style.display = 'flex'; // FABを表示
+      document.getElementById('appBody').classList.remove('panel-open'); // トースト位置を戻す
+      
       try {
         showToast('ルートを取得中...', 'info', 2000);
 
@@ -791,6 +847,22 @@
           document.getElementById('results').style.display = 'none';
           document.getElementById('btnDestination').style.display = 'flex';
 
+          // ★★★ 道順案内パネルの処理 ★★★
+          const instructionsList = document.getElementById('navPanelInstructions');
+          instructionsList.innerHTML = ''; // クリア
+          if (l0 && l0.steps && l0.steps.length > 0) {
+            l0.steps.forEach(step => {
+              const item = document.createElement('div');
+              item.className = 'nav-instruction-item';
+              // HTMLタグを除去（例：<b>）
+              const cleanInstruction = (step.html_instructions || '').replace(/<[^>]+>/g, ' ');
+              item.textContent = `${cleanInstruction} (${step.distance.text})`;
+              instructionsList.appendChild(item);
+            });
+          }
+          document.getElementById('navPanel').style.display = 'block';
+          // ★★★ ここまで ★★★
+
           // ポリライン描画
           drawRoutePolyline(r0);
 
@@ -819,10 +891,12 @@
         console.error('[Navigation] Error:', error);
         showToast(`ルートエラー: ${error.message}`, 'error', 5000);
         appState.isNavigating = false;
+        document.getElementById('fabStack').style.display = 'none'; // エラー時はFABを隠す
       }
     }
 
     // ==========================================
+    // ★★★ 変更点 ★★★
     // ナビゲーション停止
     // ==========================================
     function stopNavigation() {
@@ -837,16 +911,17 @@
       
       // UI更新
       document.getElementById('routePanel').style.display = 'none';
+      document.getElementById('navPanel').style.display = 'none'; // ★案内パネルを隠す
+      document.getElementById('navPanelInstructions').innerHTML = ''; // ★道順をクリア
       document.getElementById('searchPanel').style.display = 'block';
       document.getElementById('btnDestination').style.display = 'none';
       document.getElementById('q').value = '';
       document.getElementById('results').style.display = 'none';
       document.getElementById('results').innerHTML = '';
       
-      // FABボタンを非表示（検索パネル表示中）
-      document.getElementById('btnLocate').style.display = 'none';
-      document.getElementById('btnPause').style.display = 'none';
-      document.getElementById('btnReroute').style.display = 'none';
+      // FABボタンを非表示
+      document.getElementById('fabStack').style.display = 'none';
+      document.getElementById('btnSearch').style.display = 'flex'; // 検索パネルボタンは表示
       
       // 一時停止ボタンをリセット
       const btnPause = document.getElementById('btnPause');
@@ -863,6 +938,7 @@
         appState.map.setZoom(17);
       }
       
+      document.getElementById('appBody').classList.add('panel-open'); // トースト位置
       showToast('ルート案内を終了しました', 'info');
       console.log('[Navigation] ルート案内終了');
     }
@@ -1161,6 +1237,7 @@
           initMap({ lat: 35.6812, lng: 139.7671 }); 
         }
         
+        // ★★★ 案内パネル側にエラーを表示 ★★★
         const addressElement = document.getElementById('locAddress');
         const coordsElement = document.getElementById('locCoords');
         
@@ -1170,6 +1247,7 @@
         if (coordsElement) {
           coordsElement.textContent = '位置情報を確認できません';
         }
+        // ★★★ ここまで ★★★
 
         let errorMessage = '現在地の取得に失敗しました';
         if (error.code === 1) { // PERMISSION_DENIED
@@ -1195,10 +1273,10 @@
     }
 
     // ==========================================
-    // ★★★ 変更点 ★★★
     // 地名取得（逆ジオコーディング）- Cloudflare経由
     // ==========================================
     async function fetchLocationNameGoogle(lat, lng) {
+      // ★★★ 表示先を案内パネル（navPanel）に変更 ★★★
       const addressElement = document.getElementById('locAddress');
       const coordsElement = document.getElementById('locCoords');
 
@@ -1215,10 +1293,6 @@
         console.log('[Geocode] Fetching address from Cloudflare...');
         const params = new URLSearchParams({ lat: lat, lng: lng, language: 'ja' });
         
-        //
-        // ※【重要】: この /geocode エンドポイントは、
-        // ※ Cloudflare Worker (ors-proxy) 側で実装する必要があります。
-        //
         const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode?${params.toString()}`);
         
         if (!response.ok) {
@@ -1384,7 +1458,6 @@
           const index = parseInt(btn.dataset.index);
           const loc = locations[index];
           dialog.remove();
-          document.getElementById('searchPanel').style.display = 'none';
           startNavigation({
             name: loc.name,
             lat: loc.lat,
@@ -1567,51 +1640,31 @@
         document.getElementById('r30').classList.remove('active');
         document.getElementById('radiusLabel').textContent = '10km';
         
-        stopNavigation();
+        // stopNavigation(); // ★ リセットボタンはナビ中は押せないので不要
         showToast('リセットしました', 'info');
         console.log('[WalkNav] リセット完了');
       };
     }
 
+    // ==========================================
+    // ★★★ 変更点 ★★★
+    // FAB・パネル制御
+    // ==========================================
     function bindFABEvents() {
       let lastLocateTime = 0;
       
-      // 検索パネルボタン
+      // 検索パネルボタン（FAB側）
       document.getElementById('btnSearch').onclick = () => {
-        const panel = document.getElementById('searchPanel');
-        const fabStack = document.getElementById('fabStack');
-        
-        if (panel.style.display === 'none') {
-          // パネルを開く
-          panel.style.display = 'block';
-          // FABボタンを非表示（検索パネルボタン以外）
-          document.getElementById('btnLocate').style.display = 'none';
-          document.getElementById('btnDestination').style.display = 'none';
-          document.getElementById('btnPause').style.display = 'none';
-          document.getElementById('btnReroute').style.display = 'none';
-        } else {
-          // パネルを閉じる
-          panel.style.display = 'none';
-          // FABボタンを表示
-          document.getElementById('btnLocate').style.display = 'flex';
-          if (appState.currentDestination) {
-            document.getElementById('btnDestination').style.display = 'flex';
-          }
-          document.getElementById('btnPause').style.display = 'flex';
-          document.getElementById('btnReroute').style.display = 'flex';
-        }
+        document.getElementById('searchPanel').style.display = 'block';
+        document.getElementById('fabStack').style.display = 'none'; // FABを隠す
+        document.getElementById('appBody').classList.add('panel-open'); // トースト位置変更
       };
       
-      // 検索パネルを閉じるボタン
+      // 検索パネルを閉じるボタン（パネル側）
       document.getElementById('btnClosePanel').onclick = () => {
         document.getElementById('searchPanel').style.display = 'none';
-        // FABボタンを表示
-        document.getElementById('btnLocate').style.display = 'flex';
-        if (appState.currentDestination) {
-          document.getElementById('btnDestination').style.display = 'flex';
-        }
-        document.getElementById('btnPause').style.display = 'flex';
-        document.getElementById('btnReroute').style.display = 'flex';
+        document.getElementById('fabStack').style.display = 'flex'; // FABを表示
+         document.getElementById('appBody').classList.remove('panel-open'); // トースト位置を戻す
       };
 
       document.getElementById('btnLocate').onclick = () => {
@@ -1673,18 +1726,18 @@
     }
 
     // ==========================================
+    // ★★★ 変更点 ★★★
     // アプリケーション起動
     // ==========================================
     function startApp() {
       console.log('[WalkNav] Starting app...');
       document.documentElement.lang = 'ja';
       
-      // 初期状態：検索パネル表示、FABボタン非表示（検索パネルボタン以外）
+      // 初期状態：検索パネル表示、FABボタン非表示
       document.getElementById('searchPanel').style.display = 'block';
-      document.getElementById('btnLocate').style.display = 'none';
-      document.getElementById('btnDestination').style.display = 'none';
-      document.getElementById('btnPause').style.display = 'none';
-      document.getElementById('btnReroute').style.display = 'none';
+      document.getElementById('fabStack').style.display = 'none'; // FABスタック全体を非表示
+      document.getElementById('btnSearch').style.display = 'flex'; // 検索パネルボタンは表示
+      document.getElementById('appBody').classList.add('panel-open'); // トースト位置
       
       bindUI();
       acquireLocation();
