@@ -1168,66 +1168,86 @@
     // 現在地取得
     // ==========================================
     function acquireLocation(retry = 0) {
-      const MAX_RETRY = 3;
+      const MAX_RETRY = 5;                 // up to ~1.5s * 1..5 backoff
       const RETRY_DELAY_MS = 1500 * Math.max(1, retry + 1);
-      const onSuccess = (pos) => {
-        const { latitude, longitude } = pos.coords;
+      const WATCH_MAX_MS = 60000;          // warm-up window (60s)
+      const MIN_ACCURACY_M = 100;          // accept if accuracy <= 100m
+      const finish = (ok, posOrErr) => {
         document.getElementById('loading')?.remove();
-        if (!appState.map) {
-          initMap({ lat: latitude, lng: longitude });
+        if (!ok) {
+          if (!appState.map) initMap({ lat: 35.0, lng: 135.0 });
+          showToast('現在地の取得に失敗しました', 'error');
         }
-        appState.map.setCenter({ lat: latitude, lng: longitude });
-        setUserMarker(latitude, longitude);
-        showToast('現在地を取得しました', 'success');
-      };
-      const onError = (err) => {
-        console.log('[WalkNav] geolocation error', err?.message || err);
-        // CoreLocation の一時的な不明（kCLErrorLocationUnknown 相当）や POSITION_UNAVAILABLE はリトライ対象
-        const code = err?.code;
-        const TEMP_UNAVAILABLE =
-          code === 2 /* POSITION_UNAVAILABLE */ ||
-          /LocationUnknown/i.test(err?.message || '');
-        if (TEMP_UNAVAILABLE && retry < MAX_RETRY) {
-          showToast('位置情報の取得を再試行します…', 'info');
-          setTimeout(() => acquireLocation(retry + 1), RETRY_DELAY_MS);
-          return;
-        }
-        // 初期化されていなければ適当な中心で地図だけ出す
-        if (!appState.map) {
-          initMap({ lat: 35.0, lng: 135.0 });
-        }
-        document.getElementById('loading')?.remove();
-        showToast('現在地の取得に失敗しました', 'error');
       };
       try {
-        // まずは通常の一発取得
-        navigator.geolocation.getCurrentPosition(onSuccess, onError, {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0
-        });
-        // 併走のフォールバック（先に成功した方を採用し、もう一方は停止）
+        let settled = false;
         let watchId = null;
-        const watchSuccess = (pos) => {
-          if (watchId != null) navigator.geolocation.clearWatch(watchId);
-          onSuccess(pos);
+        let watchTimer = null;
+        const acceptIfGood = (pos) => {
+          if (settled) return false;
+          const acc = typeof pos.coords.accuracy === 'number' ? pos.coords.accuracy : 9999;
+          // iOS often returns coarse accuracy first; accept when reasonable
+          if (acc <= MIN_ACCURACY_M || retry >= 3) {
+            settled = true;
+            if (watchId != null) navigator.geolocation.clearWatch(watchId);
+            if (watchTimer != null) clearTimeout(watchTimer);
+            const { latitude, longitude } = pos.coords;
+            if (!appState.map) initMap({ lat: latitude, lng: longitude });
+            appState.map.setCenter({ lat: latitude, lng: longitude });
+            setUserMarker(latitude, longitude);
+            showToast('現在地を取得しました', 'success');
+            return true;
+          }
+          return false;
         };
-        const watchError = (err) => {
-          if (watchId != null) navigator.geolocation.clearWatch(watchId);
-          // watch が失敗でも getCurrentPosition 側が成功する可能性があるので、ここでは黙っておく
-          console.log('[WalkNav] watchPosition error', err?.message || err);
+        const onOneShotSuccess = (pos) => {
+          if (acceptIfGood(pos)) return;
+          // keep warming by watch until accuracy improves
         };
-        watchId = navigator.geolocation.watchPosition(watchSuccess, watchError, {
-          enableHighAccuracy: true,
-          maximumAge: 0
-        });
-        // 念のため20秒でwatchを打ち切る
-        setTimeout(() => {
+        const onError = (err) => {
+          const code = err?.code;
+          const message = String(err?.message || '');
+          const transient =
+            code === 2 /* POSITION_UNAVAILABLE */ ||
+            /LocationUnknown/i.test(message) ||
+            code === 0; /* unknown */
+          if (!settled && transient && retry < MAX_RETRY) {
+            showToast('位置情報の取得を再試行します…', 'info');
+            if (watchId != null) navigator.geolocation.clearWatch(watchId);
+            if (watchTimer != null) clearTimeout(watchTimer);
+            setTimeout(() => acquireLocation(retry + 1), RETRY_DELAY_MS);
+            return;
+          }
+          if (!settled) {
+            settled = true;
+            if (watchId != null) navigator.geolocation.clearWatch(watchId);
+            if (watchTimer != null) clearTimeout(watchTimer);
+            finish(false, err);
+          }
+        };
+        // Start watchPosition first (warm-up radios/sensors)
+        watchId = navigator.geolocation.watchPosition(
+          (pos) => {
+            if (acceptIfGood(pos)) finish(true, pos);
+          },
+          (err) => {
+            console.log('[WalkNav] watchPosition error', err?.message || err);
+          },
+          { enableHighAccuracy: true, maximumAge: 0, timeout: WATCH_MAX_MS }
+        );
+        // Hard stop for watch
+        watchTimer = setTimeout(() => {
           if (watchId != null) navigator.geolocation.clearWatch(watchId);
-        }, 20000);
+        }, WATCH_MAX_MS + 5000);
+        // Race with a single high-accuracy snapshot
+        navigator.geolocation.getCurrentPosition(
+          onOneShotSuccess,
+          onError,
+          { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
+        );
       } catch (e) {
         console.log('[WalkNav] geolocation exception', e);
-        onError(e);
+        finish(false, e);
       }
     }
 
