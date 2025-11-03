@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>WalkNav</title>
 
-  <!-- 発行番号 / ISSUE -->
-  <meta name="x-issue" content="idx202511032100" />
+  <meta name="x-issue" content="idx202511040608" />
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
   <style>
@@ -412,7 +411,6 @@
       </div>
     </div>
 
-    <!-- トースト通知コンテナ -->
     <div class="toast-container" id="toastContainer"></div>
   </div>
 
@@ -422,7 +420,7 @@
     // ==========================================
     // 定数定義
     // ==========================================
-    const ISSUE_ID = 'idx202511032100'; // 更新：現在地表示修正版
+    const ISSUE_ID = 'idx202511040608'; // 更新：エラーハンドリング強化
     const API_KEY = 'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk'; // Maps表示用のみ
     const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
     const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -1152,16 +1150,39 @@
         showToast('現在地を取得しました', 'success');
       };
       
+      // ===== 変更点 =====
+      // onErrorの処理を詳細化
       const onError = (error) => {
         console.log('[WalkNav] geolocation error', error?.message || error);
         document.getElementById('loading')?.remove();
         
         if (!appState.map) {
-          initMap({ lat: 35.0, lng: 135.0 });
+          // デフォルト位置を東京駅に変更
+          initMap({ lat: 35.6812, lng: 139.7671 }); 
         }
         
-        showToast('現在地の取得に失敗しました', 'error');
+        const addressElement = document.getElementById('locAddress');
+        const coordsElement = document.getElementById('locCoords');
+        
+        if (addressElement) {
+          addressElement.textContent = '現在地：取得失敗';
+        }
+        if (coordsElement) {
+          coordsElement.textContent = '位置情報を確認できません';
+        }
+
+        // エラーコードに基づいてトーストメッセージを詳細化
+        let errorMessage = '現在地の取得に失敗しました';
+        if (error.code === 1) { // PERMISSION_DENIED
+          errorMessage = '位置情報が許可されていません';
+        } else if (error.code === 2) { // POSITION_UNAVAILABLE
+          errorMessage = '位置情報が利用できません';
+        } else if (error.code === 3) { // TIMEOUT
+          errorMessage = '位置情報の取得がタイムアウトしました';
+        }
+        showToast(errorMessage, 'error');
       };
+      // ===== 変更ここまで =====
       
       try {
         navigator.geolocation.getCurrentPosition(onSuccess, onError, {
