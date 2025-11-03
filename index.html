@@ -595,46 +595,35 @@
     // ==========================================
     // ユーザー位置マーカー設定
     // ==========================================
-    function fetchCurrentAddress(lat, lng) {
+    // Safer version using Cloudflare proxy instead of direct Geocoder
+    async function fetchCurrentAddress(lat, lng) {
       try {
-        const geocoder = new google.maps.Geocoder();
-        const latlng = { lat, lng };
-
-        // Use promise-style geocoder to avoid callback edge cases
-        geocoder.geocode({ location: latlng })
-          .then(({ results }) => {
-            const el = document.getElementById('locAddress'); // 要素を再取得
-            
-            if (Array.isArray(results) && results[0]?.formatted_address) {
-              const raw = results[0].formatted_address;
-
-              // Remove leading "日本、" and similar variants
-              const clean = raw.replace(/^日本、\s*/, '');
-
-              // Show as "現在地：<address> 付近"
-              if (el) el.textContent = `現在地：${clean} 付近`;
-
-              console.log('[Geocoder] OK:', clean);
-            } else {
-              // No results - 住所が存在しない場所
-              if (el) el.textContent = '現在地：住所情報なし'; 
-              showToast('現在地の住所情報が取得できませんでした', 'warning', 4000);
-              console.warn('[Geocoder] No results for reverse geocoding');
-            }
+        const resp = await fetch(`${WORKER_ORIGIN}/places:searchText`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-FieldMask': 'places.formattedAddress'
+          },
+          body: JSON.stringify({
+            textQuery: `${lat},${lng}`,
+            languageCode: 'ja'
           })
-          .catch((err) => {
-            // APIエラーなど
-            const el = document.getElementById('locAddress'); // 要素を再取得
-            if (el) el.textContent = '現在地：住所取得エラー';
-            showToast('住所の取得中にAPIエラーが発生しました', 'error', 5000);
-            console.error('[Geocoder] Error:', err);
-          });
-      } catch (e) {
-        // 例外発生
-        const el = document.getElementById('locAddress'); // 要素を再取得
-        if (el) el.textContent = '現在地：住所取得エラー';
-        showToast('住所の取得中に予期せぬエラーが発生しました', 'error', 5000);
-        console.error('[Geocoder] Exception:', e);
+        });
+        
+        if (!resp.ok) {
+          throw new Error(`HTTP ${resp.status}`);
+        }
+        
+        const data = await resp.json();
+        const place = data.places?.[0];
+        const address = place?.formattedAddress || '位置情報取得済み';
+        const clean = address.replace(/^日本、\s*/, '');
+        
+        document.getElementById('locAddress').textContent = `現在地：${clean} 付近`;
+        console.log('[Proxy Geocode OK]', clean);
+      } catch (err) {
+        console.error('[Proxy Geocode Error]', err);
+        document.getElementById('locAddress').textContent = '現在地：位置情報取得済み';
       }
     }
 
