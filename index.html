@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>WalkNav</title>
 
-  <meta name="x-issue" content="idx202511040710" />
+  <meta name="x-issue" content="idx202511040725" />
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
   <style>
@@ -31,8 +31,8 @@
 
     .fab-stack{
       position:fixed;right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;
-      z-index:2550; /* ★変更：検索パネルより手前に来ないように */
-      display:none; /* ★追加：デフォルト非表示 */
+      z-index:2550; 
+      display:none; 
     }
     .panel{
       position:absolute;
@@ -144,13 +144,14 @@
       margin-left:12px;
     }
 
-    /* ★★★ ここから追加 ★★★ */
     /* 道順案内パネル */
     .nav-panel{
       position:absolute;
       left:16px;
-      right:16px;
-      /* ルートパネルの上に配置 */
+      /* ★★★ 変更点 ★★★ */
+      /* 右側にボタン(112px)と余白(16px*2)分のスペースを確保 */
+      right: 144px; 
+      /* ★★★ 変更ここまで ★★★ */
       bottom: calc(16px + 90px + 10px); 
       top:auto;
       background:var(--glass-strong);
@@ -161,8 +162,8 @@
       backdrop-filter:blur(10px);
       z-index:2500;
       display:none;
-      max-height: 40vh; /* 高さを制限 */
-      overflow-y: auto; /* スクロール可能に */
+      max-height: 40vh; 
+      overflow-y: auto; 
     }
     .nav-location{
       font-size:13px;
@@ -189,6 +190,20 @@
     .nav-instruction-item:last-child{
       border-bottom: none;
       padding-bottom: 0;
+    }
+    
+    /* ★★★ ここから追加 ★★★ */
+    /* 最初の道順案内を青い背景にする */
+    .nav-instruction-item:first-child {
+      background: rgba(98, 181, 255, 0.2); /* var(--primary) の 20% 透明度 */
+      padding: 10px;
+      border-radius: 12px;
+      border-bottom: none; /* 元の線は消す */
+      margin: -4px; /* パディング分を調整 */
+    }
+    /* 2番目以降のアイテムとの間にマージンを追加 */
+    .nav-instruction-item:first-child + .nav-instruction-item {
+      margin-top: 10px;
     }
     /* ★★★ 追加ここまで ★★★ */
 
@@ -337,14 +352,13 @@
     /* トースト通知 */
     .toast-container{
       position:fixed;
-      /* ★変更：道順パネルの高さを考慮 */
       bottom:calc(16px + 90px + 10px + 40vh + 10px); 
       left:16px;
       z-index:10000;
       pointer-events:none;
       max-width:calc(100% - 32px);
     }
-    /* ★変更：検索パネル表示中のトースト位置 */
+    /* 検索パネル表示中のトースト位置 */
     .panel-open .toast-container{
        bottom: 420px;
     }
@@ -401,7 +415,8 @@
     .error-banner{display:none !important}
   </style>
 </head>
-<body id="appBody"> <div class="app">
+<body id="appBody">
+  <div class="app">
     <div id="map" aria-label="地図"></div>
 
     <section class="panel" id="searchPanel" aria-label="検索パネル">
@@ -444,6 +459,7 @@
       <div class="nav-instructions-list" id="navPanelInstructions">
         </div>
     </div>
+
     <div class="route-panel" id="routePanel">
       <div class="route-info">
         <span id="destinationName">目的地</span>へのルート
@@ -479,7 +495,7 @@
     // ==========================================
     // 定数定義
     // ==========================================
-    const ISSUE_ID = 'idx202511040710'; // 更新：UI改修（案内パネル・FAB制御）
+    const ISSUE_ID = 'idx202511040725'; // 更新：UI改修（パネル干渉・道順ハイライト）
     const API_KEY = 'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk'; // Maps表示用のみ
     const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
     const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -782,7 +798,6 @@
     }
 
     // ==========================================
-    // ★★★ 変更点 ★★★
     // ナビゲーション開始 (Worker経由)
     // ==========================================
     async function startNavigation(destination) {
@@ -847,7 +862,7 @@
           document.getElementById('results').style.display = 'none';
           document.getElementById('btnDestination').style.display = 'flex';
 
-          // ★★★ 道順案内パネルの処理 ★★★
+          // 道順案内パネルの処理
           const instructionsList = document.getElementById('navPanelInstructions');
           instructionsList.innerHTML = ''; // クリア
           if (l0 && l0.steps && l0.steps.length > 0) {
@@ -861,7 +876,6 @@
             });
           }
           document.getElementById('navPanel').style.display = 'block';
-          // ★★★ ここまで ★★★
 
           // ポリライン描画
           drawRoutePolyline(r0);
@@ -896,7 +910,6 @@
     }
 
     // ==========================================
-    // ★★★ 変更点 ★★★
     // ナビゲーション停止
     // ==========================================
     function stopNavigation() {
@@ -1224,7 +1237,7 @@
         
         appState.map.setCenter({ lat: latitude, lng: longitude });
         setUserMarker(latitude, longitude);
-        fetchLocationNameGoogle(latitude, longitude); // ★★★ 変更後の関数を呼び出す
+        fetchLocationNameGoogle(latitude, longitude); 
         showToast('現在地を取得しました', 'success');
       };
       
@@ -1233,11 +1246,9 @@
         document.getElementById('loading')?.remove();
         
         if (!appState.map) {
-          // デフォルト位置を東京駅に変更
           initMap({ lat: 35.6812, lng: 139.7671 }); 
         }
         
-        // ★★★ 案内パネル側にエラーを表示 ★★★
         const addressElement = document.getElementById('locAddress');
         const coordsElement = document.getElementById('locCoords');
         
@@ -1247,7 +1258,6 @@
         if (coordsElement) {
           coordsElement.textContent = '位置情報を確認できません';
         }
-        // ★★★ ここまで ★★★
 
         let errorMessage = '現在地の取得に失敗しました';
         if (error.code === 1) { // PERMISSION_DENIED
@@ -1276,7 +1286,6 @@
     // 地名取得（逆ジオコーディング）- Cloudflare経由
     // ==========================================
     async function fetchLocationNameGoogle(lat, lng) {
-      // ★★★ 表示先を案内パネル（navPanel）に変更 ★★★
       const addressElement = document.getElementById('locAddress');
       const coordsElement = document.getElementById('locCoords');
 
@@ -1311,7 +1320,6 @@
           addressElement.textContent = formattedAddress;
           console.log('[Geocode] Address set successfully via Cloudflare');
         } else {
-          // WorkerからのレスポンスがOKでも、Google側がZERO_RESULTSなどを返した場合
           console.error('[Geocode] Geocode failed via Cloudflare. Status:', data.status);
           addressElement.textContent = '現在地：住所情報なし';
           if (data.status !== 'ZERO_RESULTS') {
@@ -1647,7 +1655,6 @@
     }
 
     // ==========================================
-    // ★★★ 変更点 ★★★
     // FAB・パネル制御
     // ==========================================
     function bindFABEvents() {
@@ -1726,7 +1733,6 @@
     }
 
     // ==========================================
-    // ★★★ 変更点 ★★★
     // アプリケーション起動
     // ==========================================
     function startApp() {
