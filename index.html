@@ -1,93 +1,130 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yeti Web App - Pulsing Marker</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>WalkNav</title>
 
-    <link rel="stylesheet" href="style.css">
+  <meta name="x-issue" content="idx202511050540-split" />
+  <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
-    <style>
-        /* 地図を全画面表示にするための基本スタイル */
-        html, body { 
-            height: 100%; 
-            margin: 0; 
-            padding: 0; 
-        }
-        #map { 
-            height: 100vh; 
-            width: 100%; 
-        }
-    </style>
+  <link rel="stylesheet" href="app.css" />
+
 </head>
-<body>
-    <div id="map"></div>
+<body id="appBody">
+  <div class="app">
+    <div id="map" aria-label="地図"></div>
+
+    <section class="panel" id="searchPanel" aria-label="検索パネル">
+      <h2>近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
+      
+      <div class="row" style="margin-bottom:8px;justify-content:center;flex-wrap:wrap;">
+        <button class="chip active" id="r10">10km</button>
+        <button class="chip" id="r20">20km</button>
+        <button class="chip" id="r30">30km</button>
+        <button class="chip" id="btnPointSearch" style="flex-grow: 1; min-width: 120px;">📍 ポイント選択</button>
+      </div>
+      
+      <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px; display: none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;" id="pointAddressBlock">
+        <div id="pointAddress" style="line-height:1.5; color: var(--warning);">ポイント：取得中...</div>
+        <div id="pointCoords" style="line-height:1.5;"></div>
+      </div>
+      
+      <div class="row" style="margin-bottom:8px">
+        <button class="btn" id="btnSaveLocation" style="flex:1">現在地登録</button>
+        <button class="btn" id="btnEditLocation" style="flex:1">登録地修正</button>
+      </div>
+      
+      <div class="row" style="margin-bottom:8px">
+        <div class="input-wrapper">
+          <span class="icon icon-g">
+            <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor;">
+              <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5.03,16.21 5.03,12.39C5.03,8.57 8.36,5.5 12.19,5.5C14.73,5.5 16.29,6.5 17.2,7.38L19.31,5.26C17.38,3.53 15.05,2.5 12.19,2.5C6.92,2.5 2.73,6.63 2.73,12.39C2.73,18.15 6.92,22.28 12.19,22.28C17.63,22.28 21.64,18.5 21.64,12.61C21.64,12 21.52,11.55 21.35,11.1Z"></path>
+            </svg>
+          </span>
+          <input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" style="flex:1" />
+          <span class="icon icon-search" id="btnSearchIcon">
+            <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;">
+              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+            </svg>
+          </span>
+          <span class="icon icon-mic" id="btnVoiceIcon">
+            <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;">
+              <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"></path>
+            </svg>
+          </span>
+        </div>
+      </div>
+      
+      <div id="results" class="results" style="display:none"></div>
+      
+      <div class="row" style="margin-top:12px; gap: 8px;">
+        <button id="btnReset" class="btn danger" style="flex:1">リセット</button>
+        <button id="btnClosePanel" class="btn" style="flex:1;background:rgba(255,255,255,0.1)">パネルを閉じる</button>
+      </div>
+      </section>
+
+    <div class="nav-panel" id="navPanel">
+      <div class="nav-location">
+        <div id="locAddress" style="line-height:1.5">現在地：取得中...</div>
+        <div id="locCoords" style="line-height:1.5;font-size:12px"></div>
+      </div>
+      <div class="nav-weather" id="navWeather">
+        <div class="weather-item">
+          <span>3H</span>
+          <span id="weather3h">--</span>
+        </div>
+        <div class="weather-item">
+          <span>6H</span>
+          <span id="weather6h">--</span>
+        </div>
+        <div class="weather-item">
+          <span>9H</span>
+          <span id="weather9h">--</span>
+        </div>
+      </div>
+      <div class="nav-instructions-list" id="navPanelInstructions"></div>
+    </div>
     
-    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script>
+    <div class="incident-panel" id="incidentPanel"></div>
+
+    <div class="route-panel" id="routePanel">
+      <div class="route-info">
+        <span id="destinationName">目的地</span>へのルート
+      </div>
+      <div>
+        <span class="route-distance" id="routeDistance">--</span>
+        <span class="route-time" id="routeTime">徒歩 --分</span>
+      </div>
+      <div class="route-actions">
+        <button id="btnExportText" class="btn" style="width:100%;background:rgba(255,255,255,0.1)">道順をコピー</button>
+        <button id="btnStopRoute" class="btn danger" style="width:100%">ルート終了</button>
+      </div>
+    </div>
+
+    <div class="fab-stack" id="fabStack">
+      <div class="fab" id="btnSearch">検索パネル</div>
+      <div class="fab" id="btnLocate">現在地</div>
+      <div class="fab" id="btnDestination" style="display:none">目的地</div>
+      <div class="fab" id="btnPause">一時停止</div>
+      <div class="fab" id="btnReroute">リルート</div>
+    </div>
+
+    <div class="loading" id="loading">
+      <div style="text-align:center">
+        <div style="font-size:24px;margin-bottom:16px">📍 現在地取得中</div>
+        <div style="font-size:16px;opacity:0.8">しばらくお待ちください...</div>
+      </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+  </div>
+
+  <script src="app.js" defer></script>
+  
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry"
+    async defer></script>
     
-    <script src="PulsingMarkerOverlay.js"></script>
-
-    <script>
-        let map;
-        let myLocationMarker; // 波動マーカーのインスタンスを保持する変数
-
-        // Google Maps APIが読み込まれたら呼び出されるコールバック関数
-        function initMap() {
-            
-            // 初期表示位置（例：徳島県美馬市付近）
-            const initialLocation = new google.maps.LatLng(34.053, 134.053); 
-
-            map = new google.maps.Map(document.getElementById('map'), {
-                center: initialLocation,
-                zoom: 16,
-                disableDefaultUI: true, // Googleの標準UIを非表示
-                zoomControl: true,      // ズームコントロールは表示
-            });
-
-            // --- 波動マーカーを生成 ---
-            myLocationMarker = new PulsingMarkerOverlay(
-                initialLocation, // 初期位置
-                map              // 表示する地図
-            );
-
-            // --- 実際のGPS（位置情報）を取得開始 ---
-            if (navigator.geolocation) {
-                // watchPositionでデバイスの移動に追従する
-                navigator.geolocation.watchPosition(
-                    (position) => {
-                        // 取得成功
-                        const newPos = new google.maps.LatLng(
-                            position.coords.latitude,
-                            position.coords.longitude
-                        );
-
-                        if (myLocationMarker) {
-                            // マーカーの位置をGPSの現在地に更新
-                            myLocationMarker.updatePosition(newPos);
-                        } else {
-                            // 初回取得時（もしinitMapより先にGPSが取得できた場合）
-                            myLocationMarker = new PulsingMarkerOverlay(newPos, map);
-                        }
-                        
-                        // 地図の中心も現在地に移動（初回のみでも可）
-                        map.panTo(newPos);
-                        
-                    }, 
-                    (error) => {
-                        // 取得失敗
-                        console.error("位置情報の取得に失敗しました: ", error.message);
-                        // TODO: ユーザーにエラーを通知する処理
-                    },
-                    {
-                        // 高精度な位置情報を要求
-                        enableHighAccuracy: true,
-                    }
-                );
-            } else {
-                // ブラウザがGeolocation APIに非対応
-                console.error("お使いのブラウザは位置情報機能に対応していません。");
-            }
-        }
-    </script>
 </body>
 </html>
