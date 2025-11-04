@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>WalkNav</title>
 
-  <meta name="x-issue" content="idx202511040900" />
+  <meta name="x-issue" content="idx202511040930" />
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
   <style>
@@ -128,6 +128,9 @@
       backdrop-filter:blur(10px);
       z-index:2500;
       display:none;
+      /* ★★★ 変更点 ★★★ */
+      /* ボタン2つ分の高さを確保 */
+      min-height: 142px; 
     }
     
     .route-info{
@@ -144,13 +147,23 @@
       color:var(--muted);
       margin-left:12px;
     }
+    /* ★★★ 追加 ★★★ */
+    .route-actions {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
 
     /* 道順案内パネル */
     .nav-panel{
       position:absolute;
       left:16px;
       right: 144px; 
-      bottom: calc(16px + 90px + 10px + 50px + 10px); 
+      /* ★★★ 変更点 ★★★ */
+      /* ルートパネル+インシデントパネルの上 */
+      bottom: calc(16px + 142px + 10px + 50px + 10px); 
       top:auto;
       background:var(--glass-strong);
       border:1px solid var(--stroke);
@@ -230,7 +243,8 @@
       position:absolute;
       left:16px;
       right: 144px;
-      bottom: calc(16px + 90px + 10px); /* ルートパネルの上 */
+      /* ★★★ 変更点 ★★★ */
+      bottom: calc(16px + 142px + 10px); /* ルートパネルの上 */
       top:auto;
       background: rgba(255, 184, 77, 0.15); /* warning色 */
       border:1px solid var(--warning);
@@ -391,7 +405,7 @@
     /* トースト通知 */
     .toast-container{
       position:fixed;
-      bottom:calc(16px + 90px + 10px + 50px + 10px + 35vh + 10px); 
+      bottom:calc(16px + 142px + 10px + 50px + 10px + 35vh + 10px); 
       left:16px;
       z-index:10000;
       pointer-events:none;
@@ -532,8 +546,11 @@
         <span class="route-distance" id="routeDistance">--</span>
         <span class="route-time" id="routeTime">徒歩 --分</span>
       </div>
-      <button id="btnStopRoute" class="btn danger" style="margin-top:10px;width:100%">ルート終了</button>
-    </div>
+      <div class="route-actions">
+        <button id="btnExportText" class="btn" style="width:100%;background:rgba(255,255,255,0.1)">道順をコピー</button>
+        <button id="btnStopRoute" class="btn danger" style="width:100%">ルート終了</button>
+      </div>
+      </div>
 
     <div class="fab-stack" id="fabStack">
       <div class="fab" id="btnSearch">検索パネル</div>
@@ -559,7 +576,7 @@
     // ==========================================
     // 定数定義
     // ==========================================
-    const ISSUE_ID = 'idx202511040900'; // 更新：watchPositionでリアルタイム更新
+    const ISSUE_ID = 'idx202511040930'; // 更新：シミュレーションモード、テキスト出力
     const API_KEY = 'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk'; // Maps表示用のみ
     const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
     const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -588,9 +605,11 @@
       recognition: null,
       isPaused: false,
       isNavigating: false,
-      locationWatchId: null, // ★ ナビ中の位置情報監視ID
-      compassWatchId: null,  // ★ 非ナビ中のコンパス監視ID
-      currentHeading: 0      // ★ 現在のマーカーの向き
+      locationWatchId: null, 
+      compassWatchId: null,
+      currentHeading: 0,
+      isSimulation: false, // ★★★ シミュレーションモードか
+      currentRouteData: null // ★★★ 道順テキスト出力用
     };
 
     // ==========================================
@@ -730,7 +749,6 @@
     }
 
     // ==========================================
-    // ★★★ 変更点 ★★★
     // ユーザー位置マーカー設定 (SVG矢印)
     // ==========================================
     function setUserMarker(lat, lng) {
@@ -741,7 +759,6 @@
         pin.style.width = '26px';
         pin.style.height = '26px';
         
-        // ★★★ 矢印SVG ★★★
         pin.innerHTML = `
           <svg id="user-marker-icon" viewBox="0 0 24 24" 
                style="width: 100%; height: 100%; 
@@ -802,10 +819,10 @@
     }
 
     // ==========================================
-    // 距離計算（Haversine公式）
+    // 距離計算
     // ==========================================
     function calculateDistance(lat1, lon1, lat2, lon2) {
-      const R = 6371000; // 地球の半径（メートル）
+      const R = 6371000; 
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLon = (lon2 - lon1) * Math.PI / 180;
       const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -877,7 +894,6 @@
     }
     
     // ==========================================
-    // ★★★ 新設 ★★★
     // コンパス（デバイスの向き）監視
     // ==========================================
     const compassHandler = (event) => {
@@ -904,9 +920,23 @@
       }
       console.log('[Compass] Starting compass listener...');
       
-      window.addEventListener('deviceorientationabsolute', compassHandler, true);
-      window.addEventListener('deviceorientation', compassHandler, true);
-      appState.compassWatchId = 1; // 監視中フラグ
+      // iOS 13+ の許可リクエスト
+      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+         DeviceOrientationEvent.requestPermission()
+          .then(permissionState => {
+            if (permissionState === 'granted') {
+              window.addEventListener('deviceorientationabsolute', compassHandler, true);
+              window.addEventListener('deviceorientation', compassHandler, true);
+              appState.compassWatchId = 1; // 監視中フラグ
+            }
+          })
+          .catch(console.error);
+      } else {
+        // Androidなど許可が不要な場合
+        window.addEventListener('deviceorientationabsolute', compassHandler, true);
+        window.addEventListener('deviceorientation', compassHandler, true);
+        appState.compassWatchId = 1; // 監視中フラグ
+      }
     }
     
     function stopCompassListener() {
@@ -927,7 +957,6 @@
     }
     
     // ==========================================
-    // ★★★ 新設 ★★★
     // リアルタイム位置情報監視（ナビ中）
     // ==========================================
     function startLocationWatcher() {
@@ -950,14 +979,13 @@
         if (appState.isNavigating && !appState.isPaused) {
           appState.map.panTo({ lat: latitude, lng: longitude });
 
-          // ★★★ マーカーの向きを目的地に合わせる ★★★
+          // マーカーの向きを目的地に合わせる
           if (appState.currentDestination && google.maps.geometry) {
             const currentLatLng = new google.maps.LatLng(latitude, longitude);
             const destLatLng = new google.maps.LatLng(appState.currentDestination.lat, appState.currentDestination.lng);
             
-            // computeHeadingは [-180, 180) を返す
             let headingDeg = google.maps.geometry.spherical.computeHeading(currentLatLng, destLatLng);
-            if (headingDeg < 0) { headingDeg += 360; } // 0-360に正規化
+            if (headingDeg < 0) { headingDeg += 360; } 
             
             appState.currentHeading = headingDeg;
             updateMarkerRotation();
@@ -989,17 +1017,22 @@
 
     // ==========================================
     // ★★★ 変更点 ★★★
-    // ナビゲーション開始 (Worker経由)
+    // ナビゲーション開始 (シミュレーション対応)
     // ==========================================
     async function startNavigation(destination) {
       let originLat, originLng;
       
+      // ★★★ シミュレーションモード判定 ★★★
       if (appState.pointSearchMode && appState.searchPoint) {
         originLat = appState.searchPoint.lat;
         originLng = appState.searchPoint.lng;
+        appState.isSimulation = true;
+        console.log('[Navigation] シミュレーションモードで開始');
       } else if (appState.currentPos) {
         originLat = appState.currentPos.lat;
         originLng = appState.currentPos.lng;
+        appState.isSimulation = false;
+        console.log('[Navigation] リアルタイムモードで開始');
       } else {
         showToast('起点が設定されていません', 'error');
         return;
@@ -1014,7 +1047,7 @@
       document.getElementById('fabStack').style.display = 'flex'; 
       document.getElementById('appBody').classList.remove('panel-open');
       
-      // ★★★ コンパス（デバイス向き）監視を停止 ★★★
+      // コンパス（デバイス向き）監視を停止
       stopCompassListener();
       
       try {
@@ -1066,6 +1099,17 @@
             });
           }
           document.getElementById('navPanel').style.display = 'block';
+          
+          // ★★★ 道順テキスト出力用にデータを保存 ★★★
+          appState.currentRouteData = {
+            steps: l0.steps,
+            summary: r0.summary,
+            distance: distanceText,
+            duration: durationText,
+            destinationName: destination.name,
+            warnings: r0.warnings || []
+          };
+          // ★★★ ここまで ★★★
 
           // インシデントパネルの処理
           const incidentPanel = document.getElementById('incidentPanel');
@@ -1079,8 +1123,24 @@
           // 天気予報の処理
           fetchWeather(originLat, originLng);
           
-          // ★★★ リアルタイム監視（目的地向き）を開始 ★★★
-          startLocationWatcher();
+          // ★★★ モードに応じて監視を開始 ★★★
+          if (appState.isSimulation) {
+            // シミュレーションの場合
+            setUserMarker(originLat, originLng); // マーカーを起点に設置
+            fetchLocationNameGoogle(originLat, originLng); // 案内パネルの住所を更新
+            // 目的地への向きを計算してマーカーを回転
+            if (appState.currentDestination && google.maps.geometry) {
+              const currentLatLng = new google.maps.LatLng(originLat, originLng);
+              const destLatLng = new google.maps.LatLng(appState.currentDestination.lat, appState.currentDestination.lng);
+              let headingDeg = google.maps.geometry.spherical.computeHeading(currentLatLng, destLatLng);
+              if (headingDeg < 0) { headingDeg += 360; } 
+              appState.currentHeading = headingDeg;
+              updateMarkerRotation();
+            }
+          } else {
+            // リアルタイムナビの場合
+            startLocationWatcher();
+          }
 
           // ポリライン描画
           drawRoutePolyline(r0);
@@ -1109,21 +1169,21 @@
         console.error('[Navigation] Error:', error);
         showToast(`ルートエラー: ${error.message}`, 'error', 5000);
         appState.isNavigating = false;
+        appState.isSimulation = false;
         document.getElementById('fabStack').style.display = 'none'; 
-        // ★★★ エラー時はコンパス監視を再開 ★★★
-        startCompassListener(); 
+        startCompassListener(); // エラー時はコンパス監視を再開
       }
     }
 
     // ==========================================
-    // ★★★ 変更点 ★★★
     // ナビゲーション停止
     // ==========================================
     function stopNavigation() {
-      // ★★★ リアルタイム監視（目的地向き）を停止 ★★★
-      stopLocationWatcher();
-      // ★★★ コンパス（デバイス向き）監視を再開 ★★★
-      startCompassListener();
+      stopLocationWatcher(); // リアルタイム監視を停止
+      startCompassListener();  // コンパス監視を再開
+      
+      appState.isSimulation = false; // シミュレーションフラグをリセット
+      appState.currentRouteData = null; // 道順データをリセット
       
       if (appState.currentPolyline) {
         appState.currentPolyline.setMap(null);
@@ -1136,8 +1196,8 @@
       
       // UI更新
       document.getElementById('routePanel').style.display = 'none';
-      document.getElementById('navPanel').style.display = 'block'; // 現在地表示のため隠さない
-      document.getElementById('navPanelInstructions').innerHTML = ''; // 道順のみクリア
+      document.getElementById('navPanel').style.display = 'block'; 
+      document.getElementById('navPanelInstructions').innerHTML = ''; 
       document.getElementById('incidentPanel').style.display = 'none'; 
       document.getElementById('incidentPanel').innerHTML = ''; 
       document.getElementById('searchPanel').style.display = 'block';
@@ -1170,7 +1230,7 @@
         appState.map.setZoom(17);
       }
       
-      // ★★★ マーカーの向きをコンパスに戻す ★★★
+      // マーカーの向きをコンパスに戻す
       updateMarkerRotation(); 
       
       document.getElementById('appBody').classList.add('panel-open'); // トースト位置
@@ -1182,6 +1242,11 @@
     // 一時停止/再開トグル
     // ==========================================
     function togglePause() {
+      // シミュレーション中は一時停止不要
+      if (appState.isSimulation) {
+         showToast('シミュレーション中は一時停止できません', 'warning');
+         return;
+      }
       if (!appState.isNavigating) {
         showToast('ナビゲーション中ではありません', 'warning');
         return;
@@ -1457,7 +1522,7 @@
         }
         
         appState.map.setCenter({ lat: latitude, lng: longitude });
-        setUserMarker(latitude, longitude); // ★ マーカー（矢印）を配置
+        setUserMarker(latitude, longitude); 
         fetchLocationNameGoogle(latitude, longitude); 
         showToast('現在地を取得しました', 'success');
       };
@@ -1866,6 +1931,53 @@
         };
       });
     }
+    
+    // ==========================================
+    // ★★★ 新設 ★★★
+    // 道順をクリップボードにコピー
+    // ==========================================
+    function exportRouteToClipboard() {
+      if (!appState.currentRouteData) {
+        showToast('コピーするルートデータがありません', 'warning');
+        return;
+      }
+
+      const data = appState.currentRouteData;
+      let textOutput = `■ 目的地: ${data.destinationName}\n`;
+      textOutput += `■ 概要: ${data.summary} (約 ${data.distance}, 徒歩 ${data.duration})\n\n`;
+      
+      if (data.warnings.length > 0) {
+        textOutput += "■ 警告:\n";
+        data.warnings.forEach(w => {
+           textOutput += `・ ${w.replace(/<[^>]+>/g, ' ')}\n`;
+        });
+        textOutput += "\n";
+      }
+
+      textOutput += "■ 道順:\n";
+      if (data.steps && data.steps.length > 0) {
+        data.steps.forEach((step, index) => {
+          const instruction = (step.html_instructions || '').replace(/<[^>]+>/g, ' ');
+          textOutput += `${index + 1}. ${instruction} (${step.distance.text})\n`;
+        });
+      } else {
+        textOutput += "詳細な道順はありません。\n";
+      }
+
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(textOutput)
+          .then(() => {
+            showToast('道順をクリップボードにコピーしました', 'success');
+          })
+          .catch(err => {
+            console.error('Clipboard write error:', err);
+            showToast('コピーに失敗しました', 'error');
+          });
+      } else {
+        showToast('お使いのブラウザはコピー機能に非対応です', 'error');
+      }
+    }
+
 
     // ==========================================
     // UI イベントバインディング
@@ -1984,9 +2096,9 @@
         document.getElementById('searchPanel').style.display = 'block';
         document.getElementById('fabStack').style.display = 'none'; 
         document.getElementById('appBody').classList.add('panel-open'); 
-        document.getElementById('navPanel').style.display = 'block'; // 検索時も現在地パネルは表示
-        document.getElementById('navPanelInstructions').innerHTML = ''; // 道順はクリア
-        document.getElementById('incidentPanel').style.display = 'none'; // インシデントは隠す
+        document.getElementById('navPanel').style.display = 'block'; 
+        document.getElementById('navPanelInstructions').innerHTML = ''; 
+        document.getElementById('incidentPanel').style.display = 'none'; 
       };
       
       // 検索パネルを閉じるボタン（パネル側）
@@ -2003,23 +2115,6 @@
       };
 
       document.getElementById('btnLocate').onclick = () => {
-        
-        // ★★★ iOS 13+ のための許可リクエスト ★★★
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-          DeviceOrientationEvent.requestPermission()
-            .then(permissionState => {
-              if (permissionState === 'granted') {
-                console.log('[Compass] iOS permission granted.');
-                // 許可されたら、リスナーを開始
-                stopCompassListener(); // 既存のリスナーを止めて
-                appState.compassWatchId = null; // リセット
-                startCompassListener(); // 再開
-              }
-            })
-            .catch(console.error);
-        }
-        // ★★★ ここまで ★★★
-        
         const now = Date.now();
         if (now - lastLocateTime < 1000) return;
         lastLocateTime = now;
@@ -2036,7 +2131,6 @@
       
       document.getElementById('btnDestination').onclick = () => {
         const now = Date.now();
-        
         if (now - lastLocateTime < 1000) return;
         lastLocateTime = now;
         
@@ -2056,8 +2150,15 @@
           showToast('目的地が設定されていません', 'warning');
         }
       };
-
-      document.getElementById('btnStopRoute').onclick = stopNavigation;
+    }
+    
+    // ==========================================
+    // ★★★ 新設 ★★★
+    // ルートパネルのボタン制御
+    // ==========================================
+    function bindRoutePanelEvents() {
+       document.getElementById('btnStopRoute').onclick = stopNavigation;
+       document.getElementById('btnExportText').onclick = exportRouteToClipboard;
     }
 
     function bindUI() {
@@ -2066,6 +2167,7 @@
       bindLocationEvents();
       bindSearchEvents();
       bindFABEvents();
+      bindRoutePanelEvents(); // ★★★ 追加
       console.log('[WalkNav] UI binding complete');
     }
 
@@ -2076,27 +2178,22 @@
       console.log('[WalkNav] Starting app...');
       document.documentElement.lang = 'ja';
       
-      // 初期状態：検索パネル表示、FABボタン非表示
+      // 初期状態
       document.getElementById('searchPanel').style.display = 'block';
       document.getElementById('fabStack').style.display = 'none'; 
       document.getElementById('btnSearch').style.display = 'flex'; 
-      document.getElementById('appBody').classList.add('panel-open'); // トースト位置
-      
-      // 案内パネルの現在地欄は起動時から表示
+      document.getElementById('appBody').classList.add('panel-open'); 
       document.getElementById('navPanel').style.display = 'block';
       
       bindUI();
       acquireLocation(); // 初回取得
       initSpeechRecognition();
-      
-      // ★★★ コンパス（デバイス向き）監視を開始 ★★★
-      startCompassListener();
+      startCompassListener(); // コンパス監視を開始
       
       console.log('[WalkNav] ISSUE', ISSUE_ID, 'boot');
     }
 
     function initializeWhenReady() {
-      // ★★★ `geometry` ライブラリのロードも待つ ★★★
       if (typeof google !== 'undefined' && google.maps && google.maps.Map && google.maps.geometry) {
         startApp();
       } else {
