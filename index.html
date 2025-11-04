@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>WalkNav</title>
 
-  <meta name="x-issue" content="idx202511050155" />
+  <meta name="x-issue" content="idx202511050530" />
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
   <style>
@@ -59,6 +59,58 @@
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .chip{padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--stroke);color:var(--text);font-size:14px;cursor:pointer;user-select:none}
     .chip.active{background:var(--primary);color:#05233a;border-color:transparent}
+    
+    /* ★★★ 変更点 ★★★ */
+    /* 検索窓ラッパー */
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+    .input-wrapper .input {
+      /* アイコンと文字が重ならないよう調整 */
+      padding-left: 40px; 
+      padding-right: 80px; 
+    }
+    .input-wrapper .icon {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      opacity: 0.7;
+    }
+    .input-wrapper .icon-g {
+      left: 12px;
+      pointer-events: none; /* Gマークはクリック不可 */
+    }
+    .input-wrapper .icon-search {
+      right: 50px; /* マイクアイコンの左 */
+      cursor: pointer;
+      opacity: 0.9;
+    }
+    .input-wrapper .icon-mic {
+      right: 12px;
+      cursor: pointer;
+      opacity: 0.9;
+    }
+    .input-wrapper .icon-mic:hover, .input-wrapper .icon-search:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+    /* ポイント住所 */
+    #pointAddressBlock {
+      flex-wrap: wrap; /* 横並びにして折り返す */
+      align-items: baseline;
+    }
+    #pointCoords {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: 8px; /* 住所の横に配置 */
+    }
+    /* ★★★ 変更ここまで ★★★ */
+    
     .input{
       flex:1;min-width:220px;
       padding:10px 12px;border-radius:12px;border:1px solid var(--stroke);
@@ -153,14 +205,13 @@
     }
 
 
-    /* ★★★ 変更点 ★★★ */
     /* 道順案内パネル（現在地パネル） */
     .nav-panel{
       position:absolute;
       left: 16px;
-      right: 16px; /* ★ 全幅に変更 */
-      top: 16px;   /* ★ 最上部に配置 */
-      bottom: auto; /* ★ 削除 */
+      right: 16px; 
+      top: 16px;   
+      bottom: auto; 
       background:var(--glass-strong);
       border:1px solid var(--stroke);
       border-radius:var(--radius);
@@ -169,10 +220,9 @@
       backdrop-filter:blur(10px);
       z-index:2500;
       display:none;
-      max-height: 45vh; /* 高さを少し確保 */
+      max-height: 45vh; 
       overflow-y: auto; 
     }
-    /* ★★★ 変更ここまで ★★★ */
     
     .nav-location{
       font-size:13px;
@@ -399,11 +449,9 @@
       max-width:100%;
     }
 
-    /* ★★★ 変更点 ★★★ */
     /* トースト通知 */
     .toast-container{
       position:fixed;
-      /* nav-panelが上に行ったので、一番下のパネル(incident-panel)の上に来るよう修正 */
       bottom:calc(16px + 142px + 10px + 50px + 10px); 
       left:16px;
       z-index:10000;
@@ -414,7 +462,6 @@
     .panel-open .toast-container{
        bottom: 420px;
     }
-    /* ★★★ 変更ここまで ★★★ */
 
     .toast{
       background:var(--glass-strong);
@@ -474,31 +521,45 @@
 
     <section class="panel" id="searchPanel" aria-label="検索パネル">
       <h2>近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
-      <div class="row" style="margin-bottom:8px;justify-content:center">
+      
+      <div class="row" style="margin-bottom:8px;justify-content:center;flex-wrap:wrap;">
         <button class="chip active" id="r10">10km</button>
         <button class="chip" id="r20">20km</button>
         <button class="chip" id="r30">30km</button>
-      </div>
-      <div class="row" style="margin-bottom:8px">
-        <button class="chip" id="btnPointSearch" style="width:100%">📍 ポイント選択</button>
+        <button class="chip" id="btnPointSearch" style="flex-grow: 1; min-width: 120px;">📍 ポイント選択</button>
       </div>
       
-      <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px;flex-direction:column;align-items:flex-start;gap:2px; display: none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;" id="pointAddressBlock">
+      <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px; display: none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;" id="pointAddressBlock">
         <div id="pointAddress" style="line-height:1.5; color: var(--warning);">ポイント：取得中...</div>
-        <div id="pointCoords" style="line-height:1.5;font-size:12px"></div>
+        <div id="pointCoords" style="line-height:1.5;"></div>
       </div>
       
       <div class="row" style="margin-bottom:8px">
         <button class="btn" id="btnSaveLocation" style="flex:1">現在地登録</button>
         <button class="btn" id="btnEditLocation" style="flex:1">登録地修正</button>
       </div>
+      
       <div class="row" style="margin-bottom:8px">
-        <input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" style="flex:1" />
+        <div class="input-wrapper">
+          <span class="icon icon-g">
+            <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor;">
+              <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5.03,16.21 5.03,12.39C5.03,8.57 8.36,5.5 12.19,5.5C14.73,5.5 16.29,6.5 17.2,7.38L19.31,5.26C17.38,3.53 15.05,2.5 12.19,2.5C6.92,2.5 2.73,6.63 2.73,12.39C2.73,18.15 6.92,22.28 12.19,22.28C17.63,22.28 21.64,18.5 21.64,12.61C21.64,12 21.52,11.55 21.35,11.1Z"></path>
+            </svg>
+          </span>
+          <input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" style="flex:1" />
+          <span class="icon icon-search" id="btnSearchIcon">
+            <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;">
+              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+            </svg>
+          </span>
+          <span class="icon icon-mic" id="btnVoiceIcon">
+            <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;">
+              <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"></path>
+            </svg>
+          </span>
+        </div>
       </div>
-      <div class="row" style="margin-bottom:8px">
-        <button id="btnText" class="btn primary" style="flex:1">テキスト検索</button>
-        <button id="btnVoice" class="btn" style="flex:1">音声検索</button>
-      </div>
+      
       <div class="row" style="margin-bottom:8px">
         <button id="btnReset" class="btn danger" style="width:100%">リセット</button>
       </div>
@@ -576,7 +637,7 @@
     // ==========================================
     // 定数定義
     // ==========================================
-    const ISSUE_ID = 'idx202511050155'; // 更新：navPanelを上部へ移動
+    const ISSUE_ID = 'idx202511050530'; // 更新：検索窓UI改修、ボタン配置変更
     const API_KEY = 'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk'; // Maps表示用のみ
     const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
     const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -1452,8 +1513,7 @@
 
       appState.recognition.onstart = () => {
         console.log('[Voice] 音声認識開始');
-        document.getElementById('btnVoice').textContent = '聞いています...';
-        document.getElementById('btnVoice').style.background = 'var(--ok)';
+        document.getElementById('btnVoiceIcon').style.background = 'var(--ok)'; // ★ アイコンの背景を変更
       };
 
       appState.recognition.onresult = (event) => {
@@ -1466,15 +1526,13 @@
 
       appState.recognition.onerror = (event) => {
         console.error('[Voice] エラー:', event.error);
-        document.getElementById('btnVoice').textContent = '音声検索';
-        document.getElementById('btnVoice').style.background = '';
+        document.getElementById('btnVoiceIcon').style.background = ''; // ★ アイコンの背景を戻す
         showToast('音声認識エラーが発生しました', 'error');
       };
 
       appState.recognition.onend = () => {
         console.log('[Voice] 音声認識終了');
-        document.getElementById('btnVoice').textContent = '音声検索';
-        document.getElementById('btnVoice').style.background = '';
+        document.getElementById('btnVoiceIcon').style.background = ''; // ★ アイコンの背景を戻す
       };
 
       return true;
@@ -1610,6 +1668,7 @@
     }
 
     // ==========================================
+    // ★★★ 変更点 ★★★
     // ポイント選択時の地名取得
     // ==========================================
     async function fetchPointAddress(lat, lng) {
@@ -1623,7 +1682,8 @@
       }
 
       addressElement.textContent = 'ポイント：住所取得中...';
-      coordsElement.textContent = `緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
+      // ★ ( ) を追加
+      coordsElement.textContent = `(緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)})`;
       addressBlock.style.display = 'flex';
 
       try {
@@ -2028,13 +2088,19 @@
       document.getElementById('btnSaveLocation').onclick = showSaveLocationDialog;
       document.getElementById('btnEditLocation').onclick = showEditLocationDialog;
     }
-
+    
+    // ==========================================
+    // ★★★ 変更点 ★★★
+    // 検索イベント (アイコンをバインド)
+    // ==========================================
     function bindSearchEvents() {
-      document.getElementById('btnText').onclick = () => {
+      // 検索アイコンのクリック
+      document.getElementById('btnSearchIcon').onclick = () => {
         const q = document.getElementById('q').value.trim();
         if (q) performSearch(q);
       };
       
+      // 検索窓でのEnterキー
       document.getElementById('q').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
           const q = document.getElementById('q').value.trim();
@@ -2042,7 +2108,8 @@
         }
       });
       
-      document.getElementById('btnVoice').onclick = startVoiceSearch;
+      // マイクアイコンのクリック
+      document.getElementById('btnVoiceIcon').onclick = startVoiceSearch;
       
       document.getElementById('btnReset').onclick = () => {
         document.getElementById('q').value = '';
