@@ -3,7 +3,7 @@
 // ==========================================
 // 定数定義
 // ==========================================
-const ISSUE_ID = 'idx202511050530'; // 更新：検索窓UI改修、ボタン配置変更
+const ISSUE_ID = 'idx202511050540'; // 更新：パネル表示ロジック、ボタン配置
 const API_KEY = 'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk'; // Maps表示用のみ
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -879,7 +879,7 @@ function initSpeechRecognition() {
 
   appState.recognition.onstart = () => {
     console.log('[Voice] 音声認識開始');
-    document.getElementById('btnVoiceIcon').style.background = 'var(--ok)'; // ★ アイコンの背景を変更
+    document.getElementById('btnVoiceIcon').style.background = 'var(--ok)'; 
   };
 
   appState.recognition.onresult = (event) => {
@@ -892,13 +892,13 @@ function initSpeechRecognition() {
 
   appState.recognition.onerror = (event) => {
     console.error('[Voice] エラー:', event.error);
-    document.getElementById('btnVoiceIcon').style.background = ''; // ★ アイコンの背景を戻す
+    document.getElementById('btnVoiceIcon').style.background = ''; 
     showToast('音声認識エラーが発生しました', 'error');
   };
 
   appState.recognition.onend = () => {
     console.log('[Voice] 音声認識終了');
-    document.getElementById('btnVoiceIcon').style.background = ''; // ★ アイコンの背景を戻す
+    document.getElementById('btnVoiceIcon').style.background = ''; 
   };
 
   return true;
@@ -1403,13 +1403,17 @@ function exportRouteToClipboard() {
 // ==========================================
 // UI イベントバインディング
 // ==========================================
+
+// ★★★ 変更点 ★★★
+// 検索パネルのイベント
 function bindSearchPanelEvents() {
   const radiusLabel = document.getElementById('radiusLabel');
   const r10 = document.getElementById('r10');
   const r20 = document.getElementById('r20');
   const r30 = document.getElementById('r30');
   const btnPointSearch = document.getElementById('btnPointSearch');
-  
+  const navPanel = document.getElementById('navPanel'); // ★ navPanelを取得
+
   r10.onclick = () => { 
     r10.classList.add('active'); 
     r20.classList.remove('active');
@@ -1439,11 +1443,13 @@ function bindSearchPanelEvents() {
       btnPointSearch.style.color = '#0a2818';
       btnPointSearch.style.borderColor = 'transparent';
       showToast('地図をタップして検索地点を選択', 'info');
+      navPanel.style.display = 'none'; // ★ ポイント選択中は非表示
     } else {
       btnPointSearch.textContent = '📍 ポイント選択';
       btnPointSearch.style.background = 'rgba(255,255,255,.08)';
       btnPointSearch.style.color = 'var(--text)';
       btnPointSearch.style.borderColor = 'var(--stroke)';
+      navPanel.style.display = 'block'; // ★ ポイント選択解除で表示
     }
   };
 }
@@ -1454,6 +1460,7 @@ function bindLocationEvents() {
 }
 
 // ==========================================
+// ★★★ 変更点 ★★★
 // 検索イベント (アイコンをバインド)
 // ==========================================
 function bindSearchEvents() {
@@ -1501,6 +1508,8 @@ function bindSearchEvents() {
     btnPointSearch.style.background = 'rgba(255,255,255,.08)';
     btnPointSearch.style.color = 'var(--text)';
     btnPointSearch.style.borderColor = 'var(--stroke)';
+    
+    document.getElementById('navPanel').style.display = 'block'; // ★ リセットでnavPanelを再表示
     
     document.getElementById('r10').classList.add('active');
     document.getElementById('r20').classList.remove('active');
@@ -1643,8 +1652,5 @@ function initializeWhenReady() {
   }
 }
 
-// ★★★ 変更点 ★★★
-// Google Maps API のロードコールバックを削除し、
-// DOMContentLoadedからロード監視を開始する方式に変更
-// (これにより、app.jsを 'defer' で読み込んでも安定動作する)
+// DOMContentLoadedからロード監視を開始
 window.addEventListener('DOMContentLoaded', initializeWhenReady);
