@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>WalkNav</title>
 
-  <meta name="x-issue" content="idx202511040930" />
+  <meta name="x-issue" content="idx202511050155" />
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
   <style>
@@ -128,8 +128,6 @@
       backdrop-filter:blur(10px);
       z-index:2500;
       display:none;
-      /* ★★★ 変更点 ★★★ */
-      /* ボタン2つ分の高さを確保 */
       min-height: 142px; 
     }
     
@@ -147,7 +145,6 @@
       color:var(--muted);
       margin-left:12px;
     }
-    /* ★★★ 追加 ★★★ */
     .route-actions {
       margin-top: 10px;
       display: flex;
@@ -156,15 +153,14 @@
     }
 
 
-    /* 道順案内パネル */
+    /* ★★★ 変更点 ★★★ */
+    /* 道順案内パネル（現在地パネル） */
     .nav-panel{
       position:absolute;
-      left:16px;
-      right: 144px; 
-      /* ★★★ 変更点 ★★★ */
-      /* ルートパネル+インシデントパネルの上 */
-      bottom: calc(16px + 142px + 10px + 50px + 10px); 
-      top:auto;
+      left: 16px;
+      right: 16px; /* ★ 全幅に変更 */
+      top: 16px;   /* ★ 最上部に配置 */
+      bottom: auto; /* ★ 削除 */
       background:var(--glass-strong);
       border:1px solid var(--stroke);
       border-radius:var(--radius);
@@ -173,9 +169,11 @@
       backdrop-filter:blur(10px);
       z-index:2500;
       display:none;
-      max-height: 35vh; 
+      max-height: 45vh; /* 高さを少し確保 */
       overflow-y: auto; 
     }
+    /* ★★★ 変更ここまで ★★★ */
+    
     .nav-location{
       font-size:13px;
       color:var(--muted);
@@ -243,7 +241,6 @@
       position:absolute;
       left:16px;
       right: 144px;
-      /* ★★★ 変更点 ★★★ */
       bottom: calc(16px + 142px + 10px); /* ルートパネルの上 */
       top:auto;
       background: rgba(255, 184, 77, 0.15); /* warning色 */
@@ -402,10 +399,12 @@
       max-width:100%;
     }
 
+    /* ★★★ 変更点 ★★★ */
     /* トースト通知 */
     .toast-container{
       position:fixed;
-      bottom:calc(16px + 142px + 10px + 50px + 10px + 35vh + 10px); 
+      /* nav-panelが上に行ったので、一番下のパネル(incident-panel)の上に来るよう修正 */
+      bottom:calc(16px + 142px + 10px + 50px + 10px); 
       left:16px;
       z-index:10000;
       pointer-events:none;
@@ -415,6 +414,7 @@
     .panel-open .toast-container{
        bottom: 420px;
     }
+    /* ★★★ 変更ここまで ★★★ */
 
     .toast{
       background:var(--glass-strong);
@@ -550,7 +550,7 @@
         <button id="btnExportText" class="btn" style="width:100%;background:rgba(255,255,255,0.1)">道順をコピー</button>
         <button id="btnStopRoute" class="btn danger" style="width:100%">ルート終了</button>
       </div>
-      </div>
+    </div>
 
     <div class="fab-stack" id="fabStack">
       <div class="fab" id="btnSearch">検索パネル</div>
@@ -576,7 +576,7 @@
     // ==========================================
     // 定数定義
     // ==========================================
-    const ISSUE_ID = 'idx202511040930'; // 更新：シミュレーションモード、テキスト出力
+    const ISSUE_ID = 'idx202511050155'; // 更新：navPanelを上部へ移動
     const API_KEY = 'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk'; // Maps表示用のみ
     const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
     const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -608,8 +608,8 @@
       locationWatchId: null, 
       compassWatchId: null,
       currentHeading: 0,
-      isSimulation: false, // ★★★ シミュレーションモードか
-      currentRouteData: null // ★★★ 道順テキスト出力用
+      isSimulation: false,
+      currentRouteData: null
     };
 
     // ==========================================
@@ -1016,13 +1016,12 @@
 
 
     // ==========================================
-    // ★★★ 変更点 ★★★
     // ナビゲーション開始 (シミュレーション対応)
     // ==========================================
     async function startNavigation(destination) {
       let originLat, originLng;
       
-      // ★★★ シミュレーションモード判定 ★★★
+      // シミュレーションモード判定
       if (appState.pointSearchMode && appState.searchPoint) {
         originLat = appState.searchPoint.lat;
         originLng = appState.searchPoint.lng;
@@ -1100,7 +1099,7 @@
           }
           document.getElementById('navPanel').style.display = 'block';
           
-          // ★★★ 道順テキスト出力用にデータを保存 ★★★
+          // 道順テキスト出力用にデータを保存
           appState.currentRouteData = {
             steps: l0.steps,
             summary: r0.summary,
@@ -1109,7 +1108,6 @@
             destinationName: destination.name,
             warnings: r0.warnings || []
           };
-          // ★★★ ここまで ★★★
 
           // インシデントパネルの処理
           const incidentPanel = document.getElementById('incidentPanel');
@@ -1123,7 +1121,7 @@
           // 天気予報の処理
           fetchWeather(originLat, originLng);
           
-          // ★★★ モードに応じて監視を開始 ★★★
+          // モードに応じて監視を開始
           if (appState.isSimulation) {
             // シミュレーションの場合
             setUserMarker(originLat, originLng); // マーカーを起点に設置
@@ -1182,8 +1180,8 @@
       stopLocationWatcher(); // リアルタイム監視を停止
       startCompassListener();  // コンパス監視を再開
       
-      appState.isSimulation = false; // シミュレーションフラグをリセット
-      appState.currentRouteData = null; // 道順データをリセット
+      appState.isSimulation = false; 
+      appState.currentRouteData = null; 
       
       if (appState.currentPolyline) {
         appState.currentPolyline.setMap(null);
@@ -1933,7 +1931,6 @@
     }
     
     // ==========================================
-    // ★★★ 新設 ★★★
     // 道順をクリップボードにコピー
     // ==========================================
     function exportRouteToClipboard() {
@@ -2115,6 +2112,20 @@
       };
 
       document.getElementById('btnLocate').onclick = () => {
+        // iOS 13+ のための許可リクエスト
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+          DeviceOrientationEvent.requestPermission()
+            .then(permissionState => {
+              if (permissionState === 'granted') {
+                console.log('[Compass] iOS permission granted.');
+                stopCompassListener(); 
+                appState.compassWatchId = null; 
+                startCompassListener(); 
+              }
+            })
+            .catch(console.error);
+        }
+        
         const now = Date.now();
         if (now - lastLocateTime < 1000) return;
         lastLocateTime = now;
@@ -2153,7 +2164,6 @@
     }
     
     // ==========================================
-    // ★★★ 新設 ★★★
     // ルートパネルのボタン制御
     // ==========================================
     function bindRoutePanelEvents() {
@@ -2167,7 +2177,7 @@
       bindLocationEvents();
       bindSearchEvents();
       bindFABEvents();
-      bindRoutePanelEvents(); // ★★★ 追加
+      bindRoutePanelEvents(); 
       console.log('[WalkNav] UI binding complete');
     }
 
