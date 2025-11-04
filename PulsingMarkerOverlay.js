@@ -108,7 +108,7 @@ class PulsingMarkerOverlay extends google.maps.OverlayView {
 
     /**
      * マーカーの位置を更新する
-     * @param {google.maps.LatLng} newPosition 新しい緯度経度
+     * @param {google.maps.LatLng} newPosition 新しい緯度経D
      */
     updatePosition(newPosition) {
         this.position = newPosition;
