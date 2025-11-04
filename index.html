@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>WalkNav</title>
 
-  <meta name="x-issue" content="idx202511050530-split" />
+  <meta name="x-issue" content="idx202511050540-split" />
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
   <link rel="stylesheet" href="app.css" />
@@ -56,16 +56,13 @@
         </div>
       </div>
       
-      <div class="row" style="margin-bottom:8px">
-        <button id="btnReset" class="btn danger" style="width:100%">リセット</button>
-      </div>
-      
       <div id="results" class="results" style="display:none"></div>
       
-      <div class="row" style="margin-top:12px">
-        <button id="btnClosePanel" class="btn" style="width:100%;background:rgba(255,255,255,0.1)">検索パネルを閉じる</button>
+      <div class="row" style="margin-top:12px; gap: 8px;">
+        <button id="btnReset" class="btn danger" style="flex:1">リセット</button>
+        <button id="btnClosePanel" class="btn" style="flex:1;background:rgba(255,255,255,0.1)">パネルを閉じる</button>
       </div>
-    </section>
+      </section>
 
     <div class="nav-panel" id="navPanel">
       <div class="nav-location">
