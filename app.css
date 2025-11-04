@@ -1,502 +1,153 @@
-:root{
-  --bg:#0b1220;
-  --glass: rgba(20,28,44,.78);
-  --glass-strong: rgba(16,22,36,.9);
-  --stroke: rgba(255,255,255,.12);
-  --text:#eaf2ff;
-  --muted:#a7b8ce;
-  --primary:#62b5ff;
-  --ok:#25d07a;
-  --danger:#ff6565;
-  --warning:#ffb84d;
-  --shadow:0 10px 35px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
-  --radius:18px;
-}
-html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans JP",Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-*{box-sizing:border-box}
-
-.app{position:relative;height:100dvh;overflow:hidden}
-#map{position:absolute;inset:0}
-
-.fab-stack{
-  position:fixed;right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;
-  z-index:2550; 
-  display:none; 
-}
-.panel{
-  position:absolute;
-  left:16px;
-  right:16px;
-  bottom:16px;
-  top:auto;
-  background:var(--glass-strong);border:1px solid var(--stroke);
-  border-radius:var(--radius);box-shadow:var(--shadow);
-  padding:14px 14px 12px;backdrop-filter:blur(10px);
-  z-index:2500;
-  max-height:calc(100vh - 32px);
-  overflow-y:auto;
-}
-.panel h2{
-  margin:0 0 10px;
-  font-size:17px;
-  letter-spacing:.3px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  text-align:center;
-}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.chip{padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--stroke);color:var(--text);font-size:14px;cursor:pointer;user-select:none}
-.chip.active{background:var(--primary);color:#05233a;border-color:transparent}
-
-/* 検索窓ラッパー */
-.input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-.input-wrapper .input {
-  /* アイコンと文字が重ならないよう調整 */
-  padding-left: 40px; 
-  padding-right: 80px; 
-}
-.input-wrapper .icon {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  opacity: 0.7;
-}
-.input-wrapper .icon-g {
-  left: 12px;
-  pointer-events: none; /* Gマークはクリック不可 */
-}
-.input-wrapper .icon-search {
-  right: 50px; /* マイクアイコンの左 */
-  cursor: pointer;
-  opacity: 0.9;
-}
-.input-wrapper .icon-mic {
-  right: 12px;
-  cursor: pointer;
-  opacity: 0.9;
-}
-.input-wrapper .icon-mic:hover, .input-wrapper .icon-search:hover {
-  opacity: 1;
-  transform: scale(1.1);
-}
-/* ポイント住所 */
-#pointAddressBlock {
-  flex-wrap: wrap; /* 横並びにして折り返す */
-  align-items: baseline;
-}
-#pointCoords {
-  font-size: 12px;
-  color: var(--muted);
-  margin-left: 8px; /* 住所の横に配置 */
+/* --- 既存のスタイル (スクリーンショット 7.41.33.jpg より) --- */
+:root {
+    --bg: #b2b2b2;
+    --gloss: rgba(20, 20, 44, .78);
+    --gloss-strong: rgba(16, 22, 36, .9);
+    --stroke: rgba(255, 255, 255, .12);
+    --text: #e8e1f5;
+    --muted: #a29dbf;
+    --disabled: #a2a2bf;
+    --ok: #25a08e;
+    --danger: #ff665b;
+    --warning: #ffb84d;
+    --shadow: 0 10px 35px 0 rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05);
+    --radius: 10px;
 }
 
-.input{
-  flex:1;min-width:220px;
-  padding:10px 12px;border-radius:12px;border:1px solid var(--stroke);
-  background:rgba(255,255,255,.06);color:var(--text);outline:none
-}
-.btn{
-  padding:10px 14px;border-radius:12px;border:1px solid var(--stroke);
-  background:rgba(255,255,255,.06);color:var(--text);
-  cursor:pointer;user-select:none;border:none;
-}
-.btn.primary{background:var(--primary);color:#051a2a;border-color:transparent}
-.btn.danger{background:var(--danger);color:#240808;border-color:transparent}
-.btn:disabled{opacity:.5;pointer-events:none}
-
-.fab{
-  min-width:112px; height:56px; display:flex;align-items:center;justify-content:center;
-  background:var(--glass-strong); border:1px solid var(--stroke); border-radius:18px;
-  color:var(--text); box-shadow:var(--shadow); cursor:pointer; user-select:none;
-  font-size:14px;
-}
-.fab:active{transform:translateY(1px)}
-.fab.paused{background:var(--warning);color:#2a1d05;border-color:transparent}
-
-.loading{
-  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  background:#000; color:#fff; font-size:20px; z-index:3000
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: system-ui, -apple-system, "Noto Sans JP", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    box-sizing: border-box;
 }
 
-.results{
-  margin-top:12px;
-  background:rgba(0,0,0,.3);
-  border-radius:12px;
-  padding:8px;
-}
-.result-item{
-  padding:10px;
-  margin-bottom:6px;
-  background:rgba(255,255,255,.05);
-  border-radius:8px;
-  cursor:pointer;
-  transition:background .2s;
-}
-.result-item:hover{
-  background:rgba(255,255,255,.1);
-}
-.result-name{
-  font-weight:600;
-  margin-bottom:4px;
-  font-size:16px;
-}
-.result-address{
-  font-size:12px;
-  color:var(--muted);
+#map {
+    position: absolute;
+    inset: 0;
 }
 
-.route-panel{
-  position:absolute;
-  left:16px;
-  bottom:16px;
-  top:auto;
-  right: 144px; 
-  background:var(--glass-strong);
-  border:1px solid var(--stroke);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  padding:14px;
-  backdrop-filter:blur(10px);
-  z-index:2500;
-  display:none;
-  min-height: 142px; 
+.fab-stack {
+    position: fixed;
+    right: 16px;
+    top: 50%;
+    transform: translate(0, -50%);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 2550;
+    /* display: none; */ /* 必要に応じてコメント解除 */
 }
 
-.route-info{
-  font-size:14px;
-  margin-bottom:8px;
-}
-.route-distance{
-  font-size:24px;
-  font-weight:bold;
-  color:var(--primary);
-}
-.route-time{
-  font-size:16px;
-  color:var(--muted);
-  margin-left:12px;
-}
-.route-actions {
-  margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.panel {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    background: var(--gloss-strong);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px 14px 12px;
+    backdrop-filter: blur(10px);
+    z-index: 2500;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
 }
 
-
-/* 道順案内パネル（現在地パネル） */
-.nav-panel{
-  position:absolute;
-  left: 16px;
-  right: 16px; 
-  top: 16px;   
-  bottom: auto; 
-  background:var(--glass-strong);
-  border:1px solid var(--stroke);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  padding:14px;
-  backdrop-filter:blur(10px);
-  z-index:2500;
-  display:none;
-  max-height: 45vh; 
-  overflow-y: auto; 
+.panel H2 {
+    margin: 0 0 10px;
+    font-size: 17px;
+    letter-spacing: .3px;
+    opacity: .7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
 }
 
-.nav-location{
-  font-size:13px;
-  color:var(--muted);
-  margin-bottom:12px;
-  flex-direction:column;
-  align-items:flex-start;
-  gap:2px;
-  border-bottom: 1px solid var(--stroke);
-  padding-bottom: 10px;
-}
-/* 天気予報欄 */
-.nav-weather{
-  display: flex;
-  gap: 12px;
-  justify-content: space-around;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid var(--stroke);
-}
-.weather-item{
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 11px;
-  color: var(--muted);
-}
-.weather-item span:first-child{
-  font-weight: 600;
-}
-.weather-item span:last-child{
-  font-size: 18px; /* 絵文字のサイズ */
-  margin-top: 4px;
+.row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
-.nav-instructions-list{
-  display:flex;
-  flex-direction:column;
-  gap: 10px;
+.chip {
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, .08);
+    border: 1px solid var(--stroke);
+    color: var(--text);
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+    border-radius: 999px;
+    margin: 4px;
 }
-.nav-instruction-item{
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--text);
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+.chip.active {
+    background: var(--primary);
+    color: #05233c;
+    border-color: transparent;
 }
-.nav-instruction-item:last-child{
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.nav-instruction-item:first-child {
-  background: rgba(98, 181, 255, 0.2); 
-  padding: 10px;
-  border-radius: 12px;
-  border-bottom: none;
-  margin: -4px;
-}
-.nav-instruction-item:first-child + .nav-instruction-item {
-  margin-top: 10px;
-}
-
-/* インシデントパネル */
-.incident-panel{
-  position:absolute;
-  left:16px;
-  right: 144px;
-  bottom: calc(16px + 142px + 10px); /* ルートパネルの上 */
-  top:auto;
-  background: rgba(255, 184, 77, 0.15); /* warning色 */
-  border:1px solid var(--warning);
-  border-radius:12px;
-  box-shadow:var(--shadow);
-  padding:10px 14px;
-  backdrop-filter:blur(10px);
-  z-index:2500;
-  display:none; /* JSで表示 */
-  font-size: 13px;
-  color: var(--warning);
-  max-height: 50px;
-  overflow-y: auto;
-}
+/* --- 既存スタイル ここまで --- */
 
 
-/* ダイアログ共通スタイル */
-.dialog-overlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.7);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-  backdrop-filter:blur(4px);
-}
-.dialog-overlay.scroll{
-  overflow:auto;
-}
-.dialog-box{
-  background:var(--glass-strong);
-  border:1px solid var(--stroke);
-  border-radius:var(--radius);
-  padding:24px;
-  max-width:400px;
-  width:90%;
-  box-shadow:var(--shadow);
-}
-.dialog-box.wide{
-  max-width:500px;
-  max-height:80vh;
-  overflow-y:auto;
-  margin:20px;
-}
-.dialog-title{
-  margin:0 0 16px;
-  font-size:18px;
-  color:var(--text);
-  font-weight:600;
-}
-.dialog-text{
-  margin:0 0 16px;
-  font-size:14px;
-  color:var(--text);
-}
-.dialog-muted{
-  margin:0 0 16px;
-  font-size:12px;
-  color:var(--muted);
-}
-.dialog-input{
-  width:100%;
-  padding:10px;
-  border-radius:8px;
-  border:1px solid var(--stroke);
-  background:rgba(255,255,255,0.1);
-  color:var(--text);
-  font-size:16px;
-  outline:none;
-  margin-bottom:16px;
-}
-.dialog-actions{
-  display:flex;
-  gap:10px;
-  justify-content:flex-end;
-}
-.dialog-btn{
-  padding:10px 20px;
-  border-radius:8px;
-  border:none;
-  cursor:pointer;
-  font-size:14px;
-}
-.dialog-btn.cancel{
-  background:rgba(255,255,255,0.1);
-  color:var(--text);
-}
-.dialog-btn.confirm{
-  background:var(--primary);
-  color:#051a2a;
-}
-.dialog-btn.delete{
-  background:var(--danger);
-  color:#240808;
-}
-.dialog-btn.full{
-  width:100%;
-  margin-top:0;
+/*
+ * --- 波動マーカー用のCSS (ここから追記) ---
+ */
+.marker-overlay-container {
+    transform: translate(-50%, -50%); 
+    width: 80px;
+    height: 80px;
+    position: relative;
+    cursor: pointer;
+    pointer-events: none;
 }
 
-/* 登録地点リスト */
-.location-list{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-.location-item{
-  background:rgba(255,255,255,0.05);
-  border-radius:8px;
-  padding:12px;
-}
-.location-item-name{
-  font-size:16px;
-  font-weight:600;
-  color:var(--text);
-  margin-bottom:4px;
-}
-.location-item-coords{
-  font-size:12px;
-  color:var(--muted);
-  margin-bottom:8px;
-}
-.location-item-actions{
-  display:flex;
-  gap:8px;
-}
-.location-item-btn{
-  flex:1;
-  padding:8px;
-  border-radius:6px;
-  border:none;
-  cursor:pointer;
-  font-size:13px;
-}
-.location-item-btn.nav{
-  background:var(--primary);
-  color:#051a2a;
-}
-.location-item-btn.edit{
-  background:rgba(255,255,255,0.1);
-  color:var(--text);
-}
-.location-item-btn.delete{
-  background:var(--danger);
-  color:#240808;
+.pulse-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #007aff; /* 波動の色 */
+    border-radius: 50%;
+    opacity: 0.7;
+    animation: pulse-animation 2s infinite ease-out;
 }
 
-/* 現在地ラベルのスタイル */
-#locLabel{
-  display:block;
-  white-space:pre-line;
-  line-height:1.6;
-  word-break:break-word;
-  max-width:100%;
+.marker-arrow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 24px;
+    padding: 4px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    /* pointer-events: auto; */ /* マーカー自体をクリックさせたい場合 */
 }
 
-/* トースト通知 */
-.toast-container{
-  position:fixed;
-  bottom:calc(16px + 142px + 10px + 50px + 10px); 
-  left:16px;
-  z-index:10000;
-  pointer-events:none;
-  max-width:calc(100% - 32px);
-}
-/* 検索パネル表示中のトースト位置 */
-.panel-open .toast-container{
-   bottom: 420px;
+.marker-arrow svg {
+    width: 100%;
+    height: 100%;
+    fill: #007aff; /* 矢印の色 */
 }
 
-.toast{
-  background:var(--glass-strong);
-  border:1px solid var(--stroke);
-  border-radius:12px;
-  padding:12px 20px;
-  margin-bottom:10px;
-  box-shadow:var(--shadow);
-  backdrop-filter:blur(10px);
-  display:flex;
-  align-items:center;
-  gap:10px;
-  min-width:200px;
-  max-width:100%;
-  animation:slideUp 0.3s ease-out;
-  pointer-events:auto;
+@keyframes pulse-animation {
+    0% {
+        transform: scale(0.33);
+        opacity: 0.7;
+    }
+    80%, 100% {
+        transform: scale(1);
+        opacity: 0;
+    }
 }
-.toast.error{
-  border-color:var(--danger);
-  background:rgba(255,101,101,0.15);
-}
-.toast.success{
-  border-color:var(--ok);
-  background:rgba(37,208,122,0.15);
-}
-.toast.warning{
-  border-color:var(--warning);
-  background:rgba(255,184,77,0.15);
-}
-.toast-icon{
-  font-size:20px;
-  flex-shrink:0;
-}
-.toast-message{
-  flex:1;
-  font-size:14px;
-  color:#ffffff;
-  font-weight:500;
-}
-@keyframes slideUp{
-  from{
-    opacity:0;
-    transform:translateY(20px);
-  }
-  to{
-    opacity:1;
-    transform:translateY(0);
-  }
-}
-
-.error-banner{display:none !important}
