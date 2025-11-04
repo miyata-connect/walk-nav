@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>WalkNav</title>
 
-  <meta name="x-issue" content="idx202511040725" />
+  <meta name="x-issue" content="idx202511040800" />
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
   <style>
@@ -114,12 +114,13 @@
       color:var(--muted);
     }
 
+    /* ★★★ 変更点 ★★★ */
     .route-panel{
       position:absolute;
       left:16px;
       bottom:16px;
       top:auto;
-      right:16px;
+      right: 144px; /* ★ ボタンと干渉しないよう変更 */
       background:var(--glass-strong);
       border:1px solid var(--stroke);
       border-radius:var(--radius);
@@ -129,6 +130,8 @@
       z-index:2500;
       display:none;
     }
+    /* ★★★ 変更ここまで ★★★ */
+    
     .route-info{
       font-size:14px;
       margin-bottom:8px;
@@ -148,10 +151,7 @@
     .nav-panel{
       position:absolute;
       left:16px;
-      /* ★★★ 変更点 ★★★ */
-      /* 右側にボタン(112px)と余白(16px*2)分のスペースを確保 */
-      right: 144px; 
-      /* ★★★ 変更ここまで ★★★ */
+      right: 144px; /* 右側にボタン分のスペースを確保 */
       bottom: calc(16px + 90px + 10px); 
       top:auto;
       background:var(--glass-strong);
@@ -192,7 +192,6 @@
       padding-bottom: 0;
     }
     
-    /* ★★★ ここから追加 ★★★ */
     /* 最初の道順案内を青い背景にする */
     .nav-instruction-item:first-child {
       background: rgba(98, 181, 255, 0.2); /* var(--primary) の 20% 透明度 */
@@ -205,7 +204,6 @@
     .nav-instruction-item:first-child + .nav-instruction-item {
       margin-top: 10px;
     }
-    /* ★★★ 追加ここまで ★★★ */
 
 
     /* ダイアログ共通スタイル */
@@ -429,6 +427,11 @@
       <div class="row" style="margin-bottom:8px">
         <button class="chip" id="btnPointSearch" style="width:100%">📍 ポイント選択</button>
       </div>
+      
+      <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px;flex-direction:column;align-items:flex-start;gap:2px; display: none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;" id="pointAddressBlock">
+        <div id="pointAddress" style="line-height:1.5; color: var(--warning);">ポイント：取得中...</div>
+        <div id="pointCoords" style="line-height:1.5;font-size:12px"></div>
+      </div>
       <div class="row" style="margin-bottom:8px">
         <button class="btn" id="btnSaveLocation" style="flex:1">現在地登録</button>
         <button class="btn" id="btnEditLocation" style="flex:1">登録地修正</button>
@@ -495,7 +498,7 @@
     // ==========================================
     // 定数定義
     // ==========================================
-    const ISSUE_ID = 'idx202511040725'; // 更新：UI改修（パネル干渉・道順ハイライト）
+    const ISSUE_ID = 'idx202511040800'; // 更新：ポイント住所表示、パネル干渉修正
     const API_KEY = 'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk'; // Maps表示用のみ
     const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
     const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -508,11 +511,12 @@
     const appState = {
       map: null,
       userMarker: null,
-      // geocoder: null, // ★★★ 使わない
+      // geocoder: null, // 使わない
       currentPos: null,
       pointSearchMode: false,
       searchPoint: null,
       searchPointMarker: null,
+      // searchPointAddress: null, // ★★★ 不要になった
       mapInitialized: false,
       searchMarkers: [],
       currentDestination: null,
@@ -531,7 +535,6 @@
     function showToast(message, type = 'info', duration = 3000) {
       const now = Date.now();
       
-      // 同じメッセージが1500ms以内に表示済みなら無視（デバウンス）
       if (message === lastToastMessage && now - lastToastTime < 1500) {
         console.log(`[Toast:${type}] Debounced: ${message}`);
         return;
@@ -692,6 +695,7 @@
     }
 
     // ==========================================
+    // ★★★ 変更点 ★★★
     // 検索地点設定
     // ==========================================
     function setSearchPoint(lat, lng) {
@@ -720,6 +724,9 @@
 
       console.log(`[WalkNav] 検索地点設定: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
       showToast('検索地点を設定しました', 'success');
+      
+      // ★★★ 追加：選択したポイントの住所を取得・表示 ★★★
+      fetchPointAddress(lat, lng);
     }
 
     // ==========================================
@@ -924,8 +931,8 @@
       
       // UI更新
       document.getElementById('routePanel').style.display = 'none';
-      document.getElementById('navPanel').style.display = 'none'; // ★案内パネルを隠す
-      document.getElementById('navPanelInstructions').innerHTML = ''; // ★道順をクリア
+      document.getElementById('navPanel').style.display = 'none'; 
+      document.getElementById('navPanelInstructions').innerHTML = ''; 
       document.getElementById('searchPanel').style.display = 'block';
       document.getElementById('btnDestination').style.display = 'none';
       document.getElementById('q').value = '';
@@ -1311,7 +1318,6 @@
 
         const data = await response.json();
 
-        // Google Geocoding API (REST) のレスポンス形式を想定
         if (data.status === 'OK' && data.results[0]) {
           const address = data.results[0].formatted_address;
           const cleanAddress = address.replace(/^日本、\s*/, '');
@@ -1332,6 +1338,51 @@
         showToast(`住所取得エラー: ${error.message}`, 'error', 5000);
       }
     }
+
+    // ==========================================
+    // ★★★ ここから追加 ★★★
+    // ポイント選択時の地名取得
+    // ==========================================
+    async function fetchPointAddress(lat, lng) {
+      const addressBlock = document.getElementById('pointAddressBlock');
+      const addressElement = document.getElementById('pointAddress');
+      const coordsElement = document.getElementById('pointCoords');
+
+      if (!addressElement || !coordsElement || !addressBlock) {
+        console.error('[DEBUG] Point Elements not found!');
+        return;
+      }
+
+      // 先に座標を表示してブロックを可視化
+      addressElement.textContent = 'ポイント：住所取得中...';
+      coordsElement.textContent = `緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
+      addressBlock.style.display = 'flex';
+
+      try {
+        const params = new URLSearchParams({ lat: lat, lng: lng, language: 'ja' });
+        const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode?${params.toString()}`);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        if (data.status === 'OK' && data.results[0]) {
+          const address = data.results[0].formatted_address;
+          const cleanAddress = address.replace(/^日本、\s*/, '');
+          const formattedAddress = 'ポイント：' + cleanAddress + ' 付近';
+          addressElement.textContent = formattedAddress;
+        } else {
+          addressElement.textContent = 'ポイント：住所情報なし';
+        }
+      } catch (error) {
+        console.error('[Geocode] Fetch error for Point:', error);
+        addressElement.textContent = 'ポイント：住所取得エラー';
+      }
+    }
+    // ★★★ 追加ここまで ★★★
 
 
     // ==========================================
@@ -1606,6 +1657,10 @@
       document.getElementById('btnEditLocation').onclick = showEditLocationDialog;
     }
 
+    // ==========================================
+    // ★★★ 変更点 ★★★
+    // 検索イベント (リセットボタン)
+    // ==========================================
     function bindSearchEvents() {
       document.getElementById('btnText').onclick = () => {
         const q = document.getElementById('q').value.trim();
@@ -1635,6 +1690,15 @@
           appState.searchPointMarker = null;
         }
         
+        // ★★★ 追加：ポイント住所をクリア ★★★
+        const addressBlock = document.getElementById('pointAddressBlock');
+        const addressElement = document.getElementById('pointAddress');
+        const coordsElement = document.getElementById('pointCoords');
+        addressBlock.style.display = 'none';
+        addressElement.textContent = '';
+        coordsElement.textContent = '';
+        // ★★★ 追加ここまで ★★★
+        
         appState.pointSearchMode = false;
         const btnPointSearch = document.getElementById('btnPointSearch');
         btnPointSearch.textContent = '📍 ポイント選択';
@@ -1648,7 +1712,6 @@
         document.getElementById('r30').classList.remove('active');
         document.getElementById('radiusLabel').textContent = '10km';
         
-        // stopNavigation(); // ★ リセットボタンはナビ中は押せないので不要
         showToast('リセットしました', 'info');
         console.log('[WalkNav] リセット完了');
       };
@@ -1677,7 +1740,6 @@
       document.getElementById('btnLocate').onclick = () => {
         const now = Date.now();
         
-        // 1秒以内の連打を防止
         if (now - lastLocateTime < 1000) {
           console.log('[Locate] クールダウン中');
           return;
@@ -1695,7 +1757,6 @@
       document.getElementById('btnDestination').onclick = () => {
         const now = Date.now();
         
-        // 1秒以内の連打を防止
         if (now - lastLocateTime < 1000) {
           console.log('[Destination] クールダウン中');
           return;
