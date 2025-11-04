@@ -32,7 +32,7 @@ const appState = {
   recognition: null,
   isPaused: false,
   isNavigating: false,
-  locationWatchId: null, 
+  locationWatchId: null,  
   compassWatchId: null,
   currentHeading: 0,
   isSimulation: false,
@@ -187,15 +187,15 @@ function setUserMarker(lat, lng) {
     pin.style.height = '26px';
     
     pin.innerHTML = `
-      <svg id="user-marker-icon" viewBox="0 0 24 24" 
-           style="width: 100%; height: 100%; 
-                  transform: rotate(${appState.currentHeading}deg); 
-                  transition: transform 0.2s ease-out;
-                  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
-        <path d="M12 2L4.5 20.5L12 16.5L19.5 20.5L12 2Z" 
-              fill="#3aa0ff" 
-              stroke="#ffffff" 
-              stroke-width="2" 
+      <svg id="user-marker-icon" viewBox="0 0 24 24"  
+            style="width: 100%; height: 100%;  
+                   transform: rotate(${appState.currentHeading}deg);  
+                   transition: transform 0.2s ease-out;
+                   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
+        <path d="M12 2L4.5 20.5L12 16.5L19.5 20.5L12 2Z"  
+              fill="#3aa0ff"  
+              stroke="#ffffff"  
+              stroke-width="2"  
               stroke-linejoin="round" />
       </svg>
     `;
@@ -249,7 +249,7 @@ function setSearchPoint(lat, lng) {
 // 距離計算
 // ==========================================
 function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371000; 
+  const R = 6371000;  
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -325,7 +325,7 @@ function drawRoutePolyline(route) {
 // ==========================================
 const compassHandler = (event) => {
   // ナビ中はコンパスを無視 (目的地を指すため)
-  if (appState.isNavigating) return; 
+  if (appState.isNavigating) return;  
   
   let heading = null;
   if (event.webkitCompassHeading) { // iOS
@@ -412,7 +412,7 @@ function startLocationWatcher() {
         const destLatLng = new google.maps.LatLng(appState.currentDestination.lat, appState.currentDestination.lng);
         
         let headingDeg = google.maps.geometry.spherical.computeHeading(currentLatLng, destLatLng);
-        if (headingDeg < 0) { headingDeg += 360; } 
+        if (headingDeg < 0) { headingDeg += 360; }  
         
         appState.currentHeading = headingDeg;
         updateMarkerRotation();
@@ -470,7 +470,7 @@ async function startNavigation(destination) {
   
   // UI制御
   document.getElementById('searchPanel').style.display = 'none';
-  document.getElementById('fabStack').style.display = 'flex'; 
+  document.getElementById('fabStack').style.display = 'flex';  
   document.getElementById('appBody').classList.remove('panel-open');
   
   // コンパス（デバイス向き）監視を停止
@@ -558,7 +558,7 @@ async function startNavigation(destination) {
           const currentLatLng = new google.maps.LatLng(originLat, originLng);
           const destLatLng = new google.maps.LatLng(appState.currentDestination.lat, appState.currentDestination.lng);
           let headingDeg = google.maps.geometry.spherical.computeHeading(currentLatLng, destLatLng);
-          if (headingDeg < 0) { headingDeg += 360; } 
+          if (headingDeg < 0) { headingDeg += 360; }  
           appState.currentHeading = headingDeg;
           updateMarkerRotation();
         }
@@ -574,7 +574,7 @@ async function startNavigation(destination) {
       const bounds = new google.maps.LatLngBounds();
       bounds.extend(new google.maps.LatLng(originLat, originLng));
       bounds.extend(new google.maps.LatLng(destination.lat, destination.lng));
-      appState.map.fitBounds(bounds, { top: 100, right: 150, bottom: 300, left: 50 }); 
+      appState.map.fitBounds(bounds, { top: 100, right: 150, bottom: 300, left: 50 });  
 
       setTimeout(() => {
         appState.map.panTo({ lat: destination.lat, lng: destination.lng });
@@ -595,7 +595,7 @@ async function startNavigation(destination) {
     showToast(`ルートエラー: ${error.message}`, 'error', 5000);
     appState.isNavigating = false;
     appState.isSimulation = false;
-    document.getElementById('fabStack').style.display = 'none'; 
+    document.getElementById('fabStack').style.display = 'none';  
     startCompassListener(); // エラー時はコンパス監視を再開
   }
 }
@@ -607,8 +607,8 @@ function stopNavigation() {
   stopLocationWatcher(); // リアルタイム監視を停止
   startCompassListener();  // コンパス監視を再開
   
-  appState.isSimulation = false; 
-  appState.currentRouteData = null; 
+  appState.isSimulation = false;  
+  appState.currentRouteData = null;  
   
   if (appState.currentPolyline) {
     appState.currentPolyline.setMap(null);
@@ -621,10 +621,10 @@ function stopNavigation() {
   
   // UI更新
   document.getElementById('routePanel').style.display = 'none';
-  document.getElementById('navPanel').style.display = 'block'; 
-  document.getElementById('navPanelInstructions').innerHTML = ''; 
-  document.getElementById('incidentPanel').style.display = 'none'; 
-  document.getElementById('incidentPanel').innerHTML = ''; 
+  document.getElementById('navPanel').style.display = 'block';  
+  document.getElementById('navPanelInstructions').innerHTML = '';  
+  document.getElementById('incidentPanel').style.display = 'none';  
+  document.getElementById('incidentPanel').innerHTML = '';  
   document.getElementById('searchPanel').style.display = 'block';
   document.getElementById('btnDestination').style.display = 'none';
   document.getElementById('q').value = '';
@@ -638,7 +638,7 @@ function stopNavigation() {
   
   // FABボタンを非表示
   document.getElementById('fabStack').style.display = 'none';
-  document.getElementById('btnSearch').style.display = 'flex'; 
+  document.getElementById('btnSearch').style.display = 'flex';  
   
   // 一時停止ボタンをリセット
   const btnPause = document.getElementById('btnPause');
@@ -656,7 +656,7 @@ function stopNavigation() {
   }
   
   // マーカーの向きをコンパスに戻す
-  updateMarkerRotation(); 
+  updateMarkerRotation();  
   
   document.getElementById('appBody').classList.add('panel-open'); // トースト位置
   showToast('ルート案内を終了しました', 'info');
@@ -879,7 +879,7 @@ function initSpeechRecognition() {
 
   appState.recognition.onstart = () => {
     console.log('[Voice] 音声認識開始');
-    document.getElementById('btnVoiceIcon').style.background = 'var(--ok)'; 
+    document.getElementById('btnVoiceIcon').style.background = 'var(--ok)';  
   };
 
   appState.recognition.onresult = (event) => {
@@ -892,13 +892,13 @@ function initSpeechRecognition() {
 
   appState.recognition.onerror = (event) => {
     console.error('[Voice] エラー:', event.error);
-    document.getElementById('btnVoiceIcon').style.background = ''; 
+    document.getElementById('btnVoiceIcon').style.background = '';  
     showToast('音声認識エラーが発生しました', 'error');
   };
 
   appState.recognition.onend = () => {
     console.log('[Voice] 音声認識終了');
-    document.getElementById('btnVoiceIcon').style.background = ''; 
+    document.getElementById('btnVoiceIcon').style.background = '';  
   };
 
   return true;
@@ -944,8 +944,8 @@ function acquireLocation() {
     }
     
     appState.map.setCenter({ lat: latitude, lng: longitude });
-    setUserMarker(latitude, longitude); 
-    fetchLocationNameGoogle(latitude, longitude); 
+    setUserMarker(latitude, longitude);  
+    fetchLocationNameGoogle(latitude, longitude);  
     showToast('現在地を取得しました', 'success');
   };
   
@@ -954,7 +954,7 @@ function acquireLocation() {
     document.getElementById('loading')?.remove();
     
     if (!appState.map) {
-      initMap({ lat: 35.6812, lng: 139.7671 }); 
+      initMap({ lat: 35.6812, lng: 139.7671 });  
     }
     
     const addressElement = document.getElementById('locAddress');
@@ -1104,8 +1104,8 @@ async function fetchWeather(lat, lng) {
     if (!response.ok) {
        const errorData = await response.json();
        if (errorData.status === 'NOT_IMPLEMENTED') {
-         console.warn('[Weather] ' + errorData.error_message);
-         throw new Error(errorData.error_message);
+        console.warn('[Weather] ' + errorData.error_message);
+        throw new Error(errorData.error_message);
        }
        throw new Error(errorData.error_message || `Weather fetch failed (${response.status})`);
     }
@@ -1113,7 +1113,7 @@ async function fetchWeather(lat, lng) {
     const data = await response.json(); // OpenWeatherMapのhourly形式を想定
     
     // 3h, 6h, 9h 後のデータを取得 (インデックスは目安)
-    const weather3h = data.hourly[2]?.weather[0]?.icon || null; 
+    const weather3h = data.hourly[2]?.weather[0]?.icon || null;  
     const weather6h = data.hourly[5]?.weather[0]?.icon || null;
     const weather9h = data.hourly[8]?.weather[0]?.icon || null;
     
@@ -1414,25 +1414,25 @@ function bindSearchPanelEvents() {
   const btnPointSearch = document.getElementById('btnPointSearch');
   const navPanel = document.getElementById('navPanel'); // ★ navPanelを取得
 
-  r10.onclick = () => { 
-    r10.classList.add('active'); 
+  r10.onclick = () => {  
+    r10.classList.add('active');  
     r20.classList.remove('active');
     r30.classList.remove('active');
-    radiusLabel.textContent = '10km'; 
+    radiusLabel.textContent = '10km';  
   };
   
-  r20.onclick = () => { 
-    r20.classList.add('active'); 
+  r20.onclick = () => {  
+    r20.classList.add('active');  
     r10.classList.remove('active');
     r30.classList.remove('active');
-    radiusLabel.textContent = '20km'; 
+    radiusLabel.textContent = '20km';  
   };
   
-  r30.onclick = () => { 
-    r30.classList.add('active'); 
+  r30.onclick = () => {  
+    r30.classList.add('active');  
     r10.classList.remove('active');
     r20.classList.remove('active');
-    radiusLabel.textContent = '30km'; 
+    radiusLabel.textContent = '30km';  
   };
 
   btnPointSearch.onclick = () => {
@@ -1530,11 +1530,11 @@ function bindFABEvents() {
   // 検索パネルボタン（FAB側）
   document.getElementById('btnSearch').onclick = () => {
     document.getElementById('searchPanel').style.display = 'block';
-    document.getElementById('fabStack').style.display = 'none'; 
-    document.getElementById('appBody').classList.add('panel-open'); 
-    document.getElementById('navPanel').style.display = 'block'; 
-    document.getElementById('navPanelInstructions').innerHTML = ''; 
-    document.getElementById('incidentPanel').style.display = 'none'; 
+    document.getElementById('fabStack').style.display = 'none';  
+    document.getElementById('appBody').classList.add('panel-open');  
+    document.getElementById('navPanel').style.display = 'block';  
+    document.getElementById('navPanelInstructions').innerHTML = '';  
+    document.getElementById('incidentPanel').style.display = 'none';  
   };
   
   // 検索パネルを閉じるボタン（パネル側）
@@ -1547,7 +1547,7 @@ function bindFABEvents() {
     } else {
        document.getElementById('fabStack').style.display = 'flex'; // ナビ中ならFAB表示
     }
-     document.getElementById('appBody').classList.remove('panel-open'); 
+     document.getElementById('appBody').classList.remove('panel-open');  
   };
 
   document.getElementById('btnLocate').onclick = () => {
@@ -1557,9 +1557,9 @@ function bindFABEvents() {
         .then(permissionState => {
           if (permissionState === 'granted') {
             console.log('[Compass] iOS permission granted.');
-            stopCompassListener(); 
-            appState.compassWatchId = null; 
-            startCompassListener(); 
+            stopCompassListener();  
+            appState.compassWatchId = null;  
+            startCompassListener();  
           }
         })
         .catch(console.error);
@@ -1573,10 +1573,10 @@ function bindFABEvents() {
       appState.map.panTo(appState.currentPos);
       appState.map.setZoom(18);
       showToast('現在地に移動しました', 'info');
-    } else { 
-      showToast('現在地を取得します…', 'info'); 
-      acquireLocation(); 
-    } 
+    } else {  
+      showToast('現在地を取得します…', 'info');  
+      acquireLocation();  
+    }  
   };
   
   document.getElementById('btnDestination').onclick = () => {
@@ -1616,7 +1616,7 @@ function bindUI() {
   bindLocationEvents();
   bindSearchEvents();
   bindFABEvents();
-  bindRoutePanelEvents(); 
+  bindRoutePanelEvents();  
   console.log('[WalkNav] UI binding complete');
 }
 
@@ -1629,9 +1629,9 @@ function startApp() {
   
   // 初期状態
   document.getElementById('searchPanel').style.display = 'block';
-  document.getElementById('fabStack').style.display = 'none'; 
-  document.getElementById('btnSearch').style.display = 'flex'; 
-  document.getElementById('appBody').classList.add('panel-open'); 
+  document.getElementById('fabStack').style.display = 'none';  
+  document.getElementById('btnSearch').style.display = 'flex';  
+  document.getElementById('appBody').classList.add('panel-open');  
   document.getElementById('navPanel').style.display = 'block';
   
   bindUI();
