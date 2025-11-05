@@ -67,6 +67,8 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
 .input-wrapper .input {
   padding: 10px 80px 10px 40px;
   height: 48px; /* 高さを固定してアイコンが隠れないようにする */
+  position: relative;
+  z-index: 1; /* アイコンより下層に配置 */
 }
 /* モバイルフォーカス時の拡大防止 */
 .input-wrapper .input:focus {
