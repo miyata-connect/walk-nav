@@ -18,7 +18,6 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
 .app{position:relative;height:100dvh;overflow:hidden}
 #map{position:absolute;inset:0}
 
-/* ★★★ 変更なし (前回の修正) ★★★ */
 .fab-stack{
   position:fixed;
   right:16px;
@@ -102,7 +101,6 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   z-index: 10;
 }
 
-/* ★★★ 変更点 ★★★ */
 /* マイクアイコンのスタイルを修正（ズレ防止） */
 .input-wrapper .icon-mic {
   right: 12px;
@@ -118,21 +116,18 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   transition: background-color 0.2s;
 }
 
-/* ★★★ 変更点 ★★★ */
 /* 以前の :hover ルールを削除し、以下に置き換え */
 .input-wrapper .icon-search:hover {
   opacity: 1;
   transform: scale(1.1);
 }
 
-/* ★★★ 追加 ★★★ */
 /* マイクアイコン録音中 */
 .input-wrapper .icon-mic.recording {
   background-color: var(--ok);
   opacity: 1; /* 録音中は不透明にする */
 }
 
-/* ★★★ 追加 ★★★ */
 /* マイクアイコンホバー時 (録音中でない場合のみ) */
 .input-wrapper .icon-mic:hover:not(.recording) {
   background-color: rgba(255, 255, 255, 0.1);
@@ -258,16 +253,36 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   overflow-y: auto;  
 }
 
+/* ★★★ 変更点 ★★★ */
+/* レイアウト変更に合わせてスタイル調整 */
 .nav-location{
-  font-size:13px;
+  font-size:13px; /* デフォルトのフォントサイズ */
   color:var(--muted);
   margin-bottom:12px;
   flex-direction:column;
   align-items:flex-start;
-  gap:2px;
+  gap: 4px; /* ★ 隙間を調整 */
   border-bottom: 1px solid var(--stroke);
   padding-bottom: 10px;
 }
+/* ★★★ 追加 ★★★ */
+/* 1行目: 現在地：緯度経度 */
+#locCoords {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+  /* line-height: 1.5; (index.html側から削除) */
+}
+/* ★★★ 追加 ★★★ */
+/* 2行目: 〒住所 */
+#locAddress {
+  font-size: 14px;
+  color: var(--text); /* 住所は少し目立たせる */
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+
 /* 天気予報欄 */
 .nav-weather{
   display: flex;
@@ -483,22 +498,12 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   max-width:100%;
 }
 
-/* ★★★ 削除 ★★★ */
-/* トースト通知関連のスタイルをすべて削除 */
-
-
 .error-banner{display:none !important}
 
 /* キーボード表示時の検索パネル対策 */
 .keyboard-open .panel#searchPanel {
   top: 16px;
   bottom: auto; /* bottom: 16px を解除 */
-  /* キーボード表示時の縮小されたビューポート(vh)の高さを参照する。
-    上下マージン(16px * 2)を引いた高さを最大値とする。
-  */
   max-height: calc(100vh - 32px); 
   overflow-y: auto; /* max-heightを超えたらスクロール */
 }
-
-/* ★★★ 削除 ★★★ */
-/* .keyboard-open .toast-container スタイルを削除 */
