@@ -782,12 +782,20 @@ async function performSearch(query) {
 
   showToast('検索結果が見つかりませんでした', 'warning');
   document.getElementById('results').style.display = 'none';
+  
+  // ★★★ 変更点 ★★★
+  // 検索結果がない場合、案内パネルを再表示
+  document.getElementById('navPanel').style.display = 'block';
 }
 
 // ==========================================
 // 検索結果表示
 // ==========================================
 function displayResults(places, centerLat, centerLng) {
+  // ★★★ 変更点 ★★★
+  // 検索結果が表示されるため、案内パネルを非表示にする
+  document.getElementById('navPanel').style.display = 'none';
+
   appState.searchMarkers.forEach(marker => marker.map = null);
   appState.searchMarkers = [];
 
@@ -1404,7 +1412,7 @@ function exportRouteToClipboard() {
 // UI イベントバインディング
 // ==========================================
 
-// ★★★ 変更点 ★★★
+// ★★★ 変更点 ★★★ (内部ロジックの変更)
 // 検索パネルのイベント
 function bindSearchPanelEvents() {
   const radiusLabel = document.getElementById('radiusLabel');
@@ -1449,7 +1457,11 @@ function bindSearchPanelEvents() {
       btnPointSearch.style.background = 'rgba(255,255,255,.08)';
       btnPointSearch.style.color = 'var(--text)';
       btnPointSearch.style.borderColor = 'var(--stroke)';
-      navPanel.style.display = 'block'; // ★ ポイント選択解除で表示
+      
+      // ★ ポイント選択解除時、検索結果が表示されていなければnavPanelを表示
+      if (document.getElementById('results').style.display === 'none') {
+         navPanel.style.display = 'block';
+      }
     }
   };
 }
@@ -1460,7 +1472,7 @@ function bindLocationEvents() {
 }
 
 // ==========================================
-// ★★★ 変更点 ★★★
+// ★★★ 変更点 ★★★ (内部ロジックの変更)
 // 検索イベント (アイコンをバインド)
 // ==========================================
 function bindSearchEvents() {
@@ -1509,7 +1521,8 @@ function bindSearchEvents() {
     btnPointSearch.style.color = 'var(--text)';
     btnPointSearch.style.borderColor = 'var(--stroke)';
     
-    document.getElementById('navPanel').style.display = 'block'; // ★ リセットでnavPanelを再表示
+    // ★ リセットでnavPanelを再表示 (これは正しい)
+    document.getElementById('navPanel').style.display = 'block'; 
     
     document.getElementById('r10').classList.add('active');
     document.getElementById('r20').classList.remove('active');
@@ -1532,7 +1545,12 @@ function bindFABEvents() {
     document.getElementById('searchPanel').style.display = 'block';
     document.getElementById('fabStack').style.display = 'none';  
     document.getElementById('appBody').classList.add('panel-open');  
-    document.getElementById('navPanel').style.display = 'block';  
+    
+    // ★ 検索パネルを開いた時、検索結果が表示されていなければnavPanelを表示
+    if (document.getElementById('results').style.display === 'none' && !appState.pointSearchMode) {
+        document.getElementById('navPanel').style.display = 'block';
+    }
+    
     document.getElementById('navPanelInstructions').innerHTML = '';  
     document.getElementById('incidentPanel').style.display = 'none';  
   };
