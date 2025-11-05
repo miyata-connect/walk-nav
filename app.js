@@ -988,7 +988,8 @@ async function fetchLocationNameGoogle(lat, lng) {
       const address = data.results[0].formatted_address;
       const cleanAddress = address.replace(/^日本、\s*/, '');
       // 2行目: 〒住所
-      const formattedAddress = '〒' + cleanAddress + ' 付近';
+      // ★ 修正: 〒マークを削除
+      const formattedAddress = cleanAddress + ' 付近';
       
       addressElement.textContent = formattedAddress;
     } else {
