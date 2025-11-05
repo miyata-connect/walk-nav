@@ -21,505 +21,149 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
 .fab-stack{
   position:fixed;
   right:16px;
-  bottom: 16px; 
+  bottom:16px;
   display:flex;
   flex-direction:column;
   gap:12px;
-  z-index:2550;  
-  display:none;  
+  z-index:2550;
+  display:none;
 }
 .panel{
   position:absolute;
-  left:16px;
-  right:16px;
-  bottom:16px;
-  top:auto;
-  background:var(--glass-strong);border:1px solid var(--stroke);
-  border-radius:var(--radius);box-shadow:var(--shadow);
-  padding:14px 14px 12px;backdrop-filter:blur(10px);
+  left:16px; right:16px; bottom:16px; top:auto;
+  background:var(--glass-strong); border:1px solid var(--stroke);
+  border-radius:var(--radius); box-shadow:var(--shadow);
+  padding:14px 14px 12px; backdrop-filter:blur(10px);
   z-index:2500;
   max-height:calc(100vh - 32px);
   overflow-y:auto;
-  transition: top 0.3s ease-out, bottom 0.3s ease-out; 
+  transition: top .3s ease-out, bottom .3s ease-out;
 }
 .panel h2{
-  margin:0 0 10px;
-  font-size:17px;
-  letter-spacing:.3px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  text-align:center;
+  margin:0 0 10px; font-size:17px; letter-spacing:.3px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center;
 }
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .chip{padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--stroke);color:var(--text);font-size:14px;cursor:pointer;user-select:none}
 .chip.active{background:var(--primary);color:#05233a;border-color:transparent}
 
-/* 汎用inputスタイル（paddingを削除して競合を回避） */
-.input{
-  flex:1;min-width:220px;
-  border-radius:12px;border:1px solid var(--stroke);
-  background:rgba(255,255,255,.06);color:var(--text);outline:none
-}
-
-/* 検索窓ラッパー */
-.input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 100%;
-  height: 48px; /* ラッパー自体に高さを指定 */
-}
-/* input-wrapper内のinputに、アイコン余白を含めたpaddingと高さを指定 */
-.input-wrapper .input {
-  padding: 10px 80px 10px 40px;
-  height: 48px; /* 高さを固定してアイコンが隠れないようにする */
-  position: relative;
-  z-index: 1; /* アイコンより下層に配置 */
-}
-/* モバイルフォーカス時の拡大防止 */
-.input-wrapper .input:focus {
-  font-size: 16px;
-}
-.input-wrapper .icon {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0.7;
-  pointer-events: auto;
-}
-
-/* ★ 変更: Gアイコンの色 */
-.input-wrapper .icon-g {
-  left: 12px;
-  pointer-events: none;
-  color: #4285F4; /* Google Blue */
-}
-
-/* ★ 変更: 虫眼鏡アイコンの色 */
-.input-wrapper .icon-search {
-  right: 50px;
-  cursor: pointer;
-  z-index: 10;
-  color: var(--primary); /* プライマリ色 */
-  opacity: 0.8;
-}
-
-/* ★ 変更: マイクアイコンのスタイルを修正（ズレ防止・色） */
-.input-wrapper .icon-mic {
-  right: 12px;
-  cursor: pointer;
-  z-index: 10;
-  
-  width: 36px; 
-  height: 36px;
-  padding: 7px; 
-  border-radius: 50%;
-  box-sizing: border-box; 
-  transition: background-color 0.2s;
-  
-  color: var(--text); /* ★ 追加: デフォルト色 */
-  opacity: 0.7; /* ★ 変更: 元の.iconルールから移動 */
-}
-
-/* ★ 変更: ホバー時のスタイル */
-.input-wrapper .icon-search:hover {
-  opacity: 1;
-  transform: scale(1.1);
-}
-
-/* ★ 変更: マイクアイコン録音中 */
-.input-wrapper .icon-mic.recording {
-  background-color: var(--danger); /* ★ 変更: ok -> danger */
-  color: var(--text); /* ★ 追加: アイコン自体の色 */
-  opacity: 1; 
-}
-
-/* ★ 変更: マイクアイコンホバー時 */
-.input-wrapper .icon-mic:hover:not(.recording) {
-  background-color: rgba(255, 255, 255, 0.1);
-  opacity: 1;
-}
+/* input */
+.input{flex:1;min-width:220px;border-radius:12px;border:1px solid var(--stroke);background:rgba(255,255,255,.06);color:var(--text);outline:none}
+.input-wrapper{position:relative;display:flex;align-items:center;width:100%;height:48px}
+.input-wrapper .input{padding:10px 80px 10px 40px;height:48px;position:relative;z-index:1}
+.input-wrapper .input:focus{font-size:16px}
+.input-wrapper .icon{position:absolute;display:flex;align-items:center;justify-content:center;top:50%;transform:translateY(-50%);opacity:.7;pointer-events:auto}
+.input-wrapper .icon-g{left:12px;pointer-events:none;color:#4285F4}
+.input-wrapper .icon-search{right:50px;cursor:pointer;z-index:10;color:var(--primary);opacity:.8}
+.input-wrapper .icon-mic{right:12px;cursor:pointer;z-index:10;width:36px;height:36px;padding:7px;border-radius:50%;box-sizing:border-box;transition:background-color .2s;color:var(--text);opacity:.7}
+.input-wrapper .icon-search:hover{opacity:1;transform:scale(1.1)}
+.input-wrapper .icon-mic.recording{background-color:var(--danger);color:var(--text);opacity:1}
+.input-wrapper .icon-mic:hover:not(.recording){background-color:rgba(255,255,255,0.1);opacity:1}
 
 /* ポイント住所 */
-#pointAddressBlock {
-  flex-wrap: wrap; /* 横並びにして折り返す */
-  align-items: baseline;
-}
-#pointCoords {
-  font-size: 12px;
-  color: var(--muted);
-  margin-left: 8px; /* 住所の横に配置 */
-}
+#pointAddressBlock{flex-wrap:wrap;align-items:baseline}
+#pointCoords{font-size:12px;color:var(--muted);margin-left:8px}
 
-.btn{
-  padding:10px 14px;border-radius:12px;border:1px solid var(--stroke);
-  background:rgba(255,255,255,.06);color:var(--text);
-  cursor:pointer;user-select:none;border:none;
-}
+.btn{padding:10px 14px;border-radius:12px;border:1px solid var(--stroke);background:rgba(255,255,255,.06);color:var(--text);cursor:pointer;user-select:none;border:none}
 .btn.primary{background:var(--primary);color:#051a2a;border-color:transparent}
 .btn.danger{background:var(--danger);color:#240808;border-color:transparent}
 .btn:disabled{opacity:.5;pointer-events:none}
 
-.fab{
-  min-width:112px; height:56px; display:flex;align-items:center;justify-content:center;
-  background:var(--glass-strong); border:1px solid var(--stroke); border-radius:18px;
-  color:var(--text); box-shadow:var(--shadow); cursor:pointer; user-select:none;
-  font-size:14px;
-}
+.fab{min-width:112px;height:56px;display:flex;align-items:center;justify-content:center;background:var(--glass-strong);border:1px solid var(--stroke);border-radius:18px;color:var(--text);box-shadow:var(--shadow);cursor:pointer;user-select:none;font-size:14px}
 .fab:active{transform:translateY(1px)}
 .fab.paused{background:var(--warning);color:#2a1d05;border-color:transparent}
 
-.loading{
-  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  background:#000; color:#fff; font-size:20px; z-index:3000
-}
+.loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-size:20px;z-index:3000}
 
-.results{
-  margin-top:12px;
-  background:rgba(0,0,0,.3);
-  border-radius:12px;
-  padding:8px;
-}
-.result-item{
-  padding:10px;
-  margin-bottom:6px;
-  background:rgba(255,255,255,.05);
-  border-radius:8px;
-  cursor:pointer;
-  transition:background .2s;
-}
-.result-item:hover{
-  background:rgba(255,255,255,.1);
-}
-.result-name{
-  font-weight:600;
-  margin-bottom:4px;
-  font-size:16px;
-}
-.result-address{
-  font-size:12px;
-  color:var(--muted);
-}
+.results{margin-top:12px;background:rgba(0,0,0,.3);border-radius:12px;padding:8px}
+.result-item{padding:10px;margin-bottom:6px;background:rgba(255,255,255,.05);border-radius:8px;cursor:pointer;transition:background .2s}
+.result-item:hover{background:rgba(255,255,255,.1)}
+.result-name{font-weight:600;margin-bottom:4px;font-size:16px}
+.result-address{font-size:12px;color:var(--muted)}
 
 .route-panel{
-  position:absolute;
-  left:16px;
-  bottom:16px;
-  top:auto;
-  right: 144px;  
-  background:var(--glass-strong);
-  border:1px solid var(--stroke);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  padding:14px;
-  backdrop-filter:blur(10px);
-  z-index:2500;
-  display:none;
-  min-height: 142px;  
+  position:absolute; left:16px; bottom:16px; top:auto; right:144px;
+  background:var(--glass-strong); border:1px solid var(--stroke); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:14px; backdrop-filter:blur(10px); z-index:2500; display:none; min-height:142px;
 }
+.route-info{font-size:14px;margin-bottom:8px}
+.route-distance{font-size:24px;font-weight:bold;color:var(--primary)}
+.route-time{font-size:16px;color:var(--muted);margin-left:12px}
+.route-actions{margin-top:10px;display:flex;flex-direction:column;gap:8px}
 
-.route-info{
-  font-size:14px;
-  margin-bottom:8px;
-}
-.route-distance{
-  font-size:24px;
-  font-weight:bold;
-  color:var(--primary);
-}
-.route-time{
-  font-size:16px;
-  color:var(--muted);
-  margin-left:12px;
-}
-.route-actions {
-  margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-
-/* 道順案内パネル（現在地パネル） */
+/* 現在地パネル */
 .nav-panel{
-  position:absolute;
-  left: 16px;
-  right: 16px;  
-  top: 16px;    
-  bottom: auto;  
-  background:var(--glass-strong);
-  border:1px solid var(--stroke);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  padding:14px;
-  backdrop-filter:blur(10px);
-  z-index:2500;
-  display:none;
-  max-height: 45vh;  
-  overflow-y: auto;  
+  position:absolute; left:16px; right:16px; top:16px; bottom:auto;
+  background:var(--glass-strong); border:1px solid var(--stroke); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:14px; backdrop-filter:blur(10px); z-index:2500; display:none;
+  max-height:45vh; overflow-y:auto;
 }
+.nav-location{font-size:13px;color:var(--muted);margin-bottom:12px;flex-direction:column;align-items:flex-start;gap:4px;border-bottom:1px solid var(--stroke);padding-bottom:10px}
+#locCoords{font-size:14px;color:var(--muted);font-weight:500}
+#locAddress{font-size:14px;color:var(--text);font-weight:600;line-height:1.5}
 
-/* レイアウト変更に合わせてスタイル調整 */
-.nav-location{
-  font-size:13px; /* デフォルトのフォントサイズ */
-  color:var(--muted);
-  margin-bottom:12px;
-  flex-direction:column;
-  align-items:flex-start;
-  gap: 4px; /* ★ 隙間を調整 */
-  border-bottom: 1px solid var(--stroke);
-  padding-bottom: 10px;
-}
+/* 天気 */
+.nav-weather{display:flex;gap:12px;justify-content:space-around;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--stroke)}
+.weather-item{display:flex;flex-direction:column;align-items:center;font-size:11px;color:var(--muted)}
+.weather-item span:first-child{font-weight:600}
+.weather-item span:last-child{font-size:18px;margin-top:4px}
 
-/* ★ 変更: 緯度経度の文字サイズ */
-/* 1行目: 現在地：緯度経度 */
-#locCoords {
-  font-size: 14px; /* ★ 12px -> 14px */
-  color: var(--muted);
-  font-weight: 500;
-}
+.nav-instructions-list{display:flex;flex-direction:column;gap:10px}
+.nav-instruction-item{font-size:14px;line-height:1.6;color:var(--text);padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.nav-instruction-item:last-child{border-bottom:none;padding-bottom:0}
+.nav-instruction-item:first-child{background:rgba(98,181,255,0.2);padding:10px;border-radius:12px;border-bottom:none;margin:-4px}
+.nav-instruction-item:first-child + .nav-instruction-item{margin-top:10px}
 
-/* 2行目: 〒住所 */
-#locAddress {
-  font-size: 14px;
-  color: var(--text); /* 住所は少し目立たせる */
-  font-weight: 600;
-  line-height: 1.5;
-}
-
-
-/* 天気予報欄 */
-.nav-weather{
-  display: flex;
-  gap: 12px;
-  justify-content: space-around;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid var(--stroke);
-}
-.weather-item{
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 11px;
-  color: var(--muted);
-}
-.weather-item span:first-child{
-  font-weight: 600;
-}
-.weather-item span:last-child{
-  font-size: 18px; /* 絵文字のサイズ */
-  margin-top: 4px;
-}
-
-.nav-instructions-list{
-  display:flex;
-  flex-direction:column;
-  gap: 10px;
-}
-.nav-instruction-item{
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--text);
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-}
-.nav-instruction-item:last-child{
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.nav-instruction-item:first-child {
-  background: rgba(98, 181, 255, 0.2);  
-  padding: 10px;
-  border-radius: 12px;
-  border-bottom: none;
-  margin: -4px;
-}
-.nav-instruction-item:first-child + .nav-instruction-item {
-  margin-top: 10px;
-}
-
-/* インシデントパネル */
+/* インシデント */
 .incident-panel{
-  position:absolute;
-  left:16px;
-  right: 144px;
-  bottom: calc(16px + 142px + 10px); /* ルートパネルの上 */
-  top:auto;
-  background: rgba(255, 184, 77, 0.15); /* warning色 */
-  border:1px solid var(--warning);
-  border-radius:12px;
-  box-shadow:var(--shadow);
-  padding:10px 14px;
-  backdrop-filter:blur(10px);
-  z-index:2500;
-  display:none; /* JSで表示 */
-  font-size: 13px;
-  color: var(--warning);
-  max-height: 50px;
-  overflow-y: auto;
+  position:absolute; left:16px; right:144px; bottom:calc(16px + 142px + 10px); top:auto;
+  background:rgba(255,184,77,0.15); border:1px solid var(--warning); border-radius:12px; box-shadow:var(--shadow);
+  padding:10px 14px; backdrop-filter:blur(10px); z-index:2500; display:none; font-size:13px; color:var(--warning);
+  max-height:50px; overflow-y:auto;
 }
 
-
-/* ダイアログ共通スタイル */
-.dialog-overlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.7);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-  backdrop-filter:blur(4px);
-}
-.dialog-overlay.scroll{
-  overflow:auto;
-}
-.dialog-box{
-  background:var(--glass-strong);
-  border:1px solid var(--stroke);
-  border-radius:var(--radius);
-  padding:24px;
-  max-width:400px;
-  width:90%;
-  box-shadow:var(--shadow);
-}
-.dialog-box.wide{
-  max-width:500px;
-  max-height:80vh;
-  overflow-y:auto;
-  margin:20px;
-}
-.dialog-title{
-  margin:0 0 16px;
-  font-size:18px;
-  color:var(--text);
-  font-weight:600;
-}
-.dialog-text{
-  margin:0 0 16px;
-  font-size:14px;
-  color:var(--text);
-}
-.dialog-muted{
-  margin:0 0 16px;
-  font-size:12px;
-  color:var(--muted);
-}
-.dialog-input{
-  width:100%;
-  padding:10px;
-  border-radius:8px;
-  border:1px solid var(--stroke);
-  background:rgba(255,255,255,0.1);
-  color:var(--text);
-  font-size:16px;
-  outline:none;
-  margin-bottom:16px;
-}
-.dialog-actions{
-  display:flex;
-  gap:10px;
-  justify-content:flex-end;
-}
-.dialog-btn{
-  padding:10px 20px;
-  border-radius:8px;
-  border:none;
-  cursor:pointer;
-  font-size:14px;
-}
-.dialog-btn.cancel{
-  background:rgba(255,255,255,0.1);
-  color:var(--text);
-}
-.dialog-btn.confirm{
-  background:var(--primary);
-  color:#051a2a;
-}
-.dialog-btn.delete{
-  background:var(--danger);
-  color:#240808;
-}
-.dialog-btn.full{
-  width:100%;
-  margin-top:0;
-}
+/* ダイアログ */
+.dialog-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(4px)}
+.dialog-overlay.scroll{overflow:auto}
+.dialog-box{background:var(--glass-strong);border:1px solid var(--stroke);border-radius:var(--radius);padding:24px;max-width:400px;width:90%;box-shadow:var(--shadow)}
+.dialog-box.wide{max-width:500px;max-height:80vh;overflow-y:auto;margin:20px}
+.dialog-title{margin:0 0 16px;font-size:18px;color:var(--text);font-weight:600}
+.dialog-text{margin:0 0 16px;font-size:14px;color:var(--text)}
+.dialog-muted{margin:0 0 16px;font-size:12px;color:var(--muted)}
+.dialog-input{width:100%;padding:10px;border-radius:8px;border:1px solid var(--stroke);background:rgba(255,255,255,0.1);color:var(--text);font-size:16px;outline:none;margin-bottom:16px}
+.dialog-actions{display:flex;gap:10px;justify-content:flex-end}
+.dialog-btn{padding:10px 20px;border-radius:8px;border:none;cursor:pointer;font-size:14px}
+.dialog-btn.cancel{background:rgba(255,255,255,0.1);color:var(--text)}
+.dialog-btn.confirm{background:var(--primary);color:#051a2a}
+.dialog-btn.delete{background:var(--danger);color:#240808}
+.dialog-btn.full{width:100%;margin-top:0}
 
 /* 登録地点リスト */
-.location-list{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-.location-item{
-  background:rgba(255,255,255,0.05);
-  border-radius:8px;
-  padding:12px;
-}
-.location-item-name{
-  font-size:16px;
-  font-weight:600;
-  color:var(--text);
-  margin-bottom:4px;
-}
-.location-item-coords{
-  font-size:12px;
-  color:var(--muted);
-  margin-bottom:8px;
-}
-.location-item-actions{
-  display:flex;
-  gap:8px;
-}
-.location-item-btn{
-  flex:1;
-  padding:8px;
-  border-radius:6px;
-  border:none;
-  cursor:pointer;
-  font-size:13px;
-}
-.location-item-btn.nav{
-  background:var(--primary);
-  color:#051a2a;
-}
-.location-item-btn.edit{
-  background:rgba(255,255,255,0.1);
-  color:var(--text);
-}
-.location-item-btn.delete{
-  background:var(--danger);
-  color:#240808;
-}
+.location-list{display:flex;flex-direction:column;gap:8px}
+.location-item{background:rgba(255,255,255,0.05);border-radius:8px;padding:12px}
+.location-item-name{font-size:16px;font-weight:600;color:var(--text);margin-bottom:4px}
+.location-item-coords{font-size:12px;color:var(--muted);margin-bottom:8px}
+.location-item-actions{display:flex;gap:8px}
+.location-item-btn{flex:1;padding:8px;border-radius:6px;border:none;cursor:pointer;font-size:13px}
+.location-item-btn.nav{background:var(--primary);color:#051a2a}
+.location-item-btn.edit{background:rgba(255,255,255,0.1);color:var(--text)}
+.location-item-btn.delete{background:var(--danger);color:#240808}
 
 /* 現在地ラベルのスタイル */
-#locLabel{
-  display:block;
-  white-space:pre-line;
-  line-height:1.6;
-  word-break:break-word;
-  max-width:100%;
-}
+#locLabel{display:block;white-space:pre-line;line-height:1.6;word-break:break-word;max-width:100%}
 
 .error-banner{display:none !important}
 
-/* ★ 変更: キーボード表示時の検索パネル対策 (上への移動を停止) */
-.keyboard-open .panel#searchPanel {
-  /* top: 16px; (削除) */
-  /* bottom: auto; (削除) */
-  max-height: calc(100vh - 32px); 
-  overflow-y: auto; 
+/* キーボード対策 */
+.keyboard-open .panel#searchPanel{
+  max-height:calc(100vh - 32px);
+  overflow-y:auto;
 }
-
-/* ★ 追加: 検索中（キーボード表示中）は、案内要素を非表示 */
 .keyboard-open .panel#searchPanel h2,
 .keyboard-open .panel#searchPanel .row,
-.keyboard-open .panel#searchPanel #pointAddressBlock {
-  display: none;
+.keyboard-open .panel#searchPanel #pointAddressBlock{display:none}
+
+/* 端末ユーティリティ */
+@media (display-mode: standalone){
+  .fab-stack{bottom:24px}
 }
