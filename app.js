@@ -783,7 +783,6 @@ async function performSearch(query) {
   showToast('検索結果が見つかりませんでした', 'warning');
   document.getElementById('results').style.display = 'none';
   
-  // ★★★ 変更点 ★★★
   // 検索結果がない場合、案内パネルを再表示
   document.getElementById('navPanel').style.display = 'block';
 }
@@ -792,7 +791,6 @@ async function performSearch(query) {
 // 検索結果表示
 // ==========================================
 function displayResults(places, centerLat, centerLng) {
-  // ★★★ 変更点 ★★★
   // 検索結果が表示されるため、案内パネルを非表示にする
   document.getElementById('navPanel').style.display = 'none';
 
@@ -1407,12 +1405,45 @@ function exportRouteToClipboard() {
   }
 }
 
+// ==========================================
+// ★★★ 新規追加 ★★★
+// キーボード表示ウォッチャー
+// ==========================================
+function bindKeyboardWatch() {
+  const searchInput = document.getElementById('q');
+  const searchPanel = document.getElementById('searchPanel');
+  const appBody = document.getElementById('appBody');
+
+  searchInput.addEventListener('focus', () => {
+    console.log('[Keyboard] Input focused');
+    // クラスを追加してCSSで制御する
+    appBody.classList.add('keyboard-open');
+    
+    // 少し待ってから入力欄までスクロール
+    // パネルがtopに移動するアニメーションとキーボード表示のラグを考慮
+    setTimeout(() => {
+        // searchPanel の scrollTop を調整して入力欄を見える位置に移動
+        const inputTopInPanel = searchInput.offsetTop;
+        
+        // パネル上部から入力欄までの距離が 20px になるようにスクロール
+        searchPanel.scrollTop = inputTopInPanel - 20;
+        console.log(`[Keyboard] Scrolled panel to ${searchPanel.scrollTop}`);
+
+    }, 350); // キーボードアニメーションのラグ + CSSのtransition
+  });
+
+  searchInput.addEventListener('blur', () => {
+    console.log('[Keyboard] Input blurred');
+    appBody.classList.remove('keyboard-open');
+    searchPanel.scrollTop = 0; // スクロールをリセット
+  });
+}
+
 
 // ==========================================
 // UI イベントバインディング
 // ==========================================
 
-// ★★★ 変更点 ★★★ (内部ロジックの変更)
 // 検索パネルのイベント
 function bindSearchPanelEvents() {
   const radiusLabel = document.getElementById('radiusLabel');
@@ -1420,7 +1451,7 @@ function bindSearchPanelEvents() {
   const r20 = document.getElementById('r20');
   const r30 = document.getElementById('r30');
   const btnPointSearch = document.getElementById('btnPointSearch');
-  const navPanel = document.getElementById('navPanel'); // ★ navPanelを取得
+  const navPanel = document.getElementById('navPanel'); 
 
   r10.onclick = () => {  
     r10.classList.add('active');  
@@ -1451,14 +1482,13 @@ function bindSearchPanelEvents() {
       btnPointSearch.style.color = '#0a2818';
       btnPointSearch.style.borderColor = 'transparent';
       showToast('地図をタップして検索地点を選択', 'info');
-      navPanel.style.display = 'none'; // ★ ポイント選択中は非表示
+      navPanel.style.display = 'none'; 
     } else {
       btnPointSearch.textContent = '📍 ポイント選択';
       btnPointSearch.style.background = 'rgba(255,255,255,.08)';
       btnPointSearch.style.color = 'var(--text)';
       btnPointSearch.style.borderColor = 'var(--stroke)';
       
-      // ★ ポイント選択解除時、検索結果が表示されていなければnavPanelを表示
       if (document.getElementById('results').style.display === 'none') {
          navPanel.style.display = 'block';
       }
@@ -1471,10 +1501,7 @@ function bindLocationEvents() {
   document.getElementById('btnEditLocation').onclick = showEditLocationDialog;
 }
 
-// ==========================================
-// ★★★ 変更点 ★★★ (内部ロジックの変更)
 // 検索イベント (アイコンをバインド)
-// ==========================================
 function bindSearchEvents() {
   // 検索アイコンのクリック
   document.getElementById('btnSearchIcon').onclick = () => {
@@ -1521,7 +1548,6 @@ function bindSearchEvents() {
     btnPointSearch.style.color = 'var(--text)';
     btnPointSearch.style.borderColor = 'var(--stroke)';
     
-    // ★ リセットでnavPanelを再表示 (これは正しい)
     document.getElementById('navPanel').style.display = 'block'; 
     
     document.getElementById('r10').classList.add('active');
@@ -1546,7 +1572,6 @@ function bindFABEvents() {
     document.getElementById('fabStack').style.display = 'none';  
     document.getElementById('appBody').classList.add('panel-open');  
     
-    // ★ 検索パネルを開いた時、検索結果が表示されていなければnavPanelを表示
     if (document.getElementById('results').style.display === 'none' && !appState.pointSearchMode) {
         document.getElementById('navPanel').style.display = 'block';
     }
@@ -1635,6 +1660,7 @@ function bindUI() {
   bindSearchEvents();
   bindFABEvents();
   bindRoutePanelEvents();  
+  bindKeyboardWatch(); // ★★★ 追加 ★★★
   console.log('[WalkNav] UI binding complete');
 }
 
