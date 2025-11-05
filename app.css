@@ -80,27 +80,24 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
   top: 50%;
   transform: translateY(-50%);
   opacity: 0.7;
+  pointer-events: auto;
 }
 .input-wrapper .icon-g {
   left: 12px;
-  pointer-events: none; /* Gマークはクリック不可 */
+  pointer-events: none;
 }
 .input-wrapper .icon-search {
-  right: 50px; /* マイクアイコンの左 */
+  right: 50px;
   cursor: pointer;
-  opacity: 0.9;
-  z-index: 10; /* アイコンが入力欄の上に表示されるようにする */
+  z-index: 10;
 }
 .input-wrapper .icon-mic {
   right: 12px;
   cursor: pointer;
-  opacity: 0.9;
-  z-index: 10; /* アイコンが入力欄の上に表示されるようにする */
+  z-index: 10;
 }
 .input-wrapper .icon-mic:hover, .input-wrapper .icon-search:hover {
   opacity: 1;
