@@ -500,10 +500,21 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
 
 .error-banner{display:none !important}
 
-/* キーボード表示時の検索パネル対策 */
+/* ★ 変更: キーボード表示時（検索中）の検索パネル対策 */
+/* パネルが上へ移動する動作を削除し、検索中（フォーカス時）は案内要素を非表示にします */
 .keyboard-open .panel#searchPanel {
-  top: 16px;
-  bottom: auto; /* bottom: 16px を解除 */
+  /* top: 16px; */ /* ★ 削除: 上への移動を無効化 */
+  /* bottom: auto; */ /* ★ 削除: 上への移動を無効化 */
+  
+  /* パネルの高さをキーボードに押されても維持し、スクロール可能に */
   max-height: calc(100vh - 32px); 
   overflow-y: auto; /* max-heightを超えたらスクロール */
+}
+
+/* ★ 追加: 検索中（キーボード表示中）は、案内要素を非表示 */
+/* これにより、検索窓と検索結果リストのみが表示されるようになります */
+.keyboard-open .panel#searchPanel h2,
+.keyboard-open .panel#searchPanel .row,
+.keyboard-open .panel#searchPanel #pointAddressBlock {
+  display: none;
 }
