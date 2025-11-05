@@ -65,12 +65,19 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   align-items: center;
   width: 100%;
 }
-/* === 修正箇所 === */
+/* === 修正箇所 (不具合対応) === */
 /* input-wrapper内のinputに、アイコン余白を含めたpaddingを正しく指定 */
 .input-wrapper .input {
   /* アイコンと文字が重ならないよう調整 (T:10, R:80, B:10, L:40) */
-  padding: 10px 80px 10px 40px;  
+  padding: 10px 80px 10px 40px;
+  /* [修正 1/3] 高さを固定してモバイルでの表示崩れを防ぐ */
+  height: 48px; 
 }
+/* [修正 2/3] モバイルでのフォーカス時に拡大を防ぐ */
+.input-wrapper .input:focus {
+  font-size: 16px;
+}
+
 .input-wrapper .icon {
   position: absolute;
   display: flex;
@@ -78,6 +85,8 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   justify-content: center;
   height: 100%;
   opacity: 0.7;
+  /* [修正 3/3] アイコンがinput要素より手前に来るように指定 */
+  z-index: 1;
 }
 .input-wrapper .icon-g {
   left: 12px;
