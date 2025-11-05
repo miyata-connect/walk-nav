@@ -49,11 +49,9 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
 .chip{padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--stroke);color:var(--text);font-size:14px;cursor:pointer;user-select:none}
 .chip.active{background:var(--primary);color:#05233a;border-color:transparent}
 
-/* === 修正箇所 === */
-/* 汎用inputスタイルからpaddingを削除 */
+/* 汎用inputスタイル（paddingを削除して競合を回避） */
 .input{
   flex:1;min-width:220px;
-  /* padding:10px 12px; <-- 競合していたため削除 */
   border-radius:12px;border:1px solid var(--stroke);
   background:rgba(255,255,255,.06);color:var(--text);outline:none
 }
@@ -65,11 +63,14 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   align-items: center;
   width: 100%;
 }
-/* === 修正箇所 === */
-/* input-wrapper内のinputに、アイコン余白を含めたpaddingを正しく指定 */
+/* input-wrapper内のinputに、アイコン余白を含めたpaddingと高さを指定 */
 .input-wrapper .input {
-  /* アイコンと文字が重ならないよう調整 (T:10, R:80, B:10, L:40) */
-  padding: 10px 80px 10px 40px;  
+  padding: 10px 80px 10px 40px;
+  height: 48px; /* 高さを固定してアイコンが隠れないようにする */
+}
+/* モバイルフォーカス時の拡大防止 */
+.input-wrapper .input:focus {
+  font-size: 16px;
 }
 .input-wrapper .icon {
   position: absolute;
@@ -87,11 +88,13 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   right: 50px; /* マイクアイコンの左 */
   cursor: pointer;
   opacity: 0.9;
+  z-index: 10; /* アイコンが入力欄の上に表示されるようにする */
 }
 .input-wrapper .icon-mic {
   right: 12px;
   cursor: pointer;
   opacity: 0.9;
+  z-index: 10; /* アイコンが入力欄の上に表示されるようにする */
 }
 .input-wrapper .icon-mic:hover, .input-wrapper .icon-search:hover {
   opacity: 1;
@@ -107,8 +110,6 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   color: var(--muted);
   margin-left: 8px; /* 住所の横に配置 */
 }
-
-/* .input スタイルは上記で修正済み */
 
 .btn{
   padding:10px 14px;border-radius:12px;border:1px solid var(--stroke);
