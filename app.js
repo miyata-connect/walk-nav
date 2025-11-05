@@ -596,6 +596,7 @@
 596.   document.getElementById('weather3h').textContent = '--';
 597.   document.getElementById('weather6h').textContent = '--';
 598.   document.getElementById('weather9h').textContent = '--';
+Y
 599.   
 600.   // FABボタンを非表示
 601.   document.getElementById('fabStack').style.display = 'none';
@@ -655,7 +656,7 @@
 655.     if(appState.currentPos) {
 656.       appState.map.panTo(appState.currentPos);
 657.       appState.map.setZoom(18);
-6GA.    }
+658.     }
 659.   }
 660. }
 661. 
@@ -951,745 +952,749 @@
 951.   try {
 952.     navigator.geolocation.getCurrentPosition(onSuccess, onError, LOCATION_OPTIONS);
 953.   } catch (e) {
-954.     console.log('[WalkNav] geolocation exception', e);
-955.     console.error('位置情報へのアクセスが拒否されました'); 
-956.   }
-957. }
-958. 
-959. // ==========================================
-960. // 地名取得（逆ジオコーディング）- Cloudflare経由
+9Vertical-align: top;
+955.     console.log('[WalkNav] geolocation exception', e);
+956.     console.error('位置情報へのアクセスが拒否されました'); 
+957.     document.getElementById('loading')?.remove(); // ★★★ 追加 ★★★
+958.   }
+959. }
+960. 
 961. // ==========================================
-962. async function fetchLocationNameGoogle(lat, lng) {
-963.   const addressElement = document.getElementById('locAddress');
-964.   const coordsElement = document.getElementById('locCoords');
-965. 
-966.   if (!addressElement || !coordsElement) {
-967.     console.error('[DEBUG] Elements not found!');
-968.     return;
-969.   }
-970. 
-971.   // 1行目: 緯度経度
-972.   const coordsText = `現在地：緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
-973.   coordsElement.textContent = coordsText;
-974. 
-975.   try {
-976.     console.log('[Geocode] Fetching address from Cloudflare...');
-977.     const params = new URLSearchParams({ lat: lat, lng: lng, language: 'ja' });
-978.     
-979.     const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode?${params.toString()}`);
+962. // 地名取得（逆ジオコーディング）- Cloudflare経由
+963. // ==========================================
+964. async function fetchLocationNameGoogle(lat, lng) {
+965.   const addressElement = document.getElementById('locAddress');
+966.   const coordsElement = document.getElementById('locCoords');
+967. 
+968.   if (!addressElement || !coordsElement) {
+969.     console.error('[DEBUG] Elements not found!');
+970.     return;
+971.   }
+972. 
+973.   // 1行目: 緯度経度
+974.   const coordsText = `現在地：緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
+975.   coordsElement.textContent = coordsText;
+976. 
+977.   try {
+978.     console.log('[Geocode] Fetching address from Cloudflare...');
+979.     const params = new URLSearchParams({ lat: lat, lng: lng, language: 'ja' });
 980.     
-981.     if (!response.ok) {
-982.       const errorText = await response.text();
-983.       throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
-984.     }
-985. 
-986.     const data = await response.json();
+981.     const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode?${params.toString()}`);
+982.     
+983.     if (!response.ok) {
+984.       const errorText = await response.text();
+985.       throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
+986.     }
 987. 
-988.     if (data.status === 'OK' && data.results[0]) {
-989.       const address = data.results[0].formatted_address;
-990.       const cleanAddress = address.replace(/^日本、\s*/, '');
-991.       // 2行目: 〒住所
-992.       const formattedAddress = cleanAddress + ' 付近';
-993.       
-994.       addressElement.textContent = formattedAddress;
-995.     } else {
-996.       console.error('[Geocode] Geocode failed via Cloudflare. Status:', data.status);
-997.       // 2行目: エラー
-998.       addressElement.textContent = '住所情報なし';
-999.       if (data.status !== 'ZERO_RESULTS') {
-1000.          console.error(`住所取得エラー: ${data.status}`); 
-1001.       }
-1002.     }
-1003.   } catch (error) {
-1004.     console.error('[Geocode] Fetch error:', error);
-1005.     // 2行目: エラー
-1006.     addressElement.textContent = '住所取得エラー';
-1007.   }
-1008. }
-1009. 
-1010. // ==========================================
-1011. // ポイント選択時の地名取得
+988.     const data = await response.json();
+989. 
+990.     if (data.status === 'OK' && data.results[0]) {
+991.       const address = data.results[0].formatted_address;
+992.       const cleanAddress = address.replace(/^日本、\s*/, '');
+993.       // 2行目: 〒住所
+994.       const formattedAddress = cleanAddress + ' 付近';
+995.       
+996.       addressElement.textContent = formattedAddress;
+997.     } else {
+998.       console.error('[Geocode] Geocode failed via Cloudflare. Status:', data.status);
+999.       // 2行目: エラー
+1000.       addressElement.textContent = '住所情報なし';
+1001.       if (data.status !== 'ZERO_RESULTS') {
+1002.          console.error(`住所取得エラー: ${data.status}`); 
+1003.       }
+1004.     }
+1005.   } catch (error) {
+1006.     console.error('[Geocode] Fetch error:', error);
+1007.     // 2行目: エラー
+1008.     addressElement.textContent = '住所取得エラー';
+1009.   }
+1010. }
+1011. 
 1012. // ==========================================
-1013. async function fetchPointAddress(lat, lng) {
-1014.   const addressBlock = document.getElementById('pointAddressBlock');
-1015.   const addressElement = document.getElementById('pointAddress');
-1016.   const coordsElement = document.getElementById('pointCoords');
-1017. 
-1018.   if (!addressElement || !coordsElement || !addressBlock) {
-1019.     console.error('[DEBUG] Point Elements not found!');
-1020.     return;
-1021.   }
-1022. 
-1023.   addressElement.textContent = 'ポイント：住所取得中...';
-1024.   coordsElement.textContent = `(緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)})`;
-1025.   addressBlock.style.display = 'flex';
-1026. 
-1027.   try {
-1028.     const params = new URLSearchParams({ lat: lat, lng: lng, language: 'ja' });
-1029.     const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode?${params.toString()}`);
-1030.     
-1031.     if (!response.ok) {
-1032.       const errorText = await response.text();
-1033.       throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
-1034.     }
-1035. 
-1036.     const data = await response.json();
+1013. // ポイント選択時の地名取得
+1014. // ==========================================
+1015. async function fetchPointAddress(lat, lng) {
+1016.   const addressBlock = document.getElementById('pointAddressBlock');
+1017.   const addressElement = document.getElementById('pointAddress');
+1018.   const coordsElement = document.getElementById('pointCoords');
+1019. 
+1020.   if (!addressElement || !coordsElement || !addressBlock) {
+1021.     console.error('[DEBUG] Point Elements not found!');
+1022.     return;
+1023.   }
+1024. 
+1025.   addressElement.textContent = 'ポイント：住所取得中...';
+1026.   coordsElement.textContent = `(緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)})`;
+1027.   addressBlock.style.display = 'flex';
+1028. 
+1029.   try {
+1030.     const params = new URLSearchParams({ lat: lat, lng: lng, language: 'ja' });
+1031.     const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode?${params.toString()}`);
+1032.     
+1033.     if (!response.ok) {
+1034.       const errorText = await response.text();
+1035.       throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
+1Two36.     }
 1037. 
-1038.     if (data.status === 'OK' && data.results[0]) {
-1039.       const address = data.results[0].formatted_address;
-1040.       const cleanAddress = address.replace(/^日本、\s*/, '');
-1041.       const formattedAddress = 'ポイント：' + cleanAddress + ' 付近';
-1042.       addressElement.textContent = formattedAddress;
-1043.     } else {
-1044.       addressElement.textContent = 'ポイント：住所情報なし';
-1045.     }
-1046.   } catch (error) {
-1047.     console.error('[Geocode] Fetch error for Point:', error);
-1048.     addressElement.textContent = 'ポイント：住所取得エラー';
-1049.   }
-1050. }
-1051. 
-1052. // ==========================================
-1053. // 天気予報取得
+1038.     const data = await response.json();
+1039. 
+1040.     if (data.status === 'OK' && data.results[0]) {
+1041.       const address = data.results[0].formatted_address;
+1042.       const cleanAddress = address.replace(/^日本、\s*/, '');
+1043.       const formattedAddress = 'ポイント：' + cleanAddress + ' 付近';
+1044.       addressElement.textContent = formattedAddress;
+1045.     } else {
+1046.       addressElement.textContent = 'ポイント：住所情報なし';
+1047.     }
+1048.   } catch (error) {
+1049.     console.error('[Geocode] Fetch error for Point:', error);
+1050.     addressElement.textContent = 'ポイント：住所取得エラー';
+1051.   }
+1052. }
+1053. 
 1054. // ==========================================
-1055. 
-1056. // OpenWeatherMapのアイコンコードを絵文字にマッピング
-1057. function getWeatherIcon(iconCode) {
-1058.   const map = {
-1059.     '01d': '☀️', '01n': '🌙',
-1060.     '02d': '🌤️', '02n': '☁️',
-1061.     '03d': '☁️', '03n': '☁️',
-1062.     '04d': '☁️', '04n': '☁️',
-1063.     '09d': '🌦️', '09n': '🌦️',
-1064.     '10d': '🌧️', '10n': '🌧️',
-1065.     '11d': '⛈️', '11n': '⛈️',
-1066.     '13d': '❄️', '13n': '❄️',
-1067.     '50d': '🌫️', '50n': '🌫️',
-1068.   };
-1069.   return map[iconCode] || '❔';
-1070. }
-1071. 
-1072. async function fetchWeather(lat, lng) {
-1073.   console.log('[Weather] Fetching weather...');
-1074.   try {
-1075.     const params = new URLSearchParams({ lat: lat, lng: lng });
-1076.     const response = await fetchWithRetry(`${WORKER_ORIGIN}/weather?${params.toString()}`);
-1077.     
-1078.     if (!response.ok) {
-1079.        const errorData = await response.json();
-1080.        if (errorData.status === 'NOT_IMPLEMENTED') {
-1081.         console.warn('[Weather] ' + errorData.error_message);
-1082.         throw new Error(errorData.error_message);
-1083.        }
-1084.        throw new Error(errorData.error_message || `Weather fetch failed (${response.status})`);
-1085.     }
-1086.     
-1087.     const data = await response.json(); // OpenWeatherMapのhourly形式を想定
-1088.     
-1089.     // 3h, 6h, 9h 後のデータを取得 (インデックスは目安)
-1090.     const weather3h = data.hourly[2]?.weather[0]?.icon || null;  
-1091.     const weather6h = data.hourly[5]?.weather[0]?.icon || null;
-1092.     const weather9h = data.hourly[8]?.weather[0]?.icon || null;
-1093.     
-1094.     document.getElementById('weather3h').textContent = getWeatherIcon(weather3h);
-1095.     document.getElementById('weather6h').textContent = getWeatherIcon(weather6h);
-1096.     document.getElementById('weather9h').textContent = getWeatherIcon(weather9h);
-1097.     
-1098.   } catch (error) {
-1099.     console.error('[Weather] Error:', error);
-1100.     if (error.message.includes('configured')) {
-1101.        // APIキー未設定エラーはトースト表示しない
-1102.     } else {
-1103.        console.warn(`天気予報の取得に失敗: ${error.message}`); 
-1104.     }
-1105.     document.getElementById('weather3h').textContent = 'X';
-1106.     document.getElementById('weather6h').textContent = 'X';
-1107.     document.getElementById('weather9h').textContent = 'X';
-1108.   }
-1109. }
-1110. 
-1111. 
-1112. // ==========================================
-1113. // ダイアログユーティリティ
-1114. // ==========================================
-1115. function createDialog(config) {
-1116.   const overlay = document.createElement('div');
-1117.   overlay.className = `dialog-overlay ${config.scroll ? 'scroll' : ''}`;
-1118.   overlay.id = config.id || 'dialog';
-1119.   
-1120.   const box = document.createElement('div');
-1121.   box.className = `dialog-box ${config.wide ? 'wide' : ''}`;
-1122.   box.innerHTML = config.content;
-1123.   
-1124.   overlay.appendChild(box);
-1125.   document.body.appendChild(overlay);
-1126.   
-1127.   return overlay;
-1128. }
-1129. 
-1130. // ==========================================
-1131. // 現在地登録ダイアログ
-1132. // ==========================================
-1133. function showSaveLocationDialog() {
-1134.   if (!appState.currentPos) {
-1135.     console.error('現在地が取得できていません'); 
-1136.     return;
-1137.   }
-1138.   
-1139.   const dialog = createDialog({
-1140.     id: 'saveLocationDialog',
-1141.     content: `
-1142.       <h3 class="dialog-title">現在地点登録画面</h3>
-1143.       <p class="dialog-text">登録する地点名を入力してください:</p>
-1144.       <input type="text" id="locationNameInput" class="dialog-input" placeholder="地点名を入力" />
-1145.       <div class="dialog-actions">
-1146.         <button id="btnCancelSave" class="dialog-btn cancel">キャンセル</button>
-1147.         <button id="btnConfirmSave" class="dialog-btn confirm">OK</button>
-1148.       </div>
-1149.     `
-1150.   });
-1151.   
-1152.   const input = document.getElementById('locationNameInput');
-1153.   const btnCancel = document.getElementById('btnCancelSave');
-1154.   const btnConfirm = document.getElementById('btnConfirmSave');
-1G5.   
-1156.   setTimeout(() => input.focus(), 100);
-1157.   
-1158.   btnCancel.onclick = () => dialog.remove();
-1159.   
-1160.   btnConfirm.onclick = () => {
-1161.     const locationName = input.value.trim();
-1162.     
-1163.     if (!locationName) {
-1164.       input.style.borderColor = 'var(--danger)'; 
-1165.       setTimeout(() => { input.style.borderColor = 'var(--stroke)'; }, 2000);
-1166.       return;
-1167.     }
-1168.     
-1169.     const locations = JSON.parse(localStorage.getItem('savedLocations') || '[]');
-1170.     const savedLocation = {
-1171.       name: locationName,
-1172.       lat: appState.currentPos.lat,
-1173.       lng: appState.currentPos.lng,
-1174.       timestamp: Date.now()
-1175.     };
-1176.     locations.push(savedLocation);
-1177.     localStorage.setItem('savedLocations', JSON.stringify(locations));
-1178.     
-1179.     console.log('[SaveLocation] 現在地を登録:', savedLocation);
-1180.     dialog.remove();
-1181.     
-1182.     console.log(`「${locationName}」を登録しました`); 
-1183.   };
-1184.   
-1185.   input.addEventListener('keypress', (e) => {
-1186.     if (e.key === 'Enter') btnConfirm.click();
-1187.   });
-1188. }
-1189. 
-1190. // ==========================================
-1191. // 登録地点修正ダイアログ
-1192. // ==========================================
-1193. function showEditLocationDialog() {
-1194.   const locations = JSON.parse(localStorage.getItem('savedLocations') || '[]');
-1195.   
-1196.   if (locations.length === 0) {
-1197.     const dialog = createDialog({
-1198.       id: 'editDialog',
-1199.       content: `
-1200.         <h3 class="dialog-title">登録地点修正</h3>
-1201.         <p class="dialog-muted">登録された地点がありません</p>
-1202.         <button id="btnCloseEmpty" class="dialog-btn confirm full">閉じる</button>
-1203.       `
-1204.     });
-1205.     
-1206.     document.getElementById('btnCloseEmpty').onclick = () => dialog.remove();
-1207.     return;
-1208.   }
-1209.   
-1210.   let listHTML = '<div class="location-list">';
-1211.   locations.forEach((loc, index) => {
-1212.     listHTML += `
-1213.       <div class="location-item">
-1214.         <div class="location-item-name">${loc.name}</div>
-1215.         <div class="location-item-coords">緯度: ${loc.lat.toFixed(6)} / 経度: ${loc.lng.toFixed(6)}</div>
-1216.         <div class="location-item-actions">
-1217.           <button class="location-item-btn nav" data-index="${index}">ナビ開始</button>
-1218.           <button class="location-item-btn edit" data-index="${index}">名前変更</button>
-1219.           <button class="location-item-btn delete" data-index="${index}">削除</button>
-1220.         </div>
-1221.       </div>
-1222.     `;
-1223.   });
-1224.   listHTML += '</div>';
-1225.   
-1226.   const dialog = createDialog({
-1227.     id: 'editDialog',
-1228.     wide: true,
-1229.     scroll: true,
-1230.     content: `
-1231.       <h3 class="dialog-title">登録地点修正</h3>
-1232.       ${listHTML}
-1233.       <button id="btnCloseEdit" class="dialog-btn cancel full" style="margin-top:16px">閉じる</button>
-1234.     `
-1235.   });
-1236.   
-1237.   document.getElementById('btnCloseEdit').onclick = () => dialog.remove();
-1238.   
-1239.   // ナビ開始ボタン
-1240.   document.querySelectorAll('.location-item-btn.nav').forEach(btn => {
-1241.     btn.onclick = () => {
-1242.       const index = parseInt(btn.dataset.index);
-1243.       const loc = locations[index];
-1244.       dialog.remove();
-1245.       startNavigation({
-1246.         name: loc.name,
-1247.         lat: loc.lat,
-1248.         lng: loc.lng
-1249.       });
-1G50.     };
-1251.   });
-1252.   
-1253.   // 名前変更ボタン
-1254.   document.querySelectorAll('.location-item-btn.edit').forEach(btn => {
-1255.     btn.onclick = () => {
-1256.       const index = parseInt(btn.dataset.index);
-1257.       const loc = locations[index];
-1258.       
-1259.       const renameDialog = createDialog({
-1260.         id: 'renameDialog',
-1261.         content: `
-1262.           <h3 class="dialog-title">地点名変更</h3>
-1263.           <input type="text" id="renameInput" value="${loc.name}" class="dialog-input" />
-1264.           <div class="dialog-actions">
-1265.             <button id="btnCancelRename" class="dialog-btn cancel">キャンセル</button>
-1266.             <button id="btnConfirmRename" class="dialog-btn confirm">OK</button>
-1267.           </div>
-1268.         `
-1269.       });
-1270.       
-1271.       const renameInput = document.getElementById('renameInput');
-1272.       setTimeout(() => {
-1273.         renameInput.focus();
-1274.         renameInput.select();
-1275.       }, 100);
-1276.       
-1277.       document.getElementById('btnCancelRename').onclick = () => renameDialog.remove();
-1278.       
-1279.       document.getElementById('btnConfirmRename').onclick = () => {
+1055. // 天気予報取得
+1056. // ==========================================
+1057. 
+1058. // OpenWeatherMapのアイコンコードを絵文字にマッピング
+1059. function getWeatherIcon(iconCode) {
+1060.   const map = {
+1061.     '01d': '☀️', '01n': '🌙',
+1062.     '02d': '🌤️', '02n': '☁️',
 1Vertical-align: top;
-1281.         const newName = renameInput.value.trim();
-1282.         if (!newName) {
-1283.           renameInput.style.borderColor = 'var(--danger)'; 
-1284.           setTimeout(() => { renameInput.style.borderColor = 'var(--stroke)'; }, 2000);
-1285.           return;
-1286.         }
-1287.         
-1288.         locations[index].name = newName;
-1289.         localStorage.setItem('savedLocations', JSON.stringify(locations));
-1290.         
-1291.         renameDialog.remove();
-1292.         dialog.remove();
-1293.         console.log(`地点名を「${newName}」に変更しました`); 
-1294.       };
-1295.       
-1296.       renameInput.addEventListener('keypress', (e) => {
-1297.         if (e.key === 'Enter') document.getElementById('btnConfirmRename').click();
-1298.       });
-1299.     };
-1300.   });
-1301.   
-1302.   // 削除ボタン
-1303.   document.querySelectorAll('.location-item-btn.delete').forEach(btn => {
-1304.     btn.onclick = () => {
-1305.       const index = parseInt(btn.dataset.index);
-1306.       const loc = locations[index];
-1307.       
-1308.       const confirmDialog = createDialog({
-1309.         id: 'confirmDeleteDialog',
-1310.         content: `
-1311.           <h3 class="dialog-title">削除確認</h3>
-1312.           <p class="dialog-text">「${loc.name}」を削除しますか？</p>
-1313.           <div class="dialog-actions">
-1314.             <button id="btnCancelDelete" class="dialog-btn cancel">キャンセル</button>
-1315.             <button id="btnConfirmDelete" class="dialog-btn delete">削除</button>
-1316.           </div>
-1317.         `
-1318.       });
-1319.       
-1320.       document.getElementById('btnCancelDelete').onclick = () => confirmDialog.remove();
+1064.     '03d': '☁️', '03n': '☁️',
+1065.     '04d': '☁️', '04n': '☁️',
+1066.     '09d': '🌦️', '09n': '🌦️',
+1067.     '10d': '🌧️', '10n': '🌧️',
+1068.     '11d': '⛈️', '11n': '⛈️',
+1069.     '13d': '❄️', '13n': '❄️',
+1070.     '50d': '🌫️', '50n': '🌫️',
+1071.   };
+1072.   return map[iconCode] || '❔';
+1073. }
+1074. 
+1075. async function fetchWeather(lat, lng) {
+1076.   console.log('[Weather] Fetching weather...');
+1077.   try {
+1078.     const params = new URLSearchParams({ lat: lat, lng: lng });
+1079.     const response = await fetchWithRetry(`${WORKER_ORIGIN}/weather?${params.toString()}`);
+1080.     
+1081.     if (!response.ok) {
+1082.        const errorData = await response.json();
+1083.        if (errorData.status === 'NOT_IMPLEMENTED') {
+1084.         console.warn('[Weather] ' + errorData.error_message);
+1085.         throw new Error(errorData.error_message);
+1086.        }
+1087.        throw new Error(errorData.error_message || `Weather fetch failed (${response.status})`);
+1088.     }
+1089.     
+1090.     const data = await response.json(); // OpenWeatherMapのhourly形式を想定
+1091.     
+1092.     // 3h, 6h, 9h 後のデータを取得 (インデックスは目安)
+1093.     const weather3h = data.hourly[2]?.weather[0]?.icon || null;  
+1094.     const weather6h = data.hourly[5]?.weather[0]?.icon || null;
+1095.     const weather9h = data.hourly[8]?.weather[0]?.icon || null;
+1096.     
+1097.     document.getElementById('weather3h').textContent = getWeatherIcon(weather3h);
+1098.     document.getElementById('weather6h').textContent = getWeatherIcon(weather6h);
+1099.     document.getElementById('weather9h').textContent = getWeatherIcon(weather9h);
+1100.     
+1101.   } catch (error) {
+1102.     console.error('[Weather] Error:', error);
+1103.     if (error.message.includes('configured')) {
+1104.        // APIキー未設定エラーはトースト表示しない
+1105.     } else {
+1106.        console.warn(`天気予報の取得に失敗: ${error.message}`); 
+1107.     }
+1108.     document.getElementById('weather3h').textContent = 'X';
+1109.     document.getElementById('weather6h').textContent = 'X';
+1110.     document.getElementById('weather9h').textContent = 'X';
+1111.   }
+1112. }
+1113. 
+1114. 
+1115. // ==========================================
+1116. // ダイアログユーティリティ
+1117. // ==========================================
+1118. function createDialog(config) {
+1119.   const overlay = document.createElement('div');
+1120.   overlay.className = `dialog-overlay ${config.scroll ? 'scroll' : ''}`;
+1121.   overlay.id = config.id || 'dialog';
+1122.   
+1123.   const box = document.createElement('div');
+1124.   box.className = `dialog-box ${config.wide ? 'wide' : ''}`;
+1125.   box.innerHTML = config.content;
+1126.   
+1127.   overlay.appendChild(box);
+1128.   document.body.appendChild(overlay);
+1129.   
+1130.   return overlay;
+1131. }
+1132. 
+1133. // ==========================================
+1134. // 現在地登録ダイアログ
+1135. // ==========================================
+1136. function showSaveLocationDialog() {
+1137.   if (!appState.currentPos) {
+1138.     console.error('現在地が取得できていません'); 
+1139.     return;
+1140.   }
+1141.   
+1142.   const dialog = createDialog({
+1143.     id: 'saveLocationDialog',
+1144.     content: `
+1145.       <h3 class="dialog-title">現在地点登録画面</h3>
+1146.       <p class="dialog-text">登録する地点名を入力してください:</p>
+1147.       <input type="text" id="locationNameInput" class="dialog-input" placeholder="地点名を入力" />
+1148.       <div class="dialog-actions">
+1149.         <button id="btnCancelSave" class="dialog-btn cancel">キャンセル</button>
+1150.         <button id="btnConfirmSave" class="dialog-btn confirm">OK</button>
+1151.       </div>
+1152.     `
+1153.   });
+1154.   
+1155.   const input = document.getElementById('locationNameInput');
+1156.   const btnCancel = document.getElementById('btnCancelSave');
+1157.   const btnConfirm = document.getElementById('btnConfirmSave');
+1158.   
+1159.   setTimeout(() => input.focus(), 100);
+1160.   
+1161.   btnCancel.onclick = () => dialog.remove();
+1162.   
+1163.   btnConfirm.onclick = () => {
+1164.     const locationName = input.value.trim();
+1165.     
+1166.     if (!locationName) {
+1167.       input.style.borderColor = 'var(--danger)'; 
+1168.       setTimeout(() => { input.style.borderColor = 'var(--stroke)'; }, 2000);
+1169.       return;
+1170.     }
+1171.     
+1172.     const locations = JSON.parse(localStorage.getItem('savedLocations') || '[]');
+1173.     const savedLocation = {
+1174.       name: locationName,
+1175.       lat: appState.currentPos.lat,
+1176.       lng: appState.currentPos.lng,
+1177.       timestamp: Date.now()
+1178.     };
+1179.     locations.push(savedLocation);
+1180.     localStorage.setItem('savedLocations', JSON.stringify(locations));
+1181.     
+1182.     console.log('[SaveLocation] 現在地を登録:', savedLocation);
+1183.     dialog.remove();
+1184.     
+1185.     console.log(`「${locationName}」を登録しました`); 
+1186.   };
+1187.   
+1188.   input.addEventListener('keypress', (e) => {
+1189.     if (e.key === 'Enter') btnConfirm.click();
+1190.   });
+1191. }
+1192. 
+1193. // ==========================================
+1194. // 登録地点修正ダイアログ
+1195. // ==========================================
+1196. function showEditLocationDialog() {
+1197.   const locations = JSON.parse(localStorage.getItem('savedLocations') || '[]');
+1198.   
+1199.   if (locations.length === 0) {
+1200.     const dialog = createDialog({
+1201.       id: 'editDialog',
+1202.       content: `
+1203.         <h3 class="dialog-title">登録地点修正</h3>
+1204.         <p class="dialog-muted">登録された地点がありません</p>
+1205.         <button id="btnCloseEmpty" class="dialog-btn confirm full">閉じる</button>
+1206.       `
+1207.     });
+1208.     
+1209.     document.getElementById('btnCloseEmpty').onclick = () => dialog.remove();
+1210.     return;
+1211.   }
+1212.   
+1213.   let listHTML = '<div class="location-list">';
+1214.   locations.forEach((loc, index) => {
+1215.     listHTML += `
+1216.       <div class="location-item">
+1217.         <div class="location-item-name">${loc.name}</div>
+1218.         <div class="location-item-coords">緯度: ${loc.lat.toFixed(6)} / 経度: ${loc.lng.toFixed(6)}</div>
+1219.         <div class="location-item-actions">
+1220.           <button class="location-item-btn nav" data-index="${index}">ナビ開始</button>
+1221.           <button class="location-item-btn edit" data-index="${index}">名前変更</button>
+1222.           <button class="location-item-btn delete" data-index="${index}">削除</button>
+1223.         </div>
+1224.       </div>
+1225.     `;
+1226.   });
+1227.   listHTML += '</div>';
+1228.   
+1229.   const dialog = createDialog({
+1230.     id: 'editDialog',
+1231.     wide: true,
+1232.     scroll: true,
+1233.     content: `
+1234.       <h3 class="dialog-title">登録地点修正</h3>
+1235.       ${listHTML}
+1236.       <button id="btnCloseEdit" class="dialog-btn cancel full" style="margin-top:16px">閉じる</button>
+1237.     `
+1238.   });
+1239.   
+1240.   document.getElementById('btnCloseEdit').onclick = () => dialog.remove();
+1241.   
+1242.   // ナビ開始ボタン
+1243.   document.querySelectorAll('.location-item-btn.nav').forEach(btn => {
+1244.     btn.onclick = () => {
+1245.       const index = parseInt(btn.dataset.index);
+1246.       const loc = locations[index];
+1247.       dialog.remove();
+1248.       startNavigation({
+1249.         name: loc.name,
+1250.         lat: loc.lat,
+1251.         lng: loc.lng
+1252.       });
+1253.     };
+1254.   });
+1255.   
+1256.   // 名前変更ボタン
+1257.   document.querySelectorAll('.location-item-btn.edit').forEach(btn => {
+1258.     btn.onclick = () => {
+1259.       const index = parseInt(btn.dataset.index);
+1260.       const loc = locations[index];
+1261.       
+1262.       const renameDialog = createDialog({
+1263.         id: 'renameDialog',
+1264.         content: `
+1265.           <h3 class="dialog-title">地点名変更</h3>
+1266.           <input type="text" id="renameInput" value="${loc.name}" class="dialog-input" />
+1267.           <div class="dialog-actions">
+1268.             <button id="btnCancelRename" class="dialog-btn cancel">キャンセル</button>
+1269.             <button id="btnConfirmRename" class="dialog-btn confirm">OK</button>
+1270.           </div>
+1271.         `
+1272.       });
+1273.       
+1274.       const renameInput = document.getElementById('renameInput');
+1Two75.       setTimeout(() => {
+1276.         renameInput.focus();
+1277.         renameInput.select();
+1278.       }, 100);
+1279.       
+1280.       document.getElementById('btnCancelRename').onclick = () => renameDialog.remove();
+1281.       
+1282.       document.getElementById('btnConfirmRename').onclick = () => {
+1283.         const newName = renameInput.value.trim();
+1284.         if (!newName) {
+1285.           renameInput.style.borderColor = 'var(--danger)'; 
+1286.           setTimeout(() => { renameInput.style.borderColor = 'var(--stroke)'; }, 2000);
+Two87.           return;
+1288.         }
+1289.         
+1290.         locations[index].name = newName;
+1291.         localStorage.setItem('savedLocations', JSON.stringify(locations));
+1292.         
+1293.         renameDialog.remove();
+1294.         dialog.remove();
+1295.         console.log(`地点名を「${newName}」に変更しました`); 
+1296.       };
+1297.       
+1298.       renameInput.addEventListener('keypress', (e) => {
+1299.         if (e.key === 'Enter') document.getElementById('btnConfirmRename').click();
+1300.       });
+1301.     };
+1302.   });
+1303.   
+1304.   // 削除ボタン
+1305.   document.querySelectorAll('.location-item-btn.delete').forEach(btn => {
+1306.     btn.onclick = () => {
+1307.       const index = parseInt(btn.dataset.index);
+1308.       const loc = locations[index];
+1309.       
+1310.       const confirmDialog = createDialog({
+1311.         id: 'confirmDeleteDialog',
+1312.         content: `
+1313.           <h3 class="dialog-title">削除確認</h3>
+1314.           <p class="dialog-text">「${loc.name}」を削除しますか？</p>
+1315.           <div class="dialog-actions">
+1316.             <button id="btnCancelDelete" class="dialog-btn cancel">キャンセル</button>
+1317.             <button id="btnConfirmDelete" class="dialog-btn delete">削除</button>
+1318.           </div>
+1319.         `
+1320.       });
 1321.       
-1322.       document.getElementById('btnConfirmDelete').onclick = () => {
-1323.         locations.splice(index, 1);
-1324.         localStorage.setItem('savedLocations', JSON.stringify(locations));
-1325.         
-1326.         confirmDialog.remove();
-1327.         dialog.remove();
-1328.         console.log(`「${loc.name}」を削除しました`); 
-1329.       };
-1330.     };
-1331.   });
-1332. }
-1333. 
-1334. // ==========================================
-1335. // 道順をクリップボードにコピー
+1322.       document.getElementById('btnCancelDelete').onclick = () => confirmDialog.remove();
+1323.       
+1324.       document.getElementById('btnConfirmDelete').onclick = () => {
+1CSS.         locations.splice(index, 1);
+1326.         localStorage.setItem('savedLocations', JSON.stringify(locations));
+1327.         
+1328.         confirmDialog.remove();
+1329.         dialog.remove();
+1330.         console.log(`「${loc.name}」を削除しました`); 
+1331.       };
+1332.     };
+1333.   });
+1334. }
+1335. 
 1336. // ==========================================
-1337. function exportRouteToClipboard() {
-1338.   if (!appState.currentRouteData) {
-1339.     console.warn('コピーするルートデータがありません'); 
-1340.     return;
-1341.   }
-1342. 
-1343.   const data = appState.currentRouteData;
-1344.   let textOutput = `■ 目的地: ${data.destinationName}\n`;
-1345.   textOutput += `■ 概要: ${data.summary} (約 ${data.distance}, 徒歩 ${data.duration})\n\n`;
-1346.   
-1347.   if (data.warnings.length > 0) {
-1348.     textOutput += "■ 警告:\n";
-1349.     data.warnings.forEach(w => {
-1350.        textOutput += `・ ${w.replace(/<[^>]+>/g, ' ')}\n`;
-1351.     });
-1352.     textOutput += "\n";
-1353.   }
-1354. 
-1355.   textOutput += "■ 道順:\n";
-1356.   if (data.steps && data.steps.length > 0) {
-1357.     data.steps.forEach((step, index) => {
-1358.       const instruction = (step.html_instructions || '').replace(/<[^>]+>/g, ' ');
-1359.       textOutput += `${index + 1}. ${instruction} (${step.distance.text})\n`;
-1360.     });
-1361.   } else {
-1362.     textOutput += "詳細な道順はありません。\n";
-1363.   }
-1364. 
-1365.   if (navigator.clipboard) {
-1366.     navigator.clipboard.writeText(textOutput)
-1367.       .then(() => {
-1368.         console.log('道順をクリップボードにコピーしました'); 
-1369.       })
-1370.       .catch(err => {
-1371.         console.error('Clipboard write error:', err);
-1372.         console.error('コピーに失敗しました'); 
-1Two73.       });
-1374.   } else {
-1375.     console.error('お使いのブラウザはコピー機能に非対応です'); 
-1376.   }
-1377. }
-1378. 
-1379. // ==========================================
-1380. // ★★★ 新規追加 ★★★
-1381. // ユーザーを現在地に移動 (FABとパネルから共用)
-1382. // ==========================================
-1383. let lastLocateTime = 0;
-1384. function locateUser() {
-1385.   // iOS 13+ のための許可リクエスト
-1386.   if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-1387.     DeviceOrientationEvent.requestPermission()
-1388.       .then(permissionState => {
-1389.         if (permissionState === 'granted') {
-1390.           console.log('[Compass] iOS permission granted.');
-1391.           stopCompassListener();  
-1392.           appState.compassWatchId = null;  
-1393.           startCompassListener();  
-1394.         }
-1395.       })
-1396.       .catch(console.error);
-1397.   }
-1398.   
-1399.   const now = Date.now();
-1400.   if (now - lastLocateTime < 1000) return;
-1401.   lastLocateTime = now;
-1402.   
-1403.   if (appState.currentPos && appState.map) {
-1404.     appState.map.panTo(appState.currentPos);
-1405.     appState.map.setZoom(18);
-1406.     console.log('現在地に移動しました'); 
-1407.   } else {  
-1408.     console.log('現在地を取得します…'); 
-1409.     acquireLocation();  
-1410.   }  
-1411. }
-1412. 
-1413. // ==========================================
-1414. // ★★★ 変更点 ★★★
-1415. // キーボード表示ウォッチャー (干渉対策)
+1337. // 道順をクリップボードにコピー
+1338. // ==========================================
+1339. function exportRouteToClipboard() {
+1340.   if (!appState.currentRouteData) {
+1341.     console.warn('コピーするルートデータがありません'); 
+1342.     return;
+1343.   }
+1344. 
+1345.   const data = appState.currentRouteData;
+1346.   let textOutput = `■ 目的地: ${data.destinationName}\n`;
+1347.   textOutput += `■ 概要: ${data.summary} (約 ${data.distance}, 徒歩 ${data.duration})\n\n`;
+1348.   
+1349.   if (data.warnings.length > 0) {
+1350.     textOutput += "■ 警告:\n";
+1351.     data.warnings.forEach(w => {
+1352.        textOutput += `・ ${w.replace(/<[^>]+>/g, ' ')}\n`;
+1353.     });
+1354.     textOutput += "\n";
+1355.   }
+1356. 
+1357.   textOutput += "■ 道順:\n";
+1358.   if (data.steps && data.steps.length > 0) {
+1359.     data.steps.forEach((step, index) => {
+1360.       const instruction = (step.html_instructions || '').replace(/<[^>]+>/g, ' ');
+1361.       textOutput += `${index + 1}. ${instruction} (${step.distance.text})\n`;
+1362.     });
+1363.   } else {
+1364.     textOutput += "詳細な道順はありません。\n";
+1365.   }
+1366. 
+1367.   if (navigator.clipboard) {
+1368.     navigator.clipboard.writeText(textOutput)
+1369.       .then(() => {
+1370.         console.log('道順をクリップボードにコピーしました'); 
+1371.       })
+1372.       .catch(err => {
+1373.         console.error('Clipboard write error:', err);
+1374.         console.error('コピーに失敗しました'); 
+1375.       });
+1376.   } else {
+1377.     console.error('お使いのブラウザはコピー機能に非対応です'); 
+1378.   }
+1379. }
+1380. 
+1381. // ==========================================
+1382. // ★★★ 新規追加 ★★★
+1383. // ユーザーを現在地に移動 (FABとパネルから共用)
+1384. // ==========================================
+1385. let lastLocateTime = 0;
+1386. function locateUser() {
+1387.   // iOS 13+ のための許可リクエスト
+1388.   if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+1389.     DeviceOrientationEvent.requestPermission()
+1390.       .then(permissionState => {
+1391.         if (permissionState === 'granted') {
+1Vertical-align: top;
+1393.           console.log('[Compass] iOS permission granted.');
+1394.           stopCompassListener();  
+1395.           appState.compassWatchId = null;  
+1396.           startCompassListener();  
+1397.         }
+1398.       })
+1399.       .catch(console.error);
+1400.   }
+1401.   
+1402.   const now = Date.now();
+1403.   if (now - lastLocateTime < 1000) return;
+1404.   lastLocateTime = now;
+1405.   
+1406.   if (appState.currentPos && appState.map) {
+1407.     appState.map.panTo(appState.currentPos);
+1408.     appState.map.setZoom(18);
+1409.     console.log('現在地に移動しました'); 
+1410.   } else {  
+1411.     console.log('現在地を取得します…'); 
+1412.     acquireLocation();  
+1413.   }  
+1414. }
+1415. 
 1416. // ==========================================
-1417. function bindKeyboardWatch() {
-1418.   const searchInput = document.getElementById('q');
-1419.   const searchPanel = document.getElementById('searchPanel');
-1420.   const appBody = document.getElementById('appBody');
-1421.   const navPanel = document.getElementById('navPanel'); // ★ 追加
-1422. 
-1423.   searchInput.addEventListener('focus', () => {
-1424.     console.log('[Keyboard] Input focused');
-1425.     appBody.classList.add('keyboard-open');
-1426.     navPanel.style.display = 'none'; // ★ 案内パネルを非表示
-1427.     
-1428.     setTimeout(() => {
-1429.         const inputTopInPanel = searchInput.offsetTop;
-1430.         searchPanel.scrollTop = inputTopInPanel - 20;
-1431.         console.log(`[Keyboard] Scrolled panel to ${searchPanel.scrollTop}`);
-1432.     }, 350); 
-1433.   });
-1434. 
-1435.   searchInput.addEventListener('blur', () => {
-1436.     console.log('[Keyboard] Input blurred');
-1437.     appBody.classList.remove('keyboard-open');
-1438.     searchPanel.scrollTop = 0; 
-1439.     
-1440.     // ★ 状態に応じてnavPanelを再表示
-1441.     const resultsVisible = document.getElementById('results').style.display === 'block';
-1442.     if (!resultsVisible && !appState.pointSearchMode) {
-1443.       navPanel.style.display = 'block';
-1444.     }
-1445.   });
-1446. }
-1447. 
-1448. 
-1449. // ==========================================
-1450. // UI イベントバインディング
-1451. // ==========================================
-1452. 
-1453. // 検索パネルのイベント
-1454. function bindSearchPanelEvents() {
-1455.   const radiusLabel = document.getElementById('radiusLabel');
-1456.   const r10 = document.getElementById('r10');
-1457.   const r20 = document.getElementById('r20');
-1458.   const r30 = document.getElementById('r30');
-1459.   const btnPointSearch = document.getElementById('btnPointSearch');
-1460.   const navPanel = document.getElementById('navPanel'); 
-1461. 
-1462.   r10.onclick = () => {  
-1463.     r10.classList.add('active');  
-1464.     r20.classList.remove('active');
-1465.     r30.classList.remove('active');
-1466.     radiusLabel.textContent = '10km';  
-1467.   };
-1468.   
-1469.   r20.onclick = () => {  
-1470.     r20.classList.add('active');  
-1471.     r10.classList.remove('active');
-1472.     r30.classList.remove('active');
-1473.     radiusLabel.textContent = '20km';  
-1474.   };
-1475.   
-1476.   r30.onclick = () => {  
-1477.     r30.classList.add('active');  
-1478.     r10.classList.remove('active');
-1479.     r20.classList.remove('active');
-1480.     radiusLabel.textContent = '30km';  
-1481.   };
-1482. 
-1483.   btnPointSearch.onclick = () => {
-1484.     appState.pointSearchMode = !appState.pointSearchMode;
-1485.     if (appState.pointSearchMode) {
-1486.       btnPointSearch.textContent = '📍 ポイント選択中...';
-1487.       btnPointSearch.style.background = '#25d07a';
-1488.       btnPointSearch.style.color = '#0a2818';
-1489.       btnPointSearch.style.borderColor = 'transparent';
-1490.       console.log('地図をタップして検索地点を選択'); 
-1491.       navPanel.style.display = 'none'; 
-1492.     } else {
-1493.       btnPointSearch.textContent = '📍 ポイント選択';
-1494.       btnPointSearch.style.background = 'rgba(255,255,255,.08)';
-1495.       btnPointSearch.style.color = 'var(--text)';
-1496.       btnPointSearch.style.borderColor = 'var(--stroke)';
-1497.       
-1498.       if (document.getElementById('results').style.display === 'none') {
-1499.          navPanel.style.display = 'block';
-1500.       }
-1501.     }
-1502.   };
-1503. }
-1504. 
-1505. function bindLocationEvents() {
-1506.   document.getElementById('btnSaveLocation').onclick = showSaveLocationDialog;
-1507.   document.getElementById('btnEditLocation').onclick = showEditLocationDialog;
-1508. }
-1509. 
-1510. // ==========================================
-1511. // ★★★ 変更点 ★★★
-1512. // 検索イベント (アイコンをバインド)
+1417. // ★★★ 変更点 ★★★
+1418. // キーボード表示ウォッチャー (干渉対策)
+1419. // ==========================================
+1420. function bindKeyboardWatch() {
+1421.   const searchInput = document.getElementById('q');
+1Two22.   const searchPanel = document.getElementById('searchPanel');
+1423.   const appBody = document.getElementById('appBody');
+1424.   const navPanel = document.getElementById('navPanel'); // ★ 追加
+1425. 
+1426.   searchInput.addEventListener('focus', () => {
+1427.     console.log('[Keyboard] Input focused');
+1428.     appBody.classList.add('keyboard-open');
+1429.     navPanel.style.display = 'none'; // ★ 案内パネルを非表示
+1430.     
+1431.     setTimeout(() => {
+1432.         const inputTopInPanel = searchInput.offsetTop;
+1433.         searchPanel.scrollTop = inputTopInPanel - 20;
+1434.         console.log(`[Keyboard] Scrolled panel to ${searchPanel.scrollTop}`);
+1435.     }, 350); 
+1436.   });
+1437. 
+1438.   searchInput.addEventListener('blur', () => {
+1439.     console.log('[Keyboard] Input blurred');
+1440.     appBody.classList.remove('keyboard-open');
+1441.     searchPanel.scrollTop = 0; 
+1442.     
+1443.     // ★ 状態に応じてnavPanelを再表示
+1444.     const resultsVisible = document.getElementById('results').style.display === 'block';
+1445.     if (!resultsVisible && !appState.pointSearchMode) {
+1446.       navPanel.style.display = 'block';
+1447.     }
+1448.   });
+1449. }
+1450. 
+1451. 
+1452. // ==========================================
+1453. // UI イベントバインディング
+1454. // ==========================================
+1455. 
+1456. // 検索パネルのイベント
+1457. function bindSearchPanelEvents() {
+1458.   const radiusLabel = document.getElementById('radiusLabel');
+1459.   const r10 = document.getElementById('r10');
+1460.   const r20 = document.getElementById('r20');
+1461.   const r30 = document.getElementById('r30');
+1462.   const btnPointSearch = document.getElementById('btnPointSearch');
+1463.   const navPanel = document.getElementById('navPanel'); 
+1464. 
+1465.   r10.onclick = () => {  
+1466.     r10.classList.add('active');  
+1467.     r20.classList.remove('active');
+1468.     r30.classList.remove('active');
+1469.     radiusLabel.textContent = '10km';  
+1470.   };
+1471.   
+1472.   r20.onclick = () => {  
+1473.     r20.classList.add('active');  
+1474.     r10.classList.remove('active');
+1475.     r30.classList.remove('active');
+1476.     radiusLabel.textContent = '20km';  
+1477.   };
+1478.   
+1479.   r30.onclick = () => {  
+1480.     r30.classList.add('active');  
+1481.     r10.classList.remove('active');
+1482.     r20.classList.remove('active');
+1483.     radiusLabel.textContent = '30km';  
+1484.   };
+1485. 
+1486.   btnPointSearch.onclick = () => {
+1487.     appState.pointSearchMode = !appState.pointSearchMode;
+1488.     if (appState.pointSearchMode) {
+1489.       btnPointSearch.textContent = '📍 ポイント選択中...';
+1490.       btnPointSearch.style.background = '#25d07a';
+1491.       btnPointSearch.style.color = '#0a2818';
+1492.       btnPointSearch.style.borderColor = 'transparent';
+1493.       console.log('地図をタップして検索地点を選択'); 
+1494.       navPanel.style.display = 'none'; 
+1495.     } else {
+1496.       btnPointSearch.textContent = '📍 ポイント選択';
+1497.       btnPointSearch.style.background = 'rgba(255,255,255,.08)';
+1Yes98.       btnPointSearch.style.color = 'var(--text)';
+1499.       btnPointSearch.style.borderColor = 'var(--stroke)';
+1500.       
+1501.       if (document.getElementById('results').style.display === 'none') {
+1502.          navPanel.style.display = 'block';
+1503.       }
+1504.     }
+1505.   };
+1506. }
+1507. 
+1508. function bindLocationEvents() {
+1509.   document.getElementById('btnSaveLocation').onclick = showSaveLocationDialog;
+1510.   document.getElementById('btnEditLocation').onclick = showEditLocationDialog;
+1511. }
+1512. 
 1513. // ==========================================
-1514. function bindSearchEvents() {
-1515.   // 検索アイコンのクリック
-1516.   document.getElementById('btnSearchIcon').onclick = () => {
-1517.     const q = document.getElementById('q').value.trim();
-1518.     if (q) performSearch(q);
-1519.   };
-1520.   
-1521.   // 検索窓でのEnterキー
-1522.   document.getElementById('q').addEventListener('keypress', (e) => {
-1523.     if (e.key === 'Enter') {
-1524.       const q = document.getElementById('q').value.trim();
-1525.       if (q) performSearch(q);
-1526.     }
-1527.   });
-1528.   
-1529.   // マイクアイコンのクリック
-1530.   document.getElementById('btnVoiceIcon').onclick = startVoiceSearch;
+1514. // ★★★ 変更点 ★★★
+1515. // 検索イベント (アイコンをバインド)
+1516. // ==========================================
+1517. function bindSearchEvents() {
+1518.   // 検索アイコンのクリック
+1519.   document.getElementById('btnSearchIcon').onclick = () => {
+1520.     const q = document.getElementById('q').value.trim();
+1521.     if (q) performSearch(q);
+1522.   };
+CSS.   
+1524.   // 検索窓でのEnterキー
+1525.   document.getElementById('q').addEventListener('keypress', (e) => {
+1526.     if (e.key === 'Enter') {
+1527.       const q = document.getElementById('q').value.trim();
+1528.       if (q) performSearch(q);
+1529.     }
+1530.   });
 1531.   
-1532.   document.getElementById('btnReset').onclick = () => {
-1533.     document.getElementById('q').value = '';
-1534.     document.getElementById('results').style.display = 'none';
-1535.     document.getElementById('results').innerHTML = '';
-1536.     
-1537.     appState.searchMarkers.forEach(marker => marker.map = null);
-1538.     appState.searchMarkers = [];
+1532.   // マイクアイコンのクリック
+1533.   document.getElementById('btnVoiceIcon').onclick = startVoiceSearch;
+1534.   
+1535.   document.getElementById('btnReset').onclick = () => {
+1536.     document.getElementById('q').value = '';
+1537.     document.getElementById('results').style.display = 'none';
+1538.     document.getElementById('results').innerHTML = '';
 1539.     
-1540.     appState.searchPoint = null;
-1541.     if (appState.searchPointMarker) {
-1542.       appState.searchPointMarker.map = null;
-1543.       appState.searchPointMarker = null;
-1544.     }
-1545.     
-1546.     const addressBlock = document.getElementById('pointAddressBlock');
-1547.     const addressElement = document.getElementById('pointAddress');
-1548.     const coordsElement = document.getElementById('pointCoords');
-1549.     addressBlock.style.display = 'none';
-1550.     addressElement.textContent = '';
-1551.     coordsElement.textContent = '';
-1552.     
-1553.     appState.pointSearchMode = false;
-1554.     const btnPointSearch = document.getElementById('btnPointSearch');
-1555.     btnPointSearch.textContent = '📍 ポイント選択';
-1556.     btnPointSearch.style.background = 'rgba(255,255,255,.08)';
-1557.     btnPointSearch.style.color = 'var(--text)';
-1558.     btnPointSearch.style.borderColor = 'var(--stroke)';
-1559.     
-1560.     document.getElementById('navPanel').style.display = 'block'; 
-1561.     
-1562.     document.getElementById('r10').classList.add('active');
-1563.     document.getElementById('r20').classList.remove('active');
-1564.     document.getElementById('r30').classList.remove('active');
-1565.     document.getElementById('radiusLabel').textContent = '10km';
-1566.     
-1567.     console.log('リセットしました'); 
-1568.     console.log('[WalkNav] リセット完了');
-1569.   };
-1570. 
-1571.   // ★ 検索パネル内の「現在地」ボタン
-1572.   document.getElementById('btnLocatePanel').onclick = locateUser;
-1573. }
+1540.     appState.searchMarkers.forEach(marker => marker.map = null);
+1541.     appState.searchMarkers = [];
+1542.     
+1543.     appState.searchPoint = null;
+1544.     if (appState.searchPointMarker) {
+1545.       appState.searchPointMarker.map = null;
+1546.       appState.searchPointMarker = null;
+1547.     }
+1548.     
+1549.     const addressBlock = document.getElementById('pointAddressBlock');
+1550.     const addressElement = document.getElementById('pointAddress');
+1551.     const coordsElement = document.getElementById('pointCoords');
+1552.     addressBlock.style.display = 'none';
+1553.     addressElement.textContent = '';
+1554.     coordsElement.textContent = '';
+1555.     
+1556.     appState.pointSearchMode = false;
+1557.     const btnPointSearch = document.getElementById('btnPointSearch');
+1558.     btnPointSearch.textContent = '📍 ポイント選択';
+1559.     btnPointSearch.style.background = 'rgba(255,255,255,.08)';
+1560.     btnPointSearch.style.color = 'var(--text)';
+1561.     btnPointSearch.style.borderColor = 'var(--stroke)';
+1Vertical-align: top;
+1563.     
+1564.     document.getElementById('navPanel').style.display = 'block'; 
+1565.     
+1566.     document.getElementById('r10').classList.add('active');
+1567.     document.getElementById('r20').classList.remove('active');
+1568.     document.getElementById('r30').classList.remove('active');
+1569.     document.getElementById('radiusLabel').textContent = '10km';
+1570.     
+1571.     console.log('リセットしました'); 
+1572.     console.log('[WalkNav] リセット完了');
+1573.   };
 1574. 
-1575. // ==========================================
-1576. // ★★★ 変更点 ★★★
-1577. // FAB・パネル制御 (ロジックを locateUser に移動)
-1578. // ==========================================
-1579. function bindFABEvents() {
-1580.   
-1581.   // 検索パネルボタン（FAB側）
-1582.   document.getElementById('btnSearch').onclick = () => {
-1583.     document.getElementById('searchPanel').style.display = 'block';
-1584.     document.getElementById('fabStack').style.display = 'none';  
-1585.     document.getElementById('appBody').classList.add('panel-open');  
-1586.     
-1587.     if (document.getElementById('results').style.display === 'none' && !appState.pointSearchMode) {
-1588.         document.getElementById('navPanel').style.display = 'block';
-1589.     }
+1575.   // ★ 検索パネル内の「現在地」ボタン
+1576.   document.getElementById('btnLocatePanel').onclick = locateUser;
+1577. }
+1578. 
+1579. // ==========================================
+1580. // ★★★ 変更点 ★★★
+1581. // FAB・パネル制御 (ロジックを locateUser に移動)
+1582. // ==========================================
+1583. function bindFABEvents() {
+1584.   
+1585.   // 検索パネルボタン（FAB側）
+1586.   document.getElementById('btnSearch').onclick = () => {
+1587.     document.getElementById('searchPanel').style.display = 'block';
+1588.     document.getElementById('fabStack').style.display = 'none';  
+1589.     document.getElementById('appBody').classList.add('panel-open');  
 1590.     
-1591.     document.getElementById('navPanelInstructions').innerHTML = '';  
-1592.     document.getElementById('incidentPanel').style.display = 'none';  
-1593.   };
-1594.   
-1595.   // 検索パネルを閉じるボタン（パネル側）
-1596.   document.getElementById('btnClosePanel').onclick = () => {
-1597.     document.getElementById('searchPanel').style.display = 'none';
-1598.     // ナビ中でなければFABを隠し、現在地パネルも隠す
-1599.     if (!appState.isNavigating) {
-1600.        document.getElementById('fabStack').style.display = 'none';
-1601.        document.getElementById('navPanel').style.display = 'none';
-1602.     } else {
-1603.        document.getElementById('fabStack').style.display = 'flex'; // ナビ中ならFAB表示
-1604.     }
-1605.      document.getElementById('appBody').classList.remove('panel-open');  
-1606.   };
-1607. 
-1608.   // ★ 関数呼び出しに変更
-1609.   document.getElementById('btnLocate').onclick = locateUser;
-1610.   
-1611.   document.getElementById('btnDestination').onclick = () => {
-1612.     // ★ デバウンスロジックを削除 (locateUser に移動したため)
-1613.     
-1614.     if (appState.currentDestination && appState.map) {
-1615.       appState.map.panTo({ lat: appState.currentDestination.lat, lng: appState.currentDestination.lng });
-1616.       appState.map.setZoom(18);
-1617.       console.log('目的地に移動しました'); 
-1618.     }
-1GA.   };
-1620.   
-1621.   document.getElementById('btnPause').onclick = togglePause;
-1622.   
-1623.   document.getElementById('btnReroute').onclick = () => {
-1624.     if (appState.currentDestination) {
-1625.       startNavigation(appState.currentDestination);
-1626.     } else {
-1627.       console.warn('目的地が設定されていません'); 
-1628.     }
-1629.   };
-1630. }
-1631. 
-1632. // ==========================================
-1633. // ルートパネルのボタン制御
-1634. // ==========================================
-1635. function bindRoutePanelEvents() {
-1636.    document.getElementById('btnStopRoute').onclick = stopNavigation;
-1637.    document.getElementById('btnExportText').onclick = exportRouteToClipboard;
-1638. }
-1639. 
-1640. function bindUI() {
-1641.   console.log('[WalkNav] Binding UI...');
-1642.   bindSearchPanelEvents();
-1643.   bindLocationEvents();
-1644.   bindSearchEvents();
-1645.   bindFABEvents();
-1646.   bindRoutePanelEvents();  
-1647.   bindKeyboardWatch(); 
-1648.   console.log('[WalkNav] UI binding complete');
-1649. }
-1650. 
-1651. // ==========================================
-1652. // アプリケーション起動
-1653. // ==========================================
-1654. function startApp() {
-1655.   console.log('[WalkNav] Starting app...');
-1656.   document.documentElement.lang = 'ja';
-1657.   
-1658.   // 初期状態
-1659.   document.getElementById('searchPanel').style.display = 'block';
-1660.   document.getElementById('fabStack').style.display = 'none';  
-1661.   // document.getElementById('btnSearch').style.display = 'flex'; // ★★★ 削除: 不要なロジック
-1662.   document.getElementById('appBody').classList.add('panel-open');  
-1663.   document.getElementById('navPanel').style.display = 'block';
-1664.   
-1665.   bindUI();
-1666.   acquireLocation(); // 初回取得
-1667.   initSpeechRecognition();
-1668.   startCompassListener(); // コンパス監視を開始
-1669.   
-1670.   // ★★★ 追加: 保険的なローディング解除 ★★★
-1671.   // 35秒 (LOCATION_OPTIONSのtimeout 30秒 + 5秒) 経っても
-1672.   // loadingが残っていたら強制的に削除
-1673.   setTimeout(() => {
-1674.     const loadingEl = document.getElementById('loading');
-1675.     if (loadingEl) {
-1676.       console.warn('[WalkNav] ローディングが残っていたため強制削除します。');
-1677.       loadingEl.remove();
-1678.     }
-1679.   }, 35000); // 35秒
-1680.   
-1681.   console.log('[WalkNav] ISSUE', ISSUE_ID, 'boot');
-1682. }
-1683. 
-1684. function initializeWhenReady() {
-1685.   // Google Maps API本体 と geometry ライブラリのロードを待つ
-1686.   if (typeof google !== 'undefined' && google.maps && google.maps.Map && google.maps.geometry) {
-1687.     startApp();
-1688.   } else {
-1689.     // 100ms待って再チェック
-1690.     setTimeout(initializeWhenReady, 100);
-1691.   }
-1692. }
-1693. 
-1694. // DOMContentLoadedからロード監視を開始
-1695. window.addEventListener('DOMContentLoaded', initializeWhenReady);
+1591.     if (document.getElementById('results').style.display === 'none' && !appState.pointSearchMode) {
+1592.         document.getElementById('navPanel').style.display = 'block';
+1593.     }
+1594.     
+1595.     document.getElementById('navPanelInstructions').innerHTML = '';  
+1596.     document.getElementById('incidentPanel').style.display = 'none';  
+1597.   };
+1598.   
+1599.   // 検索パネルを閉じるボタン（パネル側）
+1600.   document.getElementById('btnClosePanel').onclick = () => {
+1601.     document.getElementById('searchPanel').style.display = 'none';
+1602.     // ナビ中でなければFABを隠し、現在地パネルも隠す
+1603.     if (!appState.isNavigating) {
+1604.        document.getElementById('fabStack').style.display = 'none';
+1605.        document.getElementById('navPanel').style.display = 'none';
+1606.     } else {
+1607.        document.getElementById('fabStack').style.display = 'flex'; // ナビ中ならFAB表示
+1608.     }
+1609.      document.getElementById('appBody').classList.remove('panel-open');  
+1610.   };
+1611. 
+1612.   // ★ 関数呼び出しに変更
+1613.   document.getElementById('btnLocate').onclick = locateUser;
+1614.   
+1615.   document.getElementById('btnDestination').onclick = () => {
+1616.     // ★ デバウンスロジックを削除 (locateUser に移動したため)
+1617.     
+1618.     if (appState.currentDestination && appState.map) {
+1619.       appState.map.panTo({ lat: appState.currentDestination.lat, lng: appState.currentDestination.lng });
+1620.       appState.map.setZoom(18);
+1621.       console.log('目的地に移動しました'); 
+1622.     }
+1623.   };
+1624.   
+1625.   document.getElementById('btnPause').onclick = togglePause;
+1626.   
+1Choose.   document.getElementById('btnReroute').onclick = () => {
+1628.     if (appState.currentDestination) {
+1629.       startNavigation(appState.currentDestination);
+1630.     } else {
+1631.       console.warn('目的地が設定されていません'); 
+1632.     }
+1633.   };
+1634. }
+1635. 
+1636. // ==========================================
+1637. // ルートパネルのボタン制御
+1638. // ==========================================
+1639. function bindRoutePanelEvents() {
+1640.    document.getElementById('btnStopRoute').onclick = stopNavigation;
+1641.    document.getElementById('btnExportText').onclick = exportRouteToClipboard;
+1642. }
+1Stop. 
+1644. function bindUI() {
+1645.   console.log('[WalkNav] Binding UI...');
+1646.   bindSearchPanelEvents();
+1647.   bindLocationEvents();
+1648.   bindSearchEvents();
+1649.   bindFABEvents();
+1650.   bindRoutePanelEvents();  
+1651.   bindKeyboardWatch(); 
+1652.   console.log('[WalkNav] UI binding complete');
+1653. }
+1654. 
+1655. // ==========================================
+1656. // アプリケーション起動
+1657. // ==========================================
+1658. function startApp() {
+1659.   console.log('[WalkNav] Starting app...');
+1660.   document.documentElement.lang = 'ja';
+1661.   
+1662.   // 初期状態
+1663.   document.getElementById('searchPanel').style.display = 'block';
+1664.   document.getElementById('fabStack').style.display = 'none';  
+1665.   // document.getElementById('btnSearch').style.display = 'flex'; // ★★★ 削除: 不要なロジック
+1666.   document.getElementById('appBody').classList.add('panel-open');  
+1667.   document.getElementById('navPanel').style.display = 'block';
+1668.   
+1669.   bindUI();
+1670.   acquireLocation(); // 初回取得
+1671.   initSpeechRecognition();
+1672.   startCompassListener(); // コンパス監視を開始
+1673.   
+1674.   // ★★★ 変更: 保険的なローディング解除 ★★★
+1675.   // 35秒 (LOCATION_OPTIONSのtimeout 30秒 + 5秒) 経っても
+1676.   // loadingが残っていたら強制的に削除
+1677.   setTimeout(() => {
+1678.     const loadingEl = document.getElementById('loading');
+1679.     if (loadingEl) {
+1680.       console.warn('[WalkNav] ローディングが残っていたため強制削除します。');
+1Still.       loadingEl.remove();
+1682.     }
+1683.   }, 35000); // 35秒
+1684.   
+1685.   console.log('[WalkNav] ISSUE', ISSUE_ID, 'boot');
+1686. }
+1687. 
+1688. function initializeWhenReady() {
+1689.   // Google Maps API本体 と geometry ライブラリのロードを待つ
+1690.   if (typeof google !== 'undefined' && google.maps && google.maps.Map && google.maps.geometry) {
+1691.     startApp();
+1692.   } else {
+1693.     // 100ms待って再チェック
+1694.     setTimeout(initializeWhenReady, 100);
+1695.   }
+1696. }
+1697. 
+1698. // DOMContentLoadedからロード監視を開始
+1699. window.addEventListener('DOMContentLoaded', initializeWhenReady);
