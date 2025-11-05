@@ -1,218 +1,128 @@
-:root{
-  --bg:#0b1220;
-  --glass: rgba(20,28,44,.78);
-  --glass-strong: rgba(16,22,36,.9);
-  --stroke: rgba(255,255,255,.12);
-  --text:#eaf2ff;
-  --muted:#a7b8ce;
-  --primary:#62b5ff;
-  --ok:#25d07a;
-  --danger:#ff6565;
-  --warning:#ffb84d;
-  --shadow:0 10px 35px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
-  --radius:18px;
-}
-html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans JP",Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-*{box-sizing:border-box}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>WalkNav</title>
 
-.app{position:relative;height:100dvh;overflow:hidden}
-#map{position:absolute;inset:0}
+  <meta name="x-issue" content="idx202511050540-split" />
+  <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
-.fab-stack{
-  position:fixed;
-  right:16px;
-  bottom: 16px;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  z-index:2550;
-  display:none;
-}
-.panel{
-  position:absolute;
-  left:16px;
-  right:16px;
-  bottom:16px;
-  top:auto;
-  background:var(--glass-strong);border:1px solid var(--stroke);
-  border-radius:var(--radius);box-shadow:var(--shadow);
-  padding:14px 14px 12px;backdrop-filter:blur(10px);
-  z-index:2500;
-  max-height:calc(100vh - 32px);
-  overflow-y:auto;
-  transition: top 0.3s ease-out, bottom 0.3s ease-out;
-}
-.panel h2{
-  margin:0 0 10px;
-  font-size:17px;
-  letter-spacing:.3px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  text-align:center;
-}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.chip{padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--stroke);color:var(--text);font-size:14px;cursor:pointer;user-select:none}
-.chip.active{background:var(--primary);color:#05233a;border-color:transparent}
+  <link rel="stylesheet" href="app.css?v=4" />
+</head>
+<body id="appBody">
+  <div class="app">
+    <div id="map" aria-label="地図"></div>
 
-/* input */
-.input{
-  flex:1;min-width:220px;
-  border-radius:12px;border:1px solid var(--stroke);
-  background:rgba(255,255,255,.06);color:var(--text);outline:none
-}
-.input-wrapper{
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 100%;
-  height: 48px;
-}
-.input-wrapper .input{
-  padding: 10px 80px 10px 40px;
-  height: 48px;
-  position: relative;
-  z-index: 1;
-}
-.input-wrapper .input:focus{ font-size: 16px; }
-.input-wrapper .icon{
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0.7;
-  pointer-events: auto;
-}
-.input-wrapper .icon-g{ left: 12px; pointer-events: none; color:#4285F4; }
-.input-wrapper .icon-search{ right: 50px; cursor: pointer; z-index:10; color: var(--primary); opacity:.8; }
-.input-wrapper .icon-mic{
-  right: 12px; cursor: pointer; z-index: 10;
-  width: 36px; height: 36px; padding: 7px; border-radius: 50%;
-  box-sizing: border-box; transition: background-color .2s;
-  color: var(--text); opacity: .7;
-}
-.input-wrapper .icon-search:hover{ opacity:1; transform: scale(1.1); }
-.input-wrapper .icon-mic.recording{ background-color: var(--danger); color: var(--text); opacity:1; }
-.input-wrapper .icon-mic:hover:not(.recording){ background-color: rgba(255,255,255,.1); opacity:1; }
+    <section class="panel" id="searchPanel" aria-label="検索パネル">
+      <h2>近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
 
-/* point address */
-#pointAddressBlock{ flex-wrap: wrap; align-items: baseline; }
-#pointCoords{ font-size:12px; color:var(--muted); margin-left:8px; }
+      <div class="row" style="margin-bottom:8px;justify-content:center;flex-wrap:wrap;">
+        <button class="chip active" id="r10">10km</button>
+        <button class="chip" id="r20">20km</button>
+        <button class="chip" id="r30">30km</button>
+        <button class="chip" id="btnPointSearch" style="flex-grow: 1; min-width: 120px;">📍 ポイント選択</button>
+      </div>
 
-.btn{
-  padding:10px 14px;border-radius:12px;border:1px solid var(--stroke);
-  background:rgba(255,255,255,.06);color:var(--text);
-  cursor:pointer;user-select:none;border:none;
-}
-.btn.primary{background:var(--primary);color:#051a2a;border-color:transparent}
-.btn.danger{background:var(--danger);color:#240808;border-color:transparent}
-.btn:disabled{opacity:.5;pointer-events:none}
+      <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px; display: none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;" id="pointAddressBlock">
+        <div id="pointAddress" style="line-height:1.5; color: var(--warning);">ポイント：取得中...</div>
+        <div id="pointCoords" style="line-height:1.5;"></div>
+      </div>
 
-.fab{
-  min-width:112px; height:56px; display:flex;align-items:center;justify-content:center;
-  background:var(--glass-strong); border:1px solid var(--stroke); border-radius:18px;
-  color:var(--text); box-shadow:var(--shadow); cursor:pointer; user-select:none;
-  font-size:14px;
-}
-.fab:active{transform:translateY(1px)}
-.fab.paused{background:var(--warning);color:#2a1d05;border-color:transparent}
+      <div class="row" style="margin-bottom:8px">
+        <button class="btn" id="btnSaveLocation" style="flex:1">現在地登録</button>
+        <button class="btn" id="btnEditLocation" style="flex:1">登録地修正</button>
+      </div>
 
-.loading{ position:absolute;inset:0;display:flex;align-items:center;justify-content:center; background:#000; color:#fff; font-size:20px; z-index:3000 }
+      <div class="row" style="margin-bottom:8px">
+        <div class="input-wrapper">
+          <span class="icon icon-g">
+            <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor;">
+              <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5.03,16.21 5.03,12.39C5.03,8.57 8.36,5.5 12.19,5.5C14.73,5.5 16.29,6.5 17.2,7.38L19.31,5.26C17.38,3.53 15.05,2.5 12.19,2.5C6.92,2.5 2.73,6.63 2.73,12.39C2.73,18.15 6.92,22.28 12.19,22.28C17.63,22.28 21.64,18.5 21.64,12.61C21.64,12 21.52,11.55 21.35,11.1Z"></path>
+            </svg>
+          </span>
+          <input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" style="flex:1" autocomplete="off" />
+          <span class="icon icon-search" id="btnSearchIcon">
+            <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;">
+              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+            </svg>
+          </span>
+          <span class="icon icon-mic" id="btnVoiceIcon">
+            <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;">
+              <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-6.72 6-6.72h-1.7z"></path>
+            </svg>
+          </span>
+        </div>
+      </div>
 
-.results{ margin-top:12px; background:rgba(0,0,0,.3); border-radius:12px; padding:8px; }
-.result-item{ padding:10px; margin-bottom:6px; background:rgba(255,255,255,.05); border-radius:8px; cursor:pointer; transition:background .2s; }
-.result-item:hover{ background:rgba(255,255,255,.1); }
-.result-name{ font-weight:600; margin-bottom:4px; font-size:16px; }
-.result-address{ font-size:12px; color:var(--muted); }
+      <div id="results" class="results" style="display:none"></div>
 
-.route-panel{
-  position:absolute; left:16px; bottom:16px; top:auto; right:144px;
-  background:var(--glass-strong); border:1px solid var(--stroke);
-  border-radius:var(--radius); box-shadow:var(--shadow); padding:14px;
-  backdrop-filter:blur(10px); z-index:2500; display:none; min-height:142px;
-}
-.route-info{ font-size:14px; margin-bottom:8px; }
-.route-distance{ font-size:24px; font-weight:bold; color:var(--primary); }
-.route-time{ font-size:16px; color:var(--muted); margin-left:12px; }
-.route-actions{ margin-top:10px; display:flex; flex-direction:column; gap:8px; }
+      <div class="row" style="margin-top:12px; gap: 8px;">
+        <button id="btnReset" class="btn danger" style="flex:1">リセット</button>
+        <button id="btnLocatePanel" class="btn" style="flex:1;background:rgba(98, 181, 255, 0.2); color: var(--primary);">現在地</button>
+        <button id="btnClosePanel" class="btn" style="flex:1;background:rgba(255,255,255,0.1)">パネルを閉じる</button>
+      </div>
+    </section>
 
-/* nav panel */
-.nav-panel{
-  position:absolute; left:16px; right:16px; top:16px; bottom:auto;
-  background:var(--glass-strong); border:1px solid var(--stroke);
-  border-radius:var(--radius); box-shadow:var(--shadow); padding:14px;
-  backdrop-filter:blur(10px); z-index:2500; display:none;
-  max-height:45vh; overflow-y:auto;
-}
-.nav-location{
-  font-size:13px; color:var(--muted); margin-bottom:12px;
-  flex-direction:column; align-items:flex-start; gap:4px;
-  border-bottom:1px solid var(--stroke); padding-bottom:10px;
-}
-#locCoords{ font-size:14px; color:var(--muted); font-weight:500; }
-#locAddress{ font-size:14px; color:var(--text); font-weight:600; line-height:1.5; }
+    <div class="nav-panel" id="navPanel">
+      <div class="nav-location">
+        <div id="locCoords">現在地：取得中...</div>
+        <div id="locAddress"></div>
+      </div>
+      <div class="nav-weather" id="navWeather">
+        <div class="weather-item">
+          <span>3H</span>
+          <span id="weather3h">--</span>
+        </div>
+        <div class="weather-item">
+          <span>6H</span>
+          <span id="weather6h">--</span>
+        </div>
+        <div class="weather-item">
+          <span>9H</span>
+          <span id="weather9h">--</span>
+        </div>
+      </div>
+      <div class="nav-instructions-list" id="navPanelInstructions"></div>
+    </div>
 
-.nav-weather{
-  display:flex; gap:12px; justify-content:space-around;
-  padding-bottom:12px; margin-bottom:12px; border-bottom:1px solid var(--stroke);
-}
-.weather-item{ display:flex; flex-direction:column; align-items:center; font-size:11px; color:var(--muted); }
-.weather-item span:first-child{ font-weight:600; }
-.weather-item span:last-child{ font-size:18px; margin-top:4px; }
+    <div class="incident-panel" id="incidentPanel"></div>
 
-.nav-instructions-list{ display:flex; flex-direction:column; gap:10px; }
-.nav-instruction-item{ font-size:14px; line-height:1.6; color:var(--text); padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.08); }
-.nav-instruction-item:last-child{ border-bottom:none; padding-bottom:0; }
-.nav-instruction-item:first-child{ background: rgba(98, 181, 255, 0.2); padding:10px; border-radius:12px; border-bottom:none; margin:-4px; }
-.nav-instruction-item:first-child + .nav-instruction-item{ margin-top:10px; }
+    <div class="route-panel" id="routePanel">
+      <div class="route-info">
+        <span id="destinationName">目的地</span>へのルート
+      </div>
+      <div>
+        <span class="route-distance" id="routeDistance">--</span>
+        <span class="route-time" id="routeTime">徒歩 --分</span>
+      </div>
+      <div class="route-actions">
+        <button id="btnExportText" class="btn" style="width:100%;background:rgba(255,255,255,0.1)">道順をコピー</button>
+        <button id="btnStopRoute" class="btn danger" style="width:100%">ルート終了</button>
+      </div>
+    </div>
 
-/* incident */
-.incident-panel{
-  position:absolute; left:16px; right:144px; bottom: calc(16px + 142px + 10px);
-  top:auto; background: rgba(255, 184, 77, 0.15); border:1px solid var(--warning);
-  border-radius:12px; box-shadow:var(--shadow); padding:10px 14px; backdrop-filter:blur(10px);
-  z-index:2500; display:none; font-size:13px; color:var(--warning);
-  max-height:50px; overflow-y:auto;
-}
+    <div class="fab-stack" id="fabStack">
+      <div class="fab" id="btnSearch">検索パネル</div>
+      <div class="fab" id="btnLocate">現在地</div>
+      <div class="fab" id="btnDestination" style="display:none">目的地</div>
+      <div class="fab" id="btnPause">一時停止</div>
+      <div class="fab" id="btnReroute">リルート</div>
+    </div>
 
-/* dialog */
-.dialog-overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:9999; backdrop-filter:blur(4px); }
-.dialog-overlay.scroll{ overflow:auto; }
-.dialog-box{ background:var(--glass-strong); border:1px solid var(--stroke); border-radius:var(--radius); padding:24px; max-width:400px; width:90%; box-shadow:var(--shadow); }
-.dialog-box.wide{ max-width:500px; max-height:80vh; overflow-y:auto; margin:20px; }
-.dialog-title{ margin:0 0 16px; font-size:18px; color:var(--text); font-weight:600; }
-.dialog-text{ margin:0 0 16px; font-size:14px; color:var(--text); }
-.dialog-muted{ margin:0 0 16px; font-size:12px; color:var(--muted); }
-.dialog-input{ width:100%; padding:10px; border-radius:8px; border:1px solid var(--stroke); background:rgba(255,255,255,0.1); color:var(--text); font-size:16px; outline:none; margin-bottom:16px; }
-.dialog-actions{ display:flex; gap:10px; justify-content:flex-end; }
-.dialog-btn{ padding:10px 20px; border-radius:8px; border:none; cursor:pointer; font-size:14px; }
-.dialog-btn.cancel{ background:rgba(255,255,255,0.1); color:var(--text); }
-.dialog-btn.confirm{ background:var(--primary); color:#051a2a; }
-.dialog-btn.delete{ background:var(--danger); color:#240808; }
-.dialog-btn.full{ width:100%; margin-top:0; }
+    <div class="loading" id="loading">
+      <div style="text-align:center">
+        <div style="font-size:24px;margin-bottom:16px">📍 現在地取得中</div>
+        <div style="font-size:16px;opacity:0.8">しばらくお待ちください...</div>
+      </div>
+    </div>
+  </div>
 
-.location-list{ display:flex; flex-direction:column; gap:8px; }
-.location-item{ background:rgba(255,255,255,0.05); border-radius:8px; padding:12px; }
-.location-item-name{ font-size:16px; font-weight:600; color:var(--text); margin-bottom:4px; }
-.location-item-coords{ font-size:12px; color:var(--muted); margin-bottom:8px; }
-.location-item-actions{ display:flex; gap:8px; }
-.location-item-btn{ flex:1; padding:8px; border-radius:6px; border:none; cursor:pointer; font-size:13px; }
-.location-item-btn.nav{ background:var(--primary); color:#051a2a; }
-.location-item-btn.edit{ background:rgba(255,255,255,0.1); color:var(--text); }
-.location-item-btn.delete{ background:var(--danger); color:#240808; }
+  <script src="app.js?v=4" defer></script>
 
-#locLabel{ display:block; white-space:pre-line; line-height:1.6; word-break:break-word; max-width:100%; }
-
-.error-banner{display:none !important}
-
-.keyboard-open .panel#searchPanel{
-  max-height: calc(100vh - 32px);
-  overflow-y: auto;
-}
-.keyboard-open .panel#searchPanel h2,
-.keyboard-open .panel#searchPanel .row,
-.keyboard-open .panel#searchPanel #pointAddressBlock{
-  display:none;
-}
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry"
+    async defer>
+  </script>
+</body>
+</html>
