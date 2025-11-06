@@ -8,7 +8,7 @@
   <meta name="x-issue" content="idx202511050540-split" />
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
-  <link rel="stylesheet" href="app.css?v=4" />
+  <link rel="stylesheet" href="app.css?v=3" />
 </head>
 <body id="appBody">
   <div class="app">
@@ -16,24 +16,24 @@
 
     <section class="panel" id="searchPanel" aria-label="検索パネル">
       <h2>近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
-
+      
       <div class="row" style="margin-bottom:8px;justify-content:center;flex-wrap:wrap;">
         <button class="chip active" id="r10">10km</button>
         <button class="chip" id="r20">20km</button>
         <button class="chip" id="r30">30km</button>
         <button class="chip" id="btnPointSearch" style="flex-grow: 1; min-width: 120px;">📍 ポイント選択</button>
       </div>
-
+      
       <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px; display: none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;" id="pointAddressBlock">
         <div id="pointAddress" style="line-height:1.5; color: var(--warning);">ポイント：取得中...</div>
         <div id="pointCoords" style="line-height:1.5;"></div>
       </div>
-
+      
       <div class="row" style="margin-bottom:8px">
         <button class="btn" id="btnSaveLocation" style="flex:1">現在地登録</button>
         <button class="btn" id="btnEditLocation" style="flex:1">登録地修正</button>
       </div>
-
+      
       <div class="row" style="margin-bottom:8px">
         <div class="input-wrapper">
           <span class="icon icon-g">
@@ -49,20 +49,20 @@
           </span>
           <span class="icon icon-mic" id="btnVoiceIcon">
             <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;">
-              <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-6.72 6-6.72h-1.7z"></path>
+              <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"></path>
             </svg>
           </span>
         </div>
       </div>
-
+      
       <div id="results" class="results" style="display:none"></div>
-
+      
       <div class="row" style="margin-top:12px; gap: 8px;">
         <button id="btnReset" class="btn danger" style="flex:1">リセット</button>
         <button id="btnLocatePanel" class="btn" style="flex:1;background:rgba(98, 181, 255, 0.2); color: var(--primary);">現在地</button>
-        <button id="btnClosePanel" class="btn" style="flex:1;background:rgba(255,255,255,0.1)">パネルを閉じる</button>
+        <button id="btnClosePanel" class="btn" style="flex:1;background:rgba(255,255,255,0.1)">閉じる</button>
       </div>
-    </section>
+      </section>
 
     <div class="nav-panel" id="navPanel">
       <div class="nav-location">
@@ -85,7 +85,7 @@
       </div>
       <div class="nav-instructions-list" id="navPanelInstructions"></div>
     </div>
-
+    
     <div class="incident-panel" id="incidentPanel"></div>
 
     <div class="route-panel" id="routePanel">
@@ -116,13 +116,12 @@
         <div style="font-size:16px;opacity:0.8">しばらくお待ちください...</div>
       </div>
     </div>
+
   </div>
 
-  <script src="app.js?v=4" defer></script>
-
+  <script src="app.js" defer></script>
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry"
-    async defer>
-  </script>
+    async defer></script>
 </body>
 </html>
