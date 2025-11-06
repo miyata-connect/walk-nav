@@ -13,53 +13,61 @@
     .tab{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;border:1px solid transparent;background:#fff;font-size:14px;color:#111;white-space:nowrap;cursor:pointer;} /* L013 */
     .tab.active{border-color:#2563eb;color:#2563eb;} /* L014 */
     .tab.add{background:#f8fafc;border:1px dashed #cbd5e1;} /* L015 */
-    .view{position:absolute;top:52px;left:0;right:0;bottom:0;display:none;} /* L016 */
-    .view.active{display:block;} /* L017 */
-    #mapHost{position:absolute;inset:0;display:flex;flex-direction:column;} /* L018 */
-    #mapFrame{flex:1;width:100%;height:100%;border:0;background:#e5e7eb;} /* L019 */
-  </style> <!-- L020 -->
-</head> <!-- L021 -->
-<body> <!-- L022 -->
-<div id="app"> <!-- L023 -->
-  <div class="topbar"> <!-- L024 -->
-    <div class="tabs" id="tabs"> <!-- L025 -->
-      <div class="tab active" data-view="view-map" id="tab-map">🗺️ 地図</div> <!-- L026 -->
-      <div class="tab" data-view="view-browser" id="tab-browser">🤖 Aiブラウザ</div> <!-- L027 -->
-      <div class="tab" data-view="view-settings" id="tab-settings">⚙️ 設定</div> <!-- L028 -->
-      <div class="tab add" id="tab-add">＋</div> <!-- L029 -->
-    </div> <!-- L030 -->
-  </div> <!-- L031 -->
+    /* 追加：＋を完全無効化（見た目はそのまま） */ /* L016 */
+    .tab.add[aria-disabled="true"]{opacity:.6;cursor:default;pointer-events:none;} /* L017 */
+    .view{position:absolute;top:52px;left:0;right:0;bottom:0;display:none;} /* L018 */
+    .view.active{display:block;} /* L019 */
+    #mapHost{position:absolute;inset:0;display:flex;flex-direction:column;} /* L020 */
+    #mapFrame{flex:1;width:100%;height:100%;border:0;background:#e5e7eb;} /* L021 */
+  </style> <!-- L022 -->
+</head> <!-- L023 -->
+<body> <!-- L024 -->
+<div id="app"> <!-- L025 -->
+  <div class="topbar"> <!-- L026 -->
+    <div class="tabs" id="tabs"> <!-- L027 -->
+      <div class="tab active" data-view="view-map" id="tab-map">🗺️ 地図</div> <!-- L028 -->
+      <div class="tab" data-view="view-browser" id="tab-browser">🤖 Aiブラウザ</div> <!-- L029 -->
+      <div class="tab" data-view="view-settings" id="tab-settings">⚙️ 設定</div> <!-- L030 -->
+      <!-- ここを無効化：aria-disabled + data-disabled 付与（見た目維持・操作殺し） --> <!-- L031 -->
+      <div class="tab add" id="tab-add" aria-disabled="true" data-disabled="true">＋</div> <!-- L032 -->
+    </div> <!-- L033 -->
+  </div> <!-- L034 -->
 
-  <div class="view active" id="view-map"> <!-- L032 -->
-    <div id="mapHost"> <!-- L033 -->
-      <!-- 同一オリジンの別ファイルを読み込む：Referer/CSP/相対パス問題を回避 --> <!-- L034 -->
-      <iframe id="mapFrame" title="地図（embed.html）" src="./embed.html" allow="geolocation *; microphone *" referrerpolicy="no-referrer-when-downgrade"></iframe> <!-- L035 -->
-    </div> <!-- L036 -->
-  </div> <!-- L037 -->
+  <div class="view active" id="view-map"> <!-- L035 -->
+    <div id="mapHost"> <!-- L036 -->
+      <iframe id="mapFrame" title="地図（embed.html）" src="./embed.html" allow="geolocation *; microphone *" referrerpolicy="no-referrer-when-downgrade"></iframe> <!-- L037 -->
+    </div> <!-- L038 -->
+  </div> <!-- L039 -->
 
-  <div class="view" id="view-browser"> <!-- L038 -->
-    <iframe id="webview" style="width:100%;height:100%;border:0" title="Aiブラウザ"></iframe> <!-- L039 -->
-  </div> <!-- L040 -->
+  <div class="view" id="view-browser"> <!-- L040 -->
+    <iframe id="webview" style="width:100%;height:100%;border:0" title="Aiブラウザ"></iframe> <!-- L041 -->
+  </div> <!-- L042 -->
 
-  <div class="view" id="view-settings"> <!-- L041 -->
-    <div style="padding:16px;line-height:1.7"> <!-- L042 -->
-      <div>アカウント：未ログイン</div> <!-- L043 -->
-      <div>通知：未設定</div> <!-- L044 -->
-      <div>バージョン：embed-iframe v1.0</div> <!-- L045 -->
-    </div> <!-- L046 -->
-  </div> <!-- L047 -->
-</div> <!-- L048 -->
+  <div class="view" id="view-settings"> <!-- L043 -->
+    <div style="padding:16px;line-height:1.7"> <!-- L044 -->
+      <div>アカウント：未ログイン</div> <!-- L045 -->
+      <div>通知：未設定</div> <!-- L046 -->
+      <div>バージョン：embed-iframe v1.1</div> <!-- L047 -->
+    </div> <!-- L048 -->
+  </div> <!-- L049 -->
+</div> <!-- L050 -->
 
-<script> /* L049 */
-  // タブ切替（見た目不変） /* L050 */
-  const tabsEl=document.getElementById('tabs'); /* L051 */
-  function activateTab(btn){ /* L052 */
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); /* L053 */
-    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); /* L054 */
-    btn.classList.add('active'); /* L055 */
-    const vid=btn.dataset.view; if(vid) document.getElementById(vid).classList.add('active'); /* L056 */
-  } /* L057 */
-  tabsEl.addEventListener('click',(e)=>{ const b=e.target.closest('.tab'); if(!b)return; if(b.id==='tab-add'){return;} activateTab(b); }); /* L058 */
-</script> <!-- L059 -->
-</body> <!-- L060 -->
-</html> <!-- L061 -->
+<script> /* L051 */
+  // タブ切替（見た目不変） /* L052 */
+  const tabsEl=document.getElementById('tabs'); /* L053 */
+  function activateTab(btn){ /* L054 */
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); /* L055 */
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); /* L056 */
+    btn.classList.add('active'); /* L057 */
+    const vid=btn.dataset.view; if(vid) document.getElementById(vid).classList.add('active'); /* L058 */
+  } /* L059 */
+
+  tabsEl.addEventListener('click',(e)=>{ /* L060 */
+    const b=e.target.closest('.tab'); if(!b) return; /* L061 */
+    // 追加：＋は完全に殺す（伝播も既定動作も抑止） /* L062 */
+    if(b.id==='tab-add' || b.dataset.disabled==='true'){ e.preventDefault(); e.stopPropagation(); return false; } /* L063 */
+    activateTab(b); /* L064 */
+  }); /* L065 */
+</script> <!-- L066 -->
+</body> <!-- L067 -->
+</html> <!-- L068 -->
