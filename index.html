@@ -1,127 +1,238 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>WalkNav</title>
+<!DOCTYPE html> <!-- L001 -->
+<html lang="ja"> <!-- L002 -->
+<head> <!-- L003 -->
+  <meta charset="utf-8"> <!-- L004 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- L005 -->
+  <title>WalkNav Tabs</title> <!-- L006 -->
+  <style> /* L007 */
+    :root { /* L008 */
+      --bar-bg: rgba(255,255,255,0.92); /* L009 */
+      --bar-blur: saturate(180%) blur(8px); /* L010 */
+      --accent: #2563eb; /* L011 */
+      --muted: #6b7280; /* L012 */
+      --danger: #ef4444; /* L013 */
+      --ok: #16a34a; /* L014 */
+      --shadow: 0 8px 24px rgba(0,0,0,0.08); /* L015 */
+    } /* L016 */
 
-  <meta name="x-issue" content="idx202511050540-split" />
-  <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
+    html,body { height:100%; margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", "Helvetica Neue", Arial, sans-serif; } /* L017 */
+    #app { position:relative; width:100%; height:100%; overflow:hidden; } /* L018 */
 
-  <link rel="stylesheet" href="app.css?v=3" />
-</head>
-<body id="appBody">
-  <div class="app">
-    <div id="map" aria-label="地図"></div>
+    /* Top Tabs */ /* L019 */
+    .topbar { position:absolute; top:0; left:0; right:0; height:52px; display:flex; align-items:center; gap:8px; padding:8px 10px; background:var(--bar-bg); backdrop-filter:var(--bar-blur); box-shadow:var(--shadow); z-index:10; } /* L020 */
+    .tabs { display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; } /* L021 */
+    .tabs::-webkit-scrollbar { display:none; } /* L022 */
+    .tab { display:flex; align-items:center; gap:6px; padding:8px 12px; border-radius:999px; border:1px solid transparent; background:#fff; font-size:14px; color:#111; white-space:nowrap; cursor:pointer; } /* L023 */
+    .tab.active { border-color:var(--accent); color:var(--accent); } /* L024 */
+    .tab .x { margin-left:4px; font-weight:700; color:var(--muted); cursor:pointer; } /* L025 */
+    .tab.add { background:#f8fafc; border:1px dashed #cbd5e1; } /* L026 */
 
-    <section class="panel" id="searchPanel" aria-label="検索パネル">
-      <h2>近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
-      
-      <div class="row" style="margin-bottom:8px;justify-content:center;flex-wrap:wrap;">
-        <button class="chip active" id="r10">10km</button>
-        <button class="chip" id="r20">20km</button>
-        <button class="chip" id="r30">30km</button>
-        <button class="chip" id="btnPointSearch" style="flex-grow: 1; min-width: 120px;">📍 ポイント選択</button>
-      </div>
-      
-      <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px; display: none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;" id="pointAddressBlock">
-        <div id="pointAddress" style="line-height:1.5; color: var(--warning);">ポイント：取得中...</div>
-        <div id="pointCoords" style="line-height:1.5;"></div>
-      </div>
-      
-      <div class="row" style="margin-bottom:8px">
-        <button class="btn" id="btnSaveLocation" style="flex:1">現在地登録</button>
-        <button class="btn" id="btnEditLocation" style="flex:1">登録地修正</button>
-      </div>
-      
-      <div class="row" style="margin-bottom:8px">
-        <div class="input-wrapper">
-          <span class="icon icon-g">
-            <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor;">
-              <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5.03,16.21 5.03,12.39C5.03,8.57 8.36,5.5 12.19,5.5C14.73,5.5 16.29,6.5 17.2,7.38L19.31,5.26C17.38,3.53 15.05,2.5 12.19,2.5C6.92,2.5 2.73,6.63 2.73,12.39C2.73,18.15 6.92,22.28 12.19,22.28C17.63,22.28 21.64,18.5 21.64,12.61C21.64,12 21.52,11.55 21.35,11.1Z"></path>
-            </svg>
-          </span>
-          <input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" style="flex:1" autocomplete="off" />
-          <span class="icon icon-search" id="btnSearchIcon">
-            <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;">
-              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
-            </svg>
-          </span>
-          <span class="icon icon-mic" id="btnVoiceIcon">
-            <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;">
-              <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"></path>
-            </svg>
-          </span>
-        </div>
-      </div>
-      
-      <div id="results" class="results" style="display:none"></div>
-      
-      <div class="row" style="margin-top:12px; gap: 8px;">
-        <button id="btnReset" class="btn danger" style="flex:1">リセット</button>
-        <button id="btnLocatePanel" class="btn" style="flex:1;background:rgba(98, 181, 255, 0.2); color: var(--primary);">現在地</button>
-        <button id="btnClosePanel" class="btn" style="flex:1;background:rgba(255,255,255,0.1)">閉じる</button>
-      </div>
-      </section>
+    /* Views */ /* L027 */
+    .view { position:absolute; top:52px; left:0; right:0; bottom:0; display:none; } /* L028 */
+    .view.active { display:block; } /* L029 */
 
-    <div class="nav-panel" id="navPanel">
-      <div class="nav-location">
-        <div id="locCoords">現在地：取得中...</div>
-        <div id="locAddress"></div>
-      </div>
-      <div class="nav-weather" id="navWeather">
-        <div class="weather-item">
-          <span>3H</span>
-          <span id="weather3h">--</span>
-        </div>
-        <div class="weather-item">
-          <span>6H</span>
-          <span id="weather6h">--</span>
-        </div>
-        <div class="weather-item">
-          <span>9H</span>
-          <span id="weather9h">--</span>
-        </div>
-      </div>
-      <div class="nav-instructions-list" id="navPanelInstructions"></div>
-    </div>
-    
-    <div class="incident-panel" id="incidentPanel"></div>
+    /* Map */ /* L030 */
+    #map { width:100%; height:100%; } /* L031 */
 
-    <div class="route-panel" id="routePanel">
-      <div class="route-info">
-        <span id="destinationName">目的地</span>へのルート
-      </div>
-      <div>
-        <span class="route-distance" id="routeDistance">--</span>
-        <span class="route-time" id="routeTime">徒歩 --分</span>
-      </div>
-      <div class="route-actions">
-        <button id="btnExportText" class="btn" style="width:100%;background:rgba(255,255,255,0.1)">道順をコピー</button>
-        <button id="btnStopRoute" class="btn danger" style="width:100%">ルート終了</button>
-      </div>
-    </div>
+    /* AI Browser */ /* L032 */
+    .browser { width:100%; height:100%; border:0; } /* L033 */
+    .quickbar { position:absolute; top:60px; left:0; right:0; display:flex; gap:8px; padding:8px 10px; overflow-x:auto; } /* L034 */
+    .chip { flex:0 0 auto; border:1px solid #e5e7eb; background:#fff; border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer; } /* L035 */
 
-    <div class="fab-stack" id="fabStack">
-      <div class="fab" id="btnSearch">検索パネル</div>
-      <div class="fab" id="btnLocate">現在地</div>
-      <div class="fab" id="btnDestination" style="display:none">目的地</div>
-      <div class="fab" id="btnPause">一時停止</div>
-      <div class="fab" id="btnReroute">リルート</div>
-    </div>
+    /* Settings */ /* L036 */
+    .settings { padding:16px; line-height:1.7; } /* L037 */
+    .row { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid #f1f5f9; } /* L038 */
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:8px 12px; border-radius:8px; background:#111; color:#fff; font-size:14px; cursor:pointer; } /* L039 */
+    .btn.ghost { background:#fff; color:#111; border:1px solid #e5e7eb; } /* L040 */
 
-    <div class="loading" id="loading">
-      <div style="text-align:center">
-        <div style="font-size:24px;margin-bottom:16px">📍 現在地取得中</div>
-        <div style="font-size:16px;opacity:0.8">しばらくお待ちください...</div>
-      </div>
-    </div>
+    /* Bottom Sheet for “＋” */ /* L041 */
+    .sheet-backdrop { position:absolute; inset:0; background:rgba(0,0,0,0.25); display:none; z-index:20; } /* L042 */
+    .sheet { position:absolute; left:0; right:0; bottom:-70%; height:70%; background:#fff; border-top-left-radius:16px; border-top-right-radius:16px; box-shadow:var(--shadow); transition:transform .28s ease; transform:translateY(100%); } /* L043 */
+    .sheet.active + .sheet-content, .sheet.active { transform:translateY(0); } /* L044 */
+    .sheet-header { padding:12px 16px; font-weight:600; border-bottom:1px solid #f1f5f9; } /* L045 */
+    .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:12px 16px; } /* L046 */
+    .iconbtn { display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 8px; border-radius:12px; border:1px solid #e5e7eb; cursor:pointer; } /* L047 */
+    .iconbtn img { width:28px; height:28px; } /* L048 */
+    .iconbtn span { font-size:12px; color:#111; text-align:center; } /* L049 */
 
-  </div>
+    /* Toast (non-intrusive) */ /* L050 */
+    .toast { position:absolute; top:58px; left:50%; transform:translateX(-50%); background:#111; color:#fff; padding:8px 12px; border-radius:999px; font-size:12px; opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:30; } /* L051 */
+    .toast.show { opacity:0.96; } /* L052 */
+  </style> <!-- L053 -->
+</head> <!-- L054 -->
+<body> <!-- L055 -->
+  <div id="app"> <!-- L056 -->
+    <div class="topbar"> <!-- L057 -->
+      <div class="tabs" id="tabs"> <!-- L058 -->
+        <div class="tab active" data-view="view-map" id="tab-map">🗺️ 地図</div> <!-- L059 -->
+        <div class="tab" data-view="view-browser" id="tab-browser">🤖 Aiブラウザ</div> <!-- L060 -->
+        <div class="tab" data-view="view-settings" id="tab-settings">⚙️ 設定</div> <!-- L061 -->
+        <div class="tab add" id="tab-add">＋</div> <!-- L062 -->
+      </div> <!-- L063 -->
+    </div> <!-- L064 -->
 
-  <script src="app.js" defer></script>
-  <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry"
-    async defer></script>
-</body>
-</html>
+    <div class="view active" id="view-map"> <!-- L065 -->
+      <div id="map"></div> <!-- L066 -->
+    </div> <!-- L067 -->
+
+    <div class="view" id="view-browser"> <!-- L068 -->
+      <iframe id="webview" class="browser" title="Aiブラウザ"></iframe> <!-- L069 -->
+      <div class="quickbar" id="quickbar"> <!-- L070 -->
+        <div class="chip" data-url="https://chat.openai.com/">ChatGPT</div> <!-- L071 -->
+        <div class="chip" data-url="https://gemini.google.com/">Gemini</div> <!-- L072 -->
+        <div class="chip" data-url="https://www.google.com/travel/flights">Googleフライト</div> <!-- L073 -->
+        <div class="chip" data-url="https://www.booking.com/">Booking.com</div> <!-- L074 -->
+        <div class="chip" data-url="https://www.expedia.co.jp/">Expedia</div> <!-- L075 -->
+        <div class="chip" data-url="https://www.jma.go.jp/">気象庁</div> <!-- L076 -->
+      </div> <!-- L077 -->
+    </div> <!-- L078 -->
+
+    <div class="view" id="view-settings"> <!-- L079 -->
+      <div class="settings"> <!-- L080 -->
+        <div class="row"><div>アカウント状態</div><div id="acctState">未ログイン</div></div> <!-- L081 -->
+        <div class="row"><div>通知</div><div><button class="btn ghost" id="btnNotif">確認</button></div></div> <!-- L082 -->
+        <div class="row"><div>連携サービス</div><div><button class="btn" id="btnLink">設定</button></div></div> <!-- L083 -->
+        <div class="row"><div>バージョン</div><div>tabs-setup v1.0</div></div> <!-- L084 -->
+      </div> <!-- L085 -->
+    </div> <!-- L086 -->
+
+    <!-- Bottom Sheet for ＋ --> <!-- L087 -->
+    <div class="sheet-backdrop" id="sheetBackdrop"></div> <!-- L088 -->
+    <div class="sheet" id="sheet"> <!-- L089 -->
+      <div class="sheet-header">新しいタブを追加</div> <!-- L090 -->
+      <div class="grid" id="siteGrid"> <!-- L091 -->
+        <!-- 航空・旅行 --> <!-- L092 -->
+        <div class="iconbtn" data-url="https://www.google.com/travel/flights" data-label="Googleフライト"><img src="https://www.google.com/favicon.ico"><span>Googleフライト</span></div> <!-- L093 -->
+        <div class="iconbtn" data-url="https://www.google.com/travel/hotels" data-label="Googleホテル"><img src="https://www.google.com/favicon.ico"><span>Googleホテル</span></div> <!-- L094 -->
+        <div class="iconbtn" data-url="https://www.booking.com/" data-label="Booking.com"><img src="https://www.booking.com/favicon.ico"><span>Booking.com</span></div> <!-- L095 -->
+        <div class="iconbtn" data-url="https://www.expedia.co.jp/" data-label="Expedia"><img src="https://www.expedia.co.jp/favicon.ico"><span>Expedia</span></div> <!-- L096 -->
+        <!-- 鉄道（公式） --> <!-- L097 -->
+        <div class="iconbtn" data-url="https://traininfo.jreast.co.jp/" data-label="JR東日本"><img src="https://traininfo.jreast.co.jp/favicon.ico"><span>JR東日本</span></div> <!-- L098 -->
+        <div class="iconbtn" data-url="https://trafficinfo.westjr.co.jp/" data-label="JR西日本"><img src="https://www.westjr.co.jp/favicon.ico"><span>JR西日本</span></div> <!-- L099 -->
+        <div class="iconbtn" data-url="https://global.jr-central.co.jp/ja/info/" data-label="JR東海"><img src="https://global.jr-central.co.jp/favicon.ico"><span>JR東海</span></div> <!-- L100 -->
+        <div class="iconbtn" data-url="https://www.tokyometro.jp/unkou/" data-label="東京メトロ"><img src="https://www.tokyometro.jp/favicon.ico"><span>東京メトロ</span></div> <!-- L101 -->
+        <!-- 天気（公式） --> <!-- L102 -->
+        <div class="iconbtn" data-url="https://www.jma.go.jp/" data-label="気象庁"><img src="https://www.jma.go.jp/favicon.ico"><span>気象庁</span></div> <!-- L103 -->
+        <!-- AI／アシスタント --> <!-- L104 -->
+        <div class="iconbtn" data-url="https://chat.openai.com/" data-label="ChatGPT"><img src="https://chat.openai.com/favicon.ico"><span>ChatGPT</span></div> <!-- L105 -->
+        <div class="iconbtn" data-url="https://gemini.google.com/" data-label="Gemini"><img src="https://gemini.google.com/favicon.ico"><span>Gemini</span></div> <!-- L106 -->
+        <!-- GitHub（閲覧） --> <!-- L107 -->
+        <div class="iconbtn" data-url="https://github.com/" data-label="GitHub"><img src="https://github.com/favicon.ico"><span>GitHub</span></div> <!-- L108 -->
+      </div> <!-- L109 -->
+    </div> <!-- L110 -->
+
+    <div class="toast" id="toast">追加しました</div> <!-- L111 -->
+  </div> <!-- L112 -->
+
+  <script> /* L113 */
+    // --- Tabs State --- /* L114 */
+    const tabsEl = document.getElementById('tabs'); /* L115 */
+    const views = { /* L116 */
+      'tab-map': document.getElementById('view-map'), /* L117 */
+      'tab-browser': document.getElementById('view-browser'), /* L118 */
+      'tab-settings': document.getElementById('view-settings') /* L119 */
+    }; /* L120 */
+
+    function activateTab(tabId) { /* L121 */
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); /* L122 */
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); /* L123 */
+      const tab = document.getElementById(tabId); /* L124 */
+      tab.classList.add('active'); /* L125 */
+      const vId = tab.dataset.view; /* L126 */
+      if (vId) document.getElementById(vId).classList.add('active'); /* L127 */
+    } /* L128 */
+
+    tabsEl.addEventListener('click', (e) => { /* L129 */
+      const btn = e.target.closest('.tab'); /* L130 */
+      if (!btn) return; /* L131 */
+      if (btn.id === 'tab-add') { openSheet(); return; } /* L132 */
+      activateTab(btn.id); /* L133 */
+    }); /* L134 */
+
+    // --- Quickbar (Aiブラウザ) --- /* L135 */
+    const webview = document.getElementById('webview'); /* L136 */
+    document.getElementById('quickbar').addEventListener('click', (e)=>{ /* L137 */
+      const chip = e.target.closest('.chip'); /* L138 */
+      if (!chip) return; /* L139 */
+      const url = chip.dataset.url; /* L140 */
+      webview.src = url; /* L141 */
+      activateTab('tab-browser'); /* L142 */
+    }); /* L143 */
+
+    // --- ＋ Sheet & dynamic tabs --- /* L144 */
+    const sheet = document.getElementById('sheet'); /* L145 */
+    const backdrop = document.getElementById('sheetBackdrop'); /* L146 */
+    function openSheet(){ backdrop.style.display='block'; setTimeout(()=>sheet.classList.add('active'),0); } /* L147 */
+    function closeSheet(){ sheet.classList.remove('active'); backdrop.style.display='none'; } /* L148 */
+    backdrop.addEventListener('click', closeSheet); /* L149 */
+
+    document.getElementById('siteGrid').addEventListener('click', (e)=>{ /* L150 */
+      const btn = e.target.closest('.iconbtn'); /* L151 */
+      if (!btn) return; /* L152 */
+      const url = btn.dataset.url; /* L153 */
+      const label = btn.dataset.label; /* L154 */
+      addExternalTab(label, url); /* L155 */
+      closeSheet(); /* L156 */
+      showToast('「'+label+'」を追加しました'); /* L157 */
+    }); /* L158 */
+
+    function addExternalTab(label, url){ /* L159 */
+      const id = 'tab-ext-' + Math.random().toString(36).slice(2,7); /* L160 */
+      // create tab button /* L161 */
+      const el = document.createElement('div'); /* L162 */
+      el.className = 'tab'; /* L163 */
+      el.id = id; /* L164 */
+      el.dataset.view = id + '-view'; /* L165 */
+      el.innerHTML = `${label}<span class="x" title="閉じる">×</span>`; /* L166 */
+      // insert before + /* L167 */
+      const add = document.getElementById('tab-add'); /* L168 */
+      tabsEl.insertBefore(el, add); /* L169 */
+      // create view /* L170 */
+      const view = document.createElement('div'); /* L171 */
+      view.className = 'view'; /* L172 */
+      view.id = id + '-view'; /* L173 */
+      const iframe = document.createElement('iframe'); /* L174 */
+      iframe.className = 'browser'; /* L175 */
+      iframe.title = label; /* L176 */
+      iframe.src = url; /* L177 */
+      view.appendChild(iframe); /* L178 */
+      document.getElementById('app').appendChild(view); /* L179 */
+      // events /* L180 */
+      el.addEventListener('click', (ev)=>{ /* L181 */
+        if (ev.target.classList.contains('x')) { /* L182 */
+          // remove tab and view /* L183 */
+          view.remove(); /* L184 */
+          el.remove(); /* L185 */
+          activateTab('tab-browser'); /* L186 */
+        } else { /* L187 */
+          activateTab(id); /* L188 */
+        } /* L189 */
+      }); /* L190 */
+      activateTab(id); /* L191 */
+    } /* L192 */
+
+    // --- Toast --- /* L193 */
+    const toast = document.getElementById('toast'); /* L194 */
+    let toastTimer; /* L195 */
+    function showToast(msg){ /* L196 */
+      toast.textContent = msg; /* L197 */
+      toast.classList.add('show'); /* L198 */
+      clearTimeout(toastTimer); /* L199 */
+      toastTimer = setTimeout(()=>toast.classList.remove('show'), 1800); /* L200 */
+    } /* L201 */
+
+    // --- Google Map init --- /* L202 */
+    let map; /* L203 */
+    window.initMap = function(){ /* L204 */
+      map = new google.maps.Map(document.getElementById('map'), { /* L205 */
+        center: {lat:35.681236, lng:139.767125}, /* L206 */
+        zoom: 15, /* L207 */
+        mapId: 'DEMO_MAP_ID' /* L208 */
+      }); /* L209 */
+    }; /* L210 */
+  </script> <!-- L211 -->
+
+  <!-- Google Maps JavaScript API（提供キーを直埋め・Maps JavaScriptのみ） --> <!-- L212 -->
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&callback=initMap"></script> <!-- L213 -->
+</body> <!-- L214 -->
+</html> <!-- L215 -->
