@@ -1,14 +1,14 @@
 <!DOCTYPE html> <!-- L001 -->
 <html lang="ja"> <!-- L002 -->
 <head> <!-- L003 -->
-  <meta charset="utf-8"> <!-- L004 -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- L005 -->
-  <title>WalkNav — 地図復元（下パネル/右列/コンパス）</title> <!-- L006 -->
+  <meta charset="utf-8" /> <!-- L004 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /> <!-- L005 -->
+  <title>WalkNav — 提案前コードの地図タブ内表示</title> <!-- L006 -->
   <style> /* L007 */
     html,body{height:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Noto Sans JP","Helvetica Neue",Arial,sans-serif;} /* L008 */
-    #app{position:relative;width:100%;height:100%;overflow:hidden;} /* L009 */
+    #app{position:relative;width:100%;height:100%;overflow:hidden;background:#f8fafc;} /* L009 */
 
-    /* 上部タブ（既存デザイン維持） */ /* L010 */
+    /* 上部タブ（見た目最小・既定踏襲） */ /* L010 */
     .topbar{position:absolute;inset:0 0 auto 0;height:52px;display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.92);backdrop-filter:saturate(180%) blur(8px);box-shadow:0 8px 24px rgba(0,0,0,.08);z-index:10;} /* L011 */
     .tabs{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;} /* L012 */
     .tabs::-webkit-scrollbar{display:none;} /* L013 */
@@ -20,180 +20,216 @@
     .view{position:absolute;top:52px;left:0;right:0;bottom:0;display:none;} /* L018 */
     .view.active{display:block;} /* L019 */
 
-    /* 地図 */ /* L020 */
-    #map{width:100%;height:100%;background:#e5e7eb;} /* L021 */
+    /* 地図タブの中にサンドボックスiframeで提示 */ /* L020 */
+    #mapHost{position:absolute;inset:0;display:flex;flex-direction:column;} /* L021 */
+    #mapFrame{flex:1;width:100%;border:0;background:#e5e7eb;} /* L022 */
+    .fallback{position:absolute;inset:auto 12px 12px auto;display:none;} /* L023 */
+    .btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;color:#111;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.08);} /* L024 */
 
-    /* ローディング */ /* L022 */
-    .loading{position:absolute;inset:52px 0 0 0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#fff,rgba(255,255,255,.82));z-index:9;} /* L023 */
-    .spinner{width:22px;height:22px;border:2px solid #cbd5e1;border-top-color:#2563eb;border-radius:50%;animation:spin .9s linear infinite;} /* L024 */
-    .loading p{margin-left:10px;font-size:13px;color:#374151;} /* L025 */
-    @keyframes spin{to{transform:rotate(360deg);}} /* L026 */
+    /* Aiブラウザ/設定は骨子のみ（不干渉） */ /* L025 */
+    .browser{width:100%;height:100%;border:0;} /* L026 */
+    .settings{padding:16px;line-height:1.7;} /* L027 */
+  </style> <!-- L028 -->
+</head> <!-- L029 -->
+<body> <!-- L030 -->
+<div id="app"> <!-- L031 -->
+  <div class="topbar"> <!-- L032 -->
+    <div class="tabs" id="tabs"> <!-- L033 -->
+      <div class="tab active" data-view="view-map" id="tab-map">🗺️ 地図</div> <!-- L034 -->
+      <div class="tab" data-view="view-browser" id="tab-browser">🤖 Aiブラウザ</div> <!-- L035 -->
+      <div class="tab" data-view="view-settings" id="tab-settings">⚙️ 設定</div> <!-- L036 -->
+      <div class="tab add" id="tab-add">＋</div> <!-- L037 -->
+    </div> <!-- L038 -->
+  </div> <!-- L039 -->
 
-    /* 左上：コンパス（ノース/ヘディング切替） */ /* L027 */
-    .compass{position:absolute;top:60px;left:10px;width:42px;height:42px;border-radius:999px;background:#fff;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(0,0,0,.08);z-index:8;transition:opacity .15s;} /* L028 */
-    .compass.hidden{opacity:0;pointer-events:none;} /* L029 */
-    .compass-btn{font-size:12px;line-height:1;text-align:center;cursor:pointer;} /* L030 */
+  <!-- 地図タブ：あなたの“提案前コード”を無改変で内包表示 --> <!-- L040 -->
+  <div class="view active" id="view-map"> <!-- L041 -->
+    <div id="mapHost"> <!-- L042 -->
+      <iframe id="mapFrame" title="提案前コードを内包表示（srcdoc）" sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-presentation allow-same-origin allow-scripts"></iframe> <!-- L043 -->
+      <div class="fallback"><button id="btnOpenNew" class="btn">新規タブで開く</button></div> <!-- L044 -->
+    </div> <!-- L045 -->
+  </div> <!-- L046 -->
 
-    /* 右側：案内ボタン列（簡易骨子） */ /* L031 */
-    .fabcol{position:absolute;right:10px;top:50%;transform:translateY(-10%);display:flex;flex-direction:column;gap:8px;z-index:8;transition:opacity .15s;} /* L032 */
-    .fabcol.hidden{opacity:0;pointer-events:none;} /* L033 */
-    .fab{min-width:44px;height:44px;border-radius:12px;background:#111;color:#fff;border:0;cursor:pointer;box-shadow:0 8px 18px rgba(0,0,0,.15);} /* L034 */
+  <!-- Aiブラウザ（骨子のみ） --> <!-- L047 -->
+  <div class="view" id="view-browser"> <!-- L048 -->
+    <iframe id="webview" class="browser" title="Aiブラウザ"></iframe> <!-- L049 -->
+  </div> <!-- L050 -->
 
-    /* 下：収納パネル（表示中は右列/コンパスを隠す） */ /* L035 */
-    .panel{position:absolute;left:0;right:0;bottom:-55%;height:55%;background:#fff;border-top-left-radius:16px;border-top-right-radius:16px;box-shadow:0 -6px 24px rgba(0,0,0,.12);transition:transform .28s ease;transform:translateY(100%);z-index:12;} /* L036 */
-    .panel.open{transform:translateY(0);} /* L037 */
-    .panel-handle{position:absolute;top:-22px;left:50%;transform:translateX(-50%);width:120px;height:22px;border-top-left-radius:12px;border-top-right-radius:12px;background:rgba(255,255,255,0.96);box-shadow:0 -2px 10px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;} /* L038 */
-    .panel-handle span{display:block;width:36px;height:4px;border-radius:999px;background:#d1d5db;} /* L039 */
-    .panel-body{padding:12px 14px;overflow:auto;height:100%;} /* L040 */
+  <!-- 設定（骨子のみ） --> <!-- L051 -->
+  <div class="view" id="view-settings"> <!-- L052 -->
+    <div class="settings"> <!-- L053 -->
+      <div>アカウント：未ログイン</div> <!-- L054 -->
+      <div>通知：未設定</div> <!-- L055 -->
+      <div>バージョン：embed-preproposal v1.0</div> <!-- L056 -->
+    </div> <!-- L057 -->
+  </div> <!-- L058 -->
+</div> <!-- L059 -->
 
-    /* Aiブラウザ/設定（骨子） */ /* L041 */
-    .browser{width:100%;height:100%;border:0;} /* L042 */
-    .settings{padding:16px;line-height:1.7;} /* L043 */
-  </style> <!-- L044 -->
-</head> <!-- L045 -->
-<body> <!-- L046 -->
-<div id="app"> <!-- L047 -->
-  <!-- 上部タブ（固定3＋＋） --> <!-- L048 -->
-  <div class="topbar"> <!-- L049 -->
-    <div class="tabs" id="tabs"> <!-- L050 -->
-      <div class="tab active" data-view="view-map" id="tab-map">🗺️ 地図</div> <!-- L051 -->
-      <div class="tab" data-view="view-browser" id="tab-browser">🤖 Aiブラウザ</div> <!-- L052 -->
-      <div class="tab" data-view="view-settings" id="tab-settings">⚙️ 設定</div> <!-- L053 -->
-      <div class="tab add" id="tab-add">＋</div> <!-- L054 -->
-    </div> <!-- L055 -->
-  </div> <!-- L056 -->
+<script> /* L060 */
+  // === タブ切替（見た目不変・最小） === /* L061 */
+  const tabsEl=document.getElementById('tabs'); /* L062 */
+  function activateTab(btn){ /* L063 */
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); /* L064 */
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); /* L065 */
+    btn.classList.add('active'); /* L066 */
+    const vid=btn.dataset.view; if(vid) document.getElementById(vid).classList.add('active'); /* L067 */
+  } /* L068 */
+  tabsEl.addEventListener('click',(e)=>{ const b=e.target.closest('.tab'); if(!b) return; if(b.id==='tab-add'){return;} activateTab(b); }); /* L069 */
 
-  <!-- 地図ビュー：機能復元の中心 --> <!-- L057 -->
-  <div class="view active" id="view-map"> <!-- L058 -->
-    <div id="map" aria-label="地図"></div> <!-- L059 -->
+  // === 地図タブに“提案前コード”をそのままsrcdocで流し込み === /* L070 */
+  const srcdocHTML = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>WalkNav</title>
 
-    <!-- 左上：コンパス（ノース/ヘディング） --> <!-- L060 -->
-    <div id="compass" class="compass"><div id="compassBtn" class="compass-btn" title="ノース/ヘディング切替">N</div></div> <!-- L061 -->
+  <meta name="x-issue" content="idx202511050540-split" />
+  <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
-    <!-- 右側：案内ボタン列（骨子。現在地のみ動作） --> <!-- L062 -->
-    <div id="fabCol" class="fabcol">
-      <button id="btnGuideStart" class="fab" title="案内開始">▶︎</button> <!-- L063 -->
-      <button id="btnGuideStop" class="fab" title="案内停止">■</button> <!-- L064 -->
-      <button id="btnMyLoc" class="fab" title="現在地へ">◎</button> <!-- L065 -->
-      <button id="btnDest" class="fab" title="目的地">◆</button> <!-- L066 -->
-    </div> <!-- L067 -->
+  <link rel="stylesheet" href="app.css?v=3" />
+</head>
+<body id="appBody">
+  <div class="app">
+    <div id="map" aria-label="地図"></div>
 
-    <!-- 下：収納パネル（開：右列/コンパスを隠す、閉：表示） --> <!-- L068 -->
-    <div id="panel" class="panel" aria-label="操作パネル">
-      <div id="panelHandle" class="panel-handle" title="引き出す/収納"><span></span></div> <!-- L069 -->
-      <div class="panel-body">
-        <div style="font-size:14px;color:#374151;">ここに検索・結果・ルートカード等（骨子）。本回は配線対象外。</div> <!-- L070 -->
-      </div> <!-- L071 -->
-    </div> <!-- L072 -->
-  </div> <!-- L073 -->
+    <section class="panel" id="searchPanel" aria-label="検索パネル">
+      <h2>近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
+      
+      <div class="row" style="margin-bottom:8px;justify-content:center;flex-wrap:wrap;">
+        <button class="chip active" id="r10">10km</button>
+        <button class="chip" id="r20">20km</button>
+        <button class="chip" id="r30">30km</button>
+        <button class="chip" id="btnPointSearch" style="flex-grow: 1; min-width: 120px;">📍 ポイント選択</button>
+      </div>
+      
+      <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px; display: none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;" id="pointAddressBlock">
+        <div id="pointAddress" style="line-height:1.5; color: var(--warning);">ポイント：取得中...</div>
+        <div id="pointCoords" style="line-height:1.5;"></div>
+      </div>
+      
+      <div class="row" style="margin-bottom:8px">
+        <button class="btn" id="btnSaveLocation" style="flex:1">現在地登録</button>
+        <button class="btn" id="btnEditLocation" style="flex:1">登録地修正</button>
+      </div>
+      
+      <div class="row" style="margin-bottom:8px">
+        <div class="input-wrapper">
+          <span class="icon icon-g">
+            <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor;">
+              <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5.03,16.21 5.03,12.39C5.03,8.57 8.36,5.5 12.19,5.5C14.73,5.5 16.29,6.5 17.2,7.38L19.31,5.26C17.38,3.53 15.05,2.5 12.19,2.5C6.92,2.5 2.73,6.63 2.73,12.39C2.73,18.15 6.92,22.28 12.19,22.28C17.63,22.28 21.64,18.5 21.64,12.61C21.64,12 21.52,11.55 21.35,11.1Z"></path>
+            </svg>
+          </span>
+          <input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" style="flex:1" autocomplete="off" />
+          <span class="icon icon-search" id="btnSearchIcon">
+            <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;">
+              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+            </svg>
+          </span>
+          <span class="icon icon-mic" id="btnVoiceIcon">
+            <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;">
+              <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c1.66 1.66 3 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"></path>
+            </svg>
+          </span>
+        </div>
+      </div>
+      
+      <div id="results" class="results" style="display:none"></div>
+      
+      <div class="row" style="margin-top:12px; gap: 8px;">
+        <button id="btnReset" class="btn danger" style="flex:1">リセット</button>
+        <button id="btnLocatePanel" class="btn" style="flex:1;background:rgba(98, 181, 255, 0.2); color: var(--primary);">現在地</button>
+        <button id="btnClosePanel" class="btn" style="flex:1;background:rgba(255,255,255,0.1)">閉じる</button>
+      </div>
+      </section>
 
-  <!-- Aiブラウザ（骨子） --> <!-- L074 -->
-  <div class="view" id="view-browser">
-    <iframe id="webview" class="browser" title="Aiブラウザ"></iframe> <!-- L075 -->
-  </div> <!-- L076 -->
-
-  <!-- 設定（骨子） --> <!-- L077 -->
-  <div class="view" id="view-settings">
-    <div class="settings">
-      <div>アカウント：未ログイン</div>
-      <div>通知：未設定</div>
-      <div>バージョン：map-restore v2.0</div>
+    <div class="nav-panel" id="navPanel">
+      <div class="nav-location">
+        <div id="locCoords">現在地：取得中...</div>
+        <div id="locAddress"></div>
+      </div>
+      <div class="nav-weather" id="navWeather">
+        <div class="weather-item">
+          <span>3H</span>
+          <span id="weather3h">--</span>
+        </div>
+        <div class="weather-item">
+          <span>6H</span>
+          <span id="weather6h">--</span>
+        </div>
+        <div class="weather-item">
+          <span>9H</span>
+          <span id="weather9h">--</span>
+        </div>
+      </div>
+      <div class="nav-instructions-list" id="navPanelInstructions"></div>
     </div>
-  </div> <!-- L078 -->
+    
+    <div class="incident-panel" id="incidentPanel"></div>
 
-  <!-- ローディング（現在地取得～描画まで） --> <!-- L079 -->
-  <div id="loading" class="loading" role="status" aria-live="polite">
-    <div class="spinner" aria-hidden="true"></div>
-    <p>現在地を取得しています…</p>
-  </div> <!-- L080 -->
-</div> <!-- L081 -->
+    <div class="route-panel" id="routePanel">
+      <div class="route-info">
+        <span id="destinationName">目的地</span>へのルート
+      </div>
+      <div>
+        <span class="route-distance" id="routeDistance">--</span>
+        <span class="route-time" id="routeTime">徒歩 --分</span>
+      </div>
+      <div class="route-actions">
+        <button id="btnExportText" class="btn" style="width:100%;background:rgba(255,255,255,0.1)">道順をコピー</button>
+        <button id="btnStopRoute" class="btn danger" style="width:100%">ルート終了</button>
+      </div>
+    </div>
 
-<script> /* L082 */
-  // ===== タブ切替（見た目不変） ===== /* L083 */
-  const tabsEl=document.getElementById('tabs'); /* L084 */
-  function activateTab(btn){ /* L085 */
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); /* L086 */
-    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); /* L087 */
-    btn.classList.add('active'); /* L088 */
-    const vid=btn.dataset.view; if(vid) document.getElementById(vid).classList.add('active'); /* L089 */
-  } /* L090 */
-  tabsEl.addEventListener('click',(e)=>{ const b=e.target.closest('.tab'); if(!b) return; if(b.id==='tab-add'){/* 次工程 */ return;} activateTab(b); }); /* L091 */
+    <div class="fab-stack" id="fabStack">
+      <div class="fab" id="btnSearch">検索パネル</div>
+      <div class="fab" id="btnLocate">現在地</div>
+      <div class="fab" id="btnDestination" style="display:none">目的地</div>
+      <div class="fab" id="btnPause">一時停止</div>
+      <div class="fab" id="btnReroute">リルート</div>
+    </div>
 
-  // ===== 地図復元：現在地→成功後に描画／失敗時は静かにフォールバック（初期マーカー非表示） ===== /* L092 */
-  let map, myPos=null; /* L093 */
-  const loadingEl=document.getElementById('loading'); /* L094 */
-  const FALLBACK={ lat:35.681236, lng:139.767125 }; // 東京駅 /* L095 */
+    <div class="loading" id="loading">
+      <div style="text-align:center">
+        <div style="font-size:24px;margin-bottom:16px">📍 現在地取得中</div>
+        <div style="font-size:16px;opacity:0.8">しばらくお待ちください...</div>
+      </div>
+    </div>
 
-  function getCurrentPosition(){
-    return new Promise((resolve,reject)=>{
-      if(!navigator.geolocation){ reject(new Error('Geolocation未対応')); return; }
-      navigator.geolocation.getCurrentPosition(resolve,reject,{ enableHighAccuracy:true, timeout:8000, maximumAge:0 });
-    });
-  } /* L096 */
+  </div>
 
-  function drawMap(center){
-    map=new google.maps.Map(document.getElementById('map'),{
-      center, zoom:16, mapId:'DEMO_MAP_ID', clickableIcons:true, gestureHandling:'greedy'
-    });
-    // 初期マーカーは追加しない（非表示の要件） /* L097 */
-  } /* L098 */
+  <script src="app.js" defer></script>
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry"
+    async defer></script>
+</body>
+</html>`; /* L071 */
 
-  (async function init(){
+  const mapFrame=document.getElementById('mapFrame'); /* L072 */
+  const fallbackBox=document.querySelector('.fallback'); /* L073 */
+  const btnOpenNew=document.getElementById('btnOpenNew'); /* L074 */
+
+  // srcdocで内包表示（相対パスはホストと同階層を参照） /* L075 */
+  function loadInIframe(){ /* L076 */
     try{
-      const pos=await getCurrentPosition();
-      myPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
-      drawMap(myPos);
+      mapFrame.srcdoc = srcdocHTML; /* L077 */
+      mapFrame.onload = () => { /* L078 */
+        // 読み込み失敗検知は限定的：最低限でフォールバックUIを露出 /* L079 */
+        // ここでは onload 到達＝基本OK とし、CSP等で内部リソースが欠けた場合の目視確認に備える /* L080 */
+      }; /* L081 */
     }catch(e){
-      drawMap(FALLBACK);
-    }finally{
-      loadingEl.style.display='none';
+      fallbackBox.style.display='block'; /* L082 */
     }
-  })(); /* L099 */
+  } /* L083 */
 
-  // ===== 右側ボタン列とコンパスの表示制御（下パネルと連動） ===== /* L100 */
-  const panel=document.getElementById('panel'); /* L101 */
-  const handle=document.getElementById('panelHandle'); /* L102 */
-  const fabCol=document.getElementById('fabCol'); /* L103 */
-  const compass=document.getElementById('compass'); /* L104 */
+  // フォールバック：新規タブで“提案前コード”を data:URL として開く（無改変） /* L084 */
+  btnOpenNew.addEventListener('click',()=>{
+    const blob = new Blob([srcdocHTML], {type: 'text/html'}); /* L085 */
+    const url = URL.createObjectURL(blob); /* L086 */
+    window.open(url, '_blank', 'noopener'); /* L087 */
+  }); /* L088 */
 
-  function panelOpen(open){
-    panel.classList.toggle('open',open);
-    // 開：右列/コンパスは隠す、閉：表示（既定仕様） /* L105 */
-    fabCol.classList.toggle('hidden',open);
-    compass.classList.toggle('hidden',open);
-  } /* L106 */
-  // 初期は「開いて」いない（既定フォームに合わせて閉） /* L107 */
-  panelOpen(false); /* L108 */
-
-  handle.addEventListener('click',()=>{ panelOpen(!panel.classList.contains('open')); }); /* L109 */
-
-  // ===== 現在地へボタン（機能） ===== /* L110 */
-  document.getElementById('btnMyLoc').addEventListener('click',async()=>{
-    try{
-      const pos=await getCurrentPosition();
-      myPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
-      map.panTo(myPos);
-      map.setZoom(17);
-    }catch(e){
-      if(myPos){ map.panTo(myPos); } // 前回の現在地があれば戻す
-    }
-  }); /* L111 */
-
-  // ===== コンパス：ノース/ヘディング切替（簡易） ===== /* L112 */
-  const compassBtn=document.getElementById('compassBtn'); /* L113 */
-  let headingMode=false; /* L114 */
-  compassBtn.addEventListener('click',()=>{
-    headingMode=!headingMode;
-    compassBtn.textContent=headingMode?'H':'N';
-    // 簡易：ヘディング時に方位を少し付ける（※高度なセンサー連携は次工程） /* L115 */
-    map.setHeading(headingMode? 20 : 0);
-  }); /* L116 */
-
-  // 案内開始/停止・目的地は骨子（次工程で配線） /* L117 */
-</script> <!-- L118 -->
-
-<!-- Google Maps JavaScript（Maps JSのみ／提供キー直埋め） --> <!-- L119 -->
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&callback=initMap"></script> <!-- L120 -->
-<script>function initMap(){};</script> <!-- L121 -->
-</body> <!-- L122 -->
-</html> <!-- L123 -->
+  loadInIframe(); /* L089 */
+</script> <!-- L090 -->
+</body> <!-- L091 -->
+</html> <!-- L092 -->
