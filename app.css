@@ -17,7 +17,10 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   
 .app{position:relative;height:100dvh;overflow:hidden}  
 #map{position:absolute;inset:0}  
-  
+
+/* ★ 追加: 入力中は地図のヒットテストを無効化（見た目はそのまま） */
+.keyboard-open #map { pointer-events: none; }
+
 .fab-stack{  
   position:fixed;  
   right:16px;  
@@ -59,7 +62,8 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
 .input{  
   flex:1;min-width:220px;  
   border-radius:12px;border:1px solid var(--stroke);  
-  background:rgba(255,255,255,.06);color:var(--text);outline:none  
+  background:rgba(255,255,255,.06);color:var(--text);outline:none;
+  position:relative; z-index:2; /* ★ 入力域を常に最前面に */
 }  
   
 /* 検索窓ラッパー */  
@@ -74,8 +78,6 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
 .input-wrapper .input {  
   padding: 10px 80px 10px 40px;  
   height: 48px; /* 高さを固定してアイコンが隠れないようにする */  
-  position: relative;  
-  z-index: 1; /* アイコンより下層に配置 */  
 }  
 /* モバイルフォーカス時の拡大防止 */  
 .input-wrapper .input:focus {  
@@ -89,24 +91,35 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   top: 50%;  
   transform: translateY(-50%);  
   opacity: 0.7;  
-  pointer-events: auto;  
+  pointer-events: auto;
+  z-index: 3; /* ★ アイコンは前面だが、入力域は z-index:2 でキャレット優先 */
 }  
+  
+/* Gアイコンの色 */  
 .input-wrapper .icon-g {  
   left: 12px;  
-  pointer-events: none;  
-  color: #4285F4;  
+  pointer-events: none; /* 装飾のみ */
+  color: #4285F4; 
 }  
+  
+/* 虫眼鏡（クリック可） */  
 .input-wrapper .icon-search {  
   right: 50px;  
   cursor: pointer;  
-  z-index: 10;  
+  z-index: 3;  
   color: var(--primary);  
   opacity: 0.8;  
 }  
+.input-wrapper .icon-search:hover {  
+  opacity: 1;  
+  transform: scale(1.1);  
+}  
+  
+/* マイク（クリック可。録音中だけ背景を付与） */  
 .input-wrapper .icon-mic {  
   right: 12px;  
   cursor: pointer;  
-  z-index: 10;  
+  z-index: 3;  
   width: 36px;   
   height: 36px;  
   padding: 7px;   
@@ -115,10 +128,6 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   transition: background-color 0.2s;  
   color: var(--text);  
   opacity: 0.7;  
-}  
-.input-wrapper .icon-search:hover {  
-  opacity: 1;  
-  transform: scale(1.1);  
 }  
 .input-wrapper .icon-mic.recording {  
   background-color: var(--danger);  
@@ -247,6 +256,7 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   max-height: 45vh;    
   overflow-y: auto;    
 }  
+  
 .nav-location{  
   font-size:13px;  
   color:var(--muted);  
@@ -268,6 +278,7 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   font-weight: 600;  
   line-height: 1.5;  
 }  
+  
 .nav-weather{  
   display: flex;  
   gap: 12px;  
@@ -290,6 +301,7 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   font-size: 18px;  
   margin-top: 4px;  
 }  
+  
 .nav-instructions-list{  
   display:flex;  
   flex-direction:column;  
@@ -316,6 +328,8 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
 .nav-instruction-item:first-child + .nav-instruction-item {  
   margin-top: 10px;  
 }  
+  
+/* インシデントパネル */  
 .incident-panel{  
   position:absolute;  
   left:16px;  
@@ -335,6 +349,8 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   max-height: 50px;  
   overflow-y: auto;  
 }  
+  
+/* ダイアログ */  
 .dialog-overlay{  
   position:fixed;  
   inset:0;  
@@ -418,6 +434,8 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   width:100%;  
   margin-top:0;  
 }  
+  
+/* 登録地点リスト */  
 .location-list{  
   display:flex;  
   flex-direction:column;  
@@ -463,6 +481,8 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   background:var(--danger);  
   color:#240808;  
 }  
+  
+/* 現在地ラベル */  
 #locLabel{  
   display:block;  
   white-space:pre-line;  
@@ -470,20 +490,18 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   word-break:break-word;  
   max-width:100%;  
 }  
+  
 .error-banner{display:none !important}  
-/* 既存：キーボード表示時のパネル対策 */  
-.keyboard-open .panel#searchPanel {  
-  max-height: calc(100vh - 32px);   
-  overflow-y: auto;   
-}  
-.keyboard-open .panel#searchPanel h2,  
-.keyboard-open .panel#searchPanel .row,  
-.keyboard-open .panel#searchPanel #pointAddressBlock {  
-  display: none;  
+  
+/* ★ 重要: 入力中レイアウトを非破壊化（要素を消さない） */
+.keyboard-open .panel#searchPanel {
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
 }
-
-/* 追加：フォーカス中の地図フラッシュ抑止（描画＆入力の一時停止） */
-.keyboard-open #map{
-  visibility: hidden !important;
-  pointer-events: none !important;
+/* 以前の「.keyboard-open .panel#searchPanel .row { display:none }」は廃止 */
+.keyboard-open .panel#searchPanel h2,
+.keyboard-open .panel#searchPanel #pointAddressBlock {
+  opacity: 0;
+  pointer-events: none;
 }
+/* 検索入力行は常時インタラクティブ（変更なし） */
