@@ -3,123 +3,197 @@
 <head> <!-- L003 -->
   <meta charset="utf-8"> <!-- L004 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- L005 -->
-  <title>WalkNav — 地図復元</title> <!-- L006 -->
+  <title>WalkNav — 地図復元（下パネル/右列/コンパス）</title> <!-- L006 -->
   <style> /* L007 */
-    html,body { height:100%; margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Noto Sans JP","Helvetica Neue",Arial,sans-serif; } /* L008 */
-    #app { position:relative; width:100%; height:100%; overflow:hidden; } /* L009 */
+    html,body{height:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Noto Sans JP","Helvetica Neue",Arial,sans-serif;} /* L008 */
+    #app{position:relative;width:100%;height:100%;overflow:hidden;} /* L009 */
 
     /* 上部タブ（既存デザイン維持） */ /* L010 */
-    .topbar { position:absolute; inset:0 0 auto 0; height:52px; display:flex; align-items:center; gap:8px; padding:8px 10px; background:rgba(255,255,255,0.92); backdrop-filter:saturate(180%) blur(8px); box-shadow:0 8px 24px rgba(0,0,0,.08); z-index:10; } /* L011 */
-    .tabs { display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; } /* L012 */
-    .tabs::-webkit-scrollbar{ display:none; } /* L013 */
-    .tab { display:flex; align-items:center; gap:6px; padding:8px 12px; border-radius:999px; border:1px solid transparent; background:#fff; font-size:14px; color:#111; white-space:nowrap; cursor:pointer; } /* L014 */
-    .tab.active{ border-color:#2563eb; color:#2563eb; } /* L015 */
-    .tab.add{ background:#f8fafc; border:1px dashed #cbd5e1; } /* L016 */
+    .topbar{position:absolute;inset:0 0 auto 0;height:52px;display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.92);backdrop-filter:saturate(180%) blur(8px);box-shadow:0 8px 24px rgba(0,0,0,.08);z-index:10;} /* L011 */
+    .tabs{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;} /* L012 */
+    .tabs::-webkit-scrollbar{display:none;} /* L013 */
+    .tab{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;border:1px solid transparent;background:#fff;font-size:14px;color:#111;white-space:nowrap;cursor:pointer;} /* L014 */
+    .tab.active{border-color:#2563eb;color:#2563eb;} /* L015 */
+    .tab.add{background:#f8fafc;border:1px dashed #cbd5e1;} /* L016 */
 
     /* ビュー領域 */ /* L017 */
-    .view { position:absolute; top:52px; left:0; right:0; bottom:0; display:none; } /* L018 */
-    .view.active{ display:block; } /* L019 */
+    .view{position:absolute;top:52px;left:0;right:0;bottom:0;display:none;} /* L018 */
+    .view.active{display:block;} /* L019 */
 
-    /* 地図要素（ズームUIはMaps標準。カスタム+/-は出さない） */ /* L020 */
-    #view-map{ background:#e5e7eb; } /* L021 */
-    #map { width:100%; height:100%; } /* L022 */
+    /* 地図 */ /* L020 */
+    #map{width:100%;height:100%;background:#e5e7eb;} /* L021 */
 
-    /* ローディング（現在地取得→描画まで） */ /* L023 */
-    .loading { position:absolute; inset:52px 0 0 0; display:flex; align-items:center; justify-content:center; background:linear-gradient(180deg,#fff,rgba(255,255,255,.82)); z-index:9; } /* L024 */
-    .spinner{ width:22px; height:22px; border:2px solid #cbd5e1; border-top-color:#2563eb; border-radius:50%; animation:spin 0.9s linear infinite; } /* L025 */
-    .loading p{ margin-left:10px; font-size:13px; color:#374151; } /* L026 */
-    @keyframes spin{ to{ transform:rotate(360deg);} } /* L027 */
+    /* ローディング */ /* L022 */
+    .loading{position:absolute;inset:52px 0 0 0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#fff,rgba(255,255,255,.82));z-index:9;} /* L023 */
+    .spinner{width:22px;height:22px;border:2px solid #cbd5e1;border-top-color:#2563eb;border-radius:50%;animation:spin .9s linear infinite;} /* L024 */
+    .loading p{margin-left:10px;font-size:13px;color:#374151;} /* L025 */
+    @keyframes spin{to{transform:rotate(360deg);}} /* L026 */
 
-    /* そのほかビュー（骨子だけ保持） */ /* L028 */
-    .browser{ width:100%; height:100%; border:0; } /* L029 */
-    .settings{ padding:16px; line-height:1.7; } /* L030 */
-  </style> <!-- L031 -->
-</head> <!-- L032 -->
-<body> <!-- L033 -->
-<div id="app"> <!-- L034 -->
-  <div class="topbar"> <!-- L035 -->
-    <div class="tabs" id="tabs"> <!-- L036 -->
-      <div class="tab active" data-view="view-map" id="tab-map">🗺️ 地図</div> <!-- L037 -->
-      <div class="tab" data-view="view-browser" id="tab-browser">🤖 Aiブラウザ</div> <!-- L038 -->
-      <div class="tab" data-view="view-settings" id="tab-settings">⚙️ 設定</div> <!-- L039 -->
-      <div class="tab add" id="tab-add">＋</div> <!-- L040 -->
-    </div> <!-- L041 -->
-  </div> <!-- L042 -->
+    /* 左上：コンパス（ノース/ヘディング切替） */ /* L027 */
+    .compass{position:absolute;top:60px;left:10px;width:42px;height:42px;border-radius:999px;background:#fff;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(0,0,0,.08);z-index:8;transition:opacity .15s;} /* L028 */
+    .compass.hidden{opacity:0;pointer-events:none;} /* L029 */
+    .compass-btn{font-size:12px;line-height:1;text-align:center;cursor:pointer;} /* L030 */
 
-  <!-- 地図ビュー（最優先で復元） --> <!-- L043 -->
-  <div class="view active" id="view-map"> <!-- L044 -->
-    <div id="map" aria-label="地図"></div> <!-- L045 -->
-    <div id="loading" class="loading" role="status" aria-live="polite"> <!-- L046 -->
-      <div class="spinner" aria-hidden="true"></div> <!-- L047 -->
-      <p>現在地を取得しています…</p> <!-- L048 -->
-    </div> <!-- L049 -->
-  </div> <!-- L050 -->
+    /* 右側：案内ボタン列（簡易骨子） */ /* L031 */
+    .fabcol{position:absolute;right:10px;top:50%;transform:translateY(-10%);display:flex;flex-direction:column;gap:8px;z-index:8;transition:opacity .15s;} /* L032 */
+    .fabcol.hidden{opacity:0;pointer-events:none;} /* L033 */
+    .fab{min-width:44px;height:44px;border-radius:12px;background:#111;color:#fff;border:0;cursor:pointer;box-shadow:0 8px 18px rgba(0,0,0,.15);} /* L034 */
 
-  <!-- Aiブラウザ（骨子） --> <!-- L051 -->
-  <div class="view" id="view-browser"> <!-- L052 -->
-    <iframe id="webview" class="browser" title="Aiブラウザ"></iframe> <!-- L053 -->
-  </div> <!-- L054 -->
+    /* 下：収納パネル（表示中は右列/コンパスを隠す） */ /* L035 */
+    .panel{position:absolute;left:0;right:0;bottom:-55%;height:55%;background:#fff;border-top-left-radius:16px;border-top-right-radius:16px;box-shadow:0 -6px 24px rgba(0,0,0,.12);transition:transform .28s ease;transform:translateY(100%);z-index:12;} /* L036 */
+    .panel.open{transform:translateY(0);} /* L037 */
+    .panel-handle{position:absolute;top:-22px;left:50%;transform:translateX(-50%);width:120px;height:22px;border-top-left-radius:12px;border-top-right-radius:12px;background:rgba(255,255,255,0.96);box-shadow:0 -2px 10px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;} /* L038 */
+    .panel-handle span{display:block;width:36px;height:4px;border-radius:999px;background:#d1d5db;} /* L039 */
+    .panel-body{padding:12px 14px;overflow:auto;height:100%;} /* L040 */
 
-  <!-- 設定（骨子） --> <!-- L055 -->
-  <div class="view" id="view-settings"> <!-- L056 -->
-    <div class="settings"> <!-- L057 -->
-      <div>アカウント：未ログイン</div> <!-- L058 -->
-      <div>通知：未設定</div> <!-- L059 -->
-      <div>バージョン：map-restore v1.0</div> <!-- L060 -->
-    </div> <!-- L061 -->
-  </div> <!-- L062 -->
-</div> <!-- L063 -->
+    /* Aiブラウザ/設定（骨子） */ /* L041 */
+    .browser{width:100%;height:100%;border:0;} /* L042 */
+    .settings{padding:16px;line-height:1.7;} /* L043 */
+  </style> <!-- L044 -->
+</head> <!-- L045 -->
+<body> <!-- L046 -->
+<div id="app"> <!-- L047 -->
+  <!-- 上部タブ（固定3＋＋） --> <!-- L048 -->
+  <div class="topbar"> <!-- L049 -->
+    <div class="tabs" id="tabs"> <!-- L050 -->
+      <div class="tab active" data-view="view-map" id="tab-map">🗺️ 地図</div> <!-- L051 -->
+      <div class="tab" data-view="view-browser" id="tab-browser">🤖 Aiブラウザ</div> <!-- L052 -->
+      <div class="tab" data-view="view-settings" id="tab-settings">⚙️ 設定</div> <!-- L053 -->
+      <div class="tab add" id="tab-add">＋</div> <!-- L054 -->
+    </div> <!-- L055 -->
+  </div> <!-- L056 -->
 
-<script> /* L064 */
-  // ===== タブ切替（既存踏襲・見た目不変） ===== /* L065 */
-  const tabsEl=document.getElementById('tabs'); /* L066 */
-  function activateTab(btn){ /* L067 */
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); /* L068 */
-    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); /* L069 */
-    btn.classList.add('active'); /* L070 */
-    const vid=btn.dataset.view; if(vid) document.getElementById(vid).classList.add('active'); /* L071 */
-  } /* L072 */
-  tabsEl.addEventListener('click',(e)=>{ const b=e.target.closest('.tab'); if(!b) return; if(b.id==='tab-add'){/* 次工程で実装 */ return;} activateTab(b); }); /* L073 */
+  <!-- 地図ビュー：機能復元の中心 --> <!-- L057 -->
+  <div class="view active" id="view-map"> <!-- L058 -->
+    <div id="map" aria-label="地図"></div> <!-- L059 -->
 
-  // ====== 地図復元：現在地の取得が成功してから描画（失敗時だけフォールバック） ====== /* L074 */
-  let map; /* L075 */
-  const loadingEl=document.getElementById('loading'); /* L076 */
-  const FALLBACK={ lat:35.681236, lng:139.767125 }; // 東京駅（失敗時のみ使用） /* L077 */
+    <!-- 左上：コンパス（ノース/ヘディング） --> <!-- L060 -->
+    <div id="compass" class="compass"><div id="compassBtn" class="compass-btn" title="ノース/ヘディング切替">N</div></div> <!-- L061 -->
 
-  // 位置情報の取得（高精度＋タイムアウト） /* L078 */
-  function getCurrentPosition(opts){
+    <!-- 右側：案内ボタン列（骨子。現在地のみ動作） --> <!-- L062 -->
+    <div id="fabCol" class="fabcol">
+      <button id="btnGuideStart" class="fab" title="案内開始">▶︎</button> <!-- L063 -->
+      <button id="btnGuideStop" class="fab" title="案内停止">■</button> <!-- L064 -->
+      <button id="btnMyLoc" class="fab" title="現在地へ">◎</button> <!-- L065 -->
+      <button id="btnDest" class="fab" title="目的地">◆</button> <!-- L066 -->
+    </div> <!-- L067 -->
+
+    <!-- 下：収納パネル（開：右列/コンパスを隠す、閉：表示） --> <!-- L068 -->
+    <div id="panel" class="panel" aria-label="操作パネル">
+      <div id="panelHandle" class="panel-handle" title="引き出す/収納"><span></span></div> <!-- L069 -->
+      <div class="panel-body">
+        <div style="font-size:14px;color:#374151;">ここに検索・結果・ルートカード等（骨子）。本回は配線対象外。</div> <!-- L070 -->
+      </div> <!-- L071 -->
+    </div> <!-- L072 -->
+  </div> <!-- L073 -->
+
+  <!-- Aiブラウザ（骨子） --> <!-- L074 -->
+  <div class="view" id="view-browser">
+    <iframe id="webview" class="browser" title="Aiブラウザ"></iframe> <!-- L075 -->
+  </div> <!-- L076 -->
+
+  <!-- 設定（骨子） --> <!-- L077 -->
+  <div class="view" id="view-settings">
+    <div class="settings">
+      <div>アカウント：未ログイン</div>
+      <div>通知：未設定</div>
+      <div>バージョン：map-restore v2.0</div>
+    </div>
+  </div> <!-- L078 -->
+
+  <!-- ローディング（現在地取得～描画まで） --> <!-- L079 -->
+  <div id="loading" class="loading" role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <p>現在地を取得しています…</p>
+  </div> <!-- L080 -->
+</div> <!-- L081 -->
+
+<script> /* L082 */
+  // ===== タブ切替（見た目不変） ===== /* L083 */
+  const tabsEl=document.getElementById('tabs'); /* L084 */
+  function activateTab(btn){ /* L085 */
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); /* L086 */
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); /* L087 */
+    btn.classList.add('active'); /* L088 */
+    const vid=btn.dataset.view; if(vid) document.getElementById(vid).classList.add('active'); /* L089 */
+  } /* L090 */
+  tabsEl.addEventListener('click',(e)=>{ const b=e.target.closest('.tab'); if(!b) return; if(b.id==='tab-add'){/* 次工程 */ return;} activateTab(b); }); /* L091 */
+
+  // ===== 地図復元：現在地→成功後に描画／失敗時は静かにフォールバック（初期マーカー非表示） ===== /* L092 */
+  let map, myPos=null; /* L093 */
+  const loadingEl=document.getElementById('loading'); /* L094 */
+  const FALLBACK={ lat:35.681236, lng:139.767125 }; // 東京駅 /* L095 */
+
+  function getCurrentPosition(){
     return new Promise((resolve,reject)=>{
       if(!navigator.geolocation){ reject(new Error('Geolocation未対応')); return; }
       navigator.geolocation.getCurrentPosition(resolve,reject,{ enableHighAccuracy:true, timeout:8000, maximumAge:0 });
     });
-  } /* L079 */
+  } /* L096 */
 
-  // Map描画（マーカーは一切出さない＝初期値地点の非表示） /* L080 */
   function drawMap(center){
     map=new google.maps.Map(document.getElementById('map'),{
       center, zoom:16, mapId:'DEMO_MAP_ID', clickableIcons:true, gestureHandling:'greedy'
     });
-    // 重要：初期位置にマーカー等は追加しない（非表示の要件） /* L081 */
-  } /* L082 */
+    // 初期マーカーは追加しない（非表示の要件） /* L097 */
+  } /* L098 */
 
-  // 起動フロー：現在地→成功で描画／失敗で静かにフォールバック中心へ描画（マーカーなし） /* L083 */
   (async function init(){
     try{
       const pos=await getCurrentPosition();
-      const center={ lat:pos.coords.latitude, lng:pos.coords.longitude };
-      drawMap(center);
+      myPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
+      drawMap(myPos);
     }catch(e){
       drawMap(FALLBACK);
     }finally{
       loadingEl.style.display='none';
     }
-  })(); /* L084 */
+  })(); /* L099 */
 
-  // Googleコールバックは空でOK（直上IIFEで描画） /* L085 */
-  window.initMap=function(){}; /* L086 */
-</script> <!-- L087 -->
+  // ===== 右側ボタン列とコンパスの表示制御（下パネルと連動） ===== /* L100 */
+  const panel=document.getElementById('panel'); /* L101 */
+  const handle=document.getElementById('panelHandle'); /* L102 */
+  const fabCol=document.getElementById('fabCol'); /* L103 */
+  const compass=document.getElementById('compass'); /* L104 */
 
-<!-- Google Maps JavaScript（Maps JS のみ・提供キー直埋め） --> <!-- L088 -->
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&callback=initMap"></script> <!-- L089 -->
-</body> <!-- L090 -->
-</html> <!-- L091 -->
+  function panelOpen(open){
+    panel.classList.toggle('open',open);
+    // 開：右列/コンパスは隠す、閉：表示（既定仕様） /* L105 */
+    fabCol.classList.toggle('hidden',open);
+    compass.classList.toggle('hidden',open);
+  } /* L106 */
+  // 初期は「開いて」いない（既定フォームに合わせて閉） /* L107 */
+  panelOpen(false); /* L108 */
+
+  handle.addEventListener('click',()=>{ panelOpen(!panel.classList.contains('open')); }); /* L109 */
+
+  // ===== 現在地へボタン（機能） ===== /* L110 */
+  document.getElementById('btnMyLoc').addEventListener('click',async()=>{
+    try{
+      const pos=await getCurrentPosition();
+      myPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
+      map.panTo(myPos);
+      map.setZoom(17);
+    }catch(e){
+      if(myPos){ map.panTo(myPos); } // 前回の現在地があれば戻す
+    }
+  }); /* L111 */
+
+  // ===== コンパス：ノース/ヘディング切替（簡易） ===== /* L112 */
+  const compassBtn=document.getElementById('compassBtn'); /* L113 */
+  let headingMode=false; /* L114 */
+  compassBtn.addEventListener('click',()=>{
+    headingMode=!headingMode;
+    compassBtn.textContent=headingMode?'H':'N';
+    // 簡易：ヘディング時に方位を少し付ける（※高度なセンサー連携は次工程） /* L115 */
+    map.setHeading(headingMode? 20 : 0);
+  }); /* L116 */
+
+  // 案内開始/停止・目的地は骨子（次工程で配線） /* L117 */
+</script> <!-- L118 -->
+
+<!-- Google Maps JavaScript（Maps JSのみ／提供キー直埋め） --> <!-- L119 -->
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&callback=initMap"></script> <!-- L120 -->
+<script>function initMap(){};</script> <!-- L121 -->
+</body> <!-- L122 -->
+</html> <!-- L123 -->
