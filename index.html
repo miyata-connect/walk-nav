@@ -58,13 +58,13 @@
     </div> <!-- L053 -->
   </div> <!-- L054 -->
 
-  <!-- 既定：Aiブラウザ（リンク＝<a href>で遷移可能／このタブで地図を開く） --> <!-- L055 -->
+  <!-- 既定：Aiブラウザ（同タブで地図を表示） --> <!-- L055 -->
   <div class="view" id="view-browser"> <!-- L056 -->
     <div class="start" aria-label="スタート"> <!-- L057 -->
       <div class="card">
         <div style="font-size:24px">🗺️</div>
-        <div class="title">このタブで地図を開く</div>
-        <div class="row"><button class="btn" data-action="open-map-here" data-view="view-browser">地図を開く</button></div>
+        <div class="title">このタブで地図を表示</div>
+        <div class="row"><button class="btn" data-action="open-map-here" data-view="view-browser" type="button">地図を表示</button></div>
       </div> <!-- L058 -->
       <div class="card">
         <div style="font-size:24px">🧠</div>
@@ -82,7 +82,7 @@
         </div>
         <div class="url">https://chatgpt.com/</div>
       </div> <!-- L060 -->
-      <div class="muted">※ リンクは新しいブラウザタブで開きます（本アプリは残ります）。『地図を開く』はこのタブ内だけに適用。</div> <!-- L061 -->
+      <div class="muted">※ リンクは新しいブラウザタブで開きます（本アプリは残ります）。『地図を表示』はこのタブ内だけに適用。</div> <!-- L061 -->
     </div> <!-- L062 -->
     <iframe class="tabmap" id="view-browser-map" title="Aiタブ内地図" src="" allow="geolocation *; microphone *" referrerpolicy="no-referrer-when-downgrade"></iframe> <!-- L063 -->
   </div> <!-- L064 -->
@@ -119,8 +119,8 @@
       <div class="start" aria-label="リンク集">
         <div class="card">
           <div style="font-size:24px">🗺️</div>
-          <div class="title">このタブで地図を開く</div>
-          <div class="row"><button class="btn" data-action="open-map-here" data-view="\${viewId}">地図を開く</button></div>
+          <div class="title">このタブで地図を表示</div>
+          <div class="row"><button class="btn" data-action="open-map-here" data-view="\${viewId}" type="button">地図を表示</button></div>
         </div>
         <div class="card">
           <div style="font-size:24px">🧠</div>
@@ -144,7 +144,7 @@
     `;
   } /* L087 */
 
-  let tabCounter=0; function makeIds(){ tabCounter++; const id=`user-${Date.now()}-${tabCounter}`; return {tabId:`tab-${id}`, viewId:`view-${id}`}; } /* L088 */
+  let tabCounter=0; function makeIds(){ tabCounter++; const id=\`user-\${Date.now()}-\${tabCounter}\`; return {tabId:\`tab-\${id}\`, viewId:\`view-\${id}\`}; } /* L088 */
 
   function persistTabs(){ /* L089 */
     const nodes=[...document.querySelectorAll('.tab')]
@@ -165,7 +165,7 @@
     const addBtn=document.getElementById('tab-add');
     const tab=document.createElement('div');
     tab.className='tab'; tab.id=state.tabId; tab.dataset.view=state.viewId;
-    tab.innerHTML=`<span class="label">${state.label}</span><span class="close" data-close="${state.viewId}" aria-label="閉じる">×</span>`;
+    tab.innerHTML=\`<span class="label">\${state.label}</span><span class="close" data-close="\${state.viewId}" aria-label="閉じる">×</span>\`;
     addBtn.before(tab);
 
     const view=document.createElement('div');
@@ -187,7 +187,7 @@
     const {tabId,viewId}=makeIds(); const addBtn=document.getElementById('tab-add');
     const tab=document.createElement('div');
     tab.className='tab'; tab.id=tabId; tab.dataset.view=viewId;
-    tab.innerHTML=`<span class="label">${label}</span><span class="close" data-close="${viewId}" aria-label="閉じる">×</span>`;
+    tab.innerHTML=\`<span class="label">\${label}</span><span class="close" data-close="\${viewId}" aria-label="閉じる">×</span>\`;
     addBtn.before(tab); tab.classList.add('flash'); setTimeout(()=>tab.classList.remove('flash'),200);
 
     const view=document.createElement('div');
@@ -195,9 +195,8 @@
     document.getElementById('app').appendChild(view);
 
     tabsEl.appendChild(addBtn);
-    activateTab(tab); /* ← 新規タブをアクティブ化（この時点で新規タブへスクロール） */
+    activateTab(tab);
     persistTabs();
-    /* ▼ 最終的に「＋」を表示：レイアウト確定後に＋へスクロール（安定化のため rAF を使用） */
     try{ requestAnimationFrame(()=>snapIntoView(addBtn)); }catch(_){ snapIntoView(addBtn); }
   } /* L096 */
 
@@ -218,6 +217,9 @@
     persistTabs();
   } /* L099 */
 
+  // —— イベント委譲（タップ無反応対策：click に加え pointerup / keydown を同一処理へ） ——
+  function handleOpenHere(target){ const b=target.closest('.btn'); if(!b) return false; const act=b.dataset.action; if(act!=='open-map-here') return false; const vid=b.dataset.view; if(!vid) return false; openMapHere(vid); return true; } /* L099a */
+
   tabsEl.addEventListener('click',(e)=>{
     const btn=e.target.closest('.tab'); if(!btn) return; e.preventDefault(); e.stopPropagation();
     const close=e.target.closest('.close'); if(close){ closeTab(close.dataset.close); return false; }
@@ -227,10 +229,15 @@
   }, {passive:false});
 
   document.addEventListener('click',(e)=>{
-    const b=e.target.closest('.btn'); if(!b) return; e.preventDefault(); e.stopPropagation();
-    const act=b.dataset.action;
-    if(act==='open-map-here'){ openMapHere(b.dataset.view); return false; }
-    return false;
+    if(handleOpenHere(e.target)){ e.preventDefault(); e.stopPropagation(); return false; }
+  }, {passive:false});
+
+  document.addEventListener('pointerup',(e)=>{
+    if(handleOpenHere(e.target)){ e.preventDefault(); e.stopPropagation(); return false; }
+  }, {passive:false});
+
+  document.addEventListener('keydown',(e)=>{
+    if((e.key==='Enter'||e.key===' ') && handleOpenHere(e.target)){ e.preventDefault(); e.stopPropagation(); return false; }
   }, {passive:false});
 
   (function init(){
