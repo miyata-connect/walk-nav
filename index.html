@@ -18,9 +18,11 @@
     #app.pos-left .tab,#app.pos-right .tab{max-width:calc(var(--barW) - 12px);} /* L016 */
     .tab .label{display:block;line-height:1.2;} /* L017 */
     .tab .label svg{display:inline-block;vertical-align:middle;margin-right:4px;} /* 追加：SVGアイコンのスタイル */
+    .tab.active .label svg path{filter:brightness(0) invert(1);} /* アクティブタブのSVGを白く */
+    .tab.active .label svg circle{filter:brightness(0) invert(1);} /* アクティブタブのSVGを白く */
     .tab .close{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:10px;font-size:14px;background:#f3f4f6;color:#374151;margin-left:6px;} /* L018 */
     .tab .close:hover{background:#e5e7eb} /* L019 */
-    .tab.active{border-color:#2563eb;color:#2563eb;background:#e0f2fe;} /* L020 */
+    .tab.active{border-color:#2563eb;color:#fff;background:#2563eb;} /* L020 */
     .tab.add{background:#f8fafc;border:1px dashed #cbd5e1;align-items:center;} /* L021 */
     .tab.flash{transition:background-color .2s, box-shadow .2s;background:#eef2ff;box-shadow:0 0 0 2px rgba(37,99,235,.25) inset;} /* L022 */
 
