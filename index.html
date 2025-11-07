@@ -1,300 +1,193 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>WalkNav — タブ内表示（地図／Gemini／ChatGPT）</title>
-  <style>
-    :root{ --bar:56px; }
-    html,body{height:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Noto Sans JP","Helvetica Neue",Arial,sans-serif;}
-    #app{position:relative;width:100%;height:100dvh;overflow:hidden;background:#f8fafc;}
+<!DOCTYPE html> <!-- L001 -->
+<html lang="ja"> <!-- L002 -->
+<head> <!-- L003 -->
+  <meta charset="utf-8" /> <!-- L004 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /> <!-- L005 -->
+  <title>WalkNav — タブ内表示（地図／Gemini／ChatGPT）</title> <!-- L006 -->
+  <style> /* L007 */
+    :root{ --bar:56px; } /* L008 */
+    html,body{height:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Noto Sans JP","Helvetica Neue",Arial,sans-serif;} /* L009 */
+    #app{position:relative;width:100%;height:100dvh;overflow:hidden;background:#f8fafc;} /* L010 */
 
-    .topbar{position:absolute;inset:0 0 auto 0;height:var(--bar);display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.92);backdrop-filter:saturate(180%) blur(8px);box-shadow:0 8px 24px rgba(0,0,0,.08);z-index:10;}
-    .tabs{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-    .tabs::-webkit-scrollbar{display:none;}
-    .tab{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid transparent;background:#fff;font-size:14px;color:#111;white-space:nowrap;cursor:pointer;user-select:none;}
-    .tab .label{display:inline-flex;align-items:center;gap:6px;}
-    .tab .close{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;font-size:12px;line-height:1;background:#f3f4f6;color:#374151}
-    .tab .close:hover{background:#e5e7eb}
-    .tab.active{border-color:#2563eb;color:#2563eb;}
-    .tab.add{background:#f8fafc;border:1px dashed #cbd5e1;}
-    .tab.flash{transition:background-color .2s, box-shadow .2s;background:#eef2ff;box-shadow:0 0 0 2px rgba(37,99,235,.25) inset;}
+    .topbar{position:absolute;inset:0 0 auto 0;height:var(--bar);display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.92);backdrop-filter:saturate(180%) blur(8px);box-shadow:0 8px 24px rgba(0,0,0,.08);z-index:10;} /* L011 */
+    .tabs{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;} /* L012 */
+    .tabs::-webkit-scrollbar{display:none;} /* L013 */
+    .tab{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid transparent;background:#fff;font-size:14px;color:#111;white-space:nowrap;cursor:pointer;user-select:none;} /* L014 */
+    .tab .label{display:inline-flex;align-items:center;gap:6px;} /* L015 */
+    .tab .close{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;font-size:12px;line-height:1;background:#f3f4f6;color:#374151} /* L016 */
+    .tab .close:hover{background:#e5e7eb} /* L017 */
+    .tab.active{border-color:#2563eb;color:#2563eb;} /* L018 */
+    .tab.add{background:#f8fafc;border:1px dashed #cbd5e1;} /* L019 */
+    .tab.flash{transition:background-color .2s, box-shadow .2s;background:#eef2ff;box-shadow:0 0 0 2px rgba(37,99,235,.25) inset;} /* L020 */
 
-    .view{position:absolute;top:var(--bar);left:0;right:0;bottom:0;display:none;}
-    .view.active{display:block;}
+    .view{position:absolute;top:var(--bar);left:0;right:0;bottom:0;display:none;} /* L021 */
+    .view.active{display:block;} /* L022 */
 
-    .start{position:absolute;inset:0;padding:16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-content:flex-start;background:#f8fafc;}
-    .card{display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid #e5e7eb;border-radius:14px;background:#fff;min-height:120px;text-decoration:none;color:#111;box-shadow:0 6px 16px rgba(0,0,0,.06);}
-    .card .title{margin-top:6px;font-size:13px;color:#374151;}
-    .row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;justify-content:center;}
-    .btn{display:inline-flex;align-items:center;justify-content:center;padding:7px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;color:#111;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.08);font-size:12px;text-decoration:none;}
+    /* 既定の地図埋め込み（embed.html をそのまま使用） */ /* L023 */
+    #mapHost{position:absolute;inset:0;display:flex;flex-direction:column;} /* L024 */
+    #mapFrame{flex:1;width:100%;height:100%;border:0;background:#e5e7eb;display:block;} /* L025 */
 
-    .host{position:absolute;inset:0;display:none;}
-    .host.active{display:block;}
-    .map-box, .site-frame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#e5e7eb;}
-    .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(248,250,252,.9);font-size:14px;color:#374151;}
-    .fallback{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.95);border:1px solid #e5e7eb;border-radius:12px;padding:12px 14px;box-shadow:0 6px 18px rgba(0,0,0,.08);display:none;}
-    .fallback.active{display:block;}
-  </style>
-</head>
-<body>
-<div id="app">
-  <div class="topbar">
-    <div class="tabs" id="tabs">
-      <div class="tab active" data-view="view-map" id="tab-map"><span class="label">🗺️ 地図</span></div>
-      <div class="tab" data-view="view-browser" id="tab-browser"><span class="label">🤖 Aiブラウザ</span></div>
-      <div class="tab" data-view="view-settings" id="tab-settings"><span class="label">⚙️ 設定</span></div>
-      <div class="tab add" id="tab-add" title="新しいタブを作成"><span class="label">＋</span></div>
-    </div>
-  </div>
+    /* 新規タブ／Aiタブのカード */ /* L026 */
+    .start{position:absolute;inset:0;padding:16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-content:flex-start;background:#f8fafc;} /* L027 */
+    .card{display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid #e5e7eb;border-radius:14px;background:#fff;min-height:120px;text-decoration:none;color:#111;box-shadow:0 6px 16px rgba(0,0,0,.06);} /* L028 */
+    .card .title{margin-top:6px;font-size:13px;color:#374151;} /* L029 */
+    .row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;justify-content:center;} /* L030 */
+    .btn{display:inline-flex;align-items:center;justify-content:center;padding:7px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;color:#111;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.08);font-size:12px;text-decoration:none;} /* L031 */
+  </style> <!-- L032 -->
+</head> <!-- L033 -->
+<body> <!-- L034 -->
+<div id="app"> <!-- L035 -->
+  <div class="topbar"> <!-- L036 -->
+    <div class="tabs" id="tabs"> <!-- L037 -->
+      <div class="tab active" data-view="view-map" id="tab-map"><span class="label">🗺️ 地図</span></div> <!-- L038 -->
+      <div class="tab" data-view="view-browser" id="tab-browser"><span class="label">🤖 Aiブラウザ</span></div> <!-- L039 -->
+      <div class="tab" data-view="view-settings" id="tab-settings"><span class="label">⚙️ 設定</span></div> <!-- L040 -->
+      <div class="tab add" id="tab-add" title="新しいタブを作成"><span class="label">＋</span></div> <!-- L041 -->
+    </div> <!-- L042 -->
+  </div> <!-- L043 -->
 
-  <!-- 既定：地図タブ（このタブだけで地図生成） -->
-  <div class="view active" id="view-map">
-    <div class="start" aria-label="地図カード群">
-      <div class="card" style="grid-column:span 3">
-        <div style="font-size:24px">🗺️</div>
-        <div class="row"><button class="btn" data-action="open-map-here" data-view="view-map">地図を開く</button></div>
-      </div>
-    </div>
-    <div class="host" id="host-view-map">
-      <div class="overlay" id="loading-view-map">📍 現在地取得中…</div>
-      <div id="map-view-map" class="map-box" aria-label="地図"></div>
-    </div>
-  </div>
+  <!-- 既定：地図タブ（embed.html をそのまま使用） --> <!-- L044 -->
+  <div class="view active" id="view-map"> <!-- L045 -->
+    <div id="mapHost"> <!-- L046 -->
+      <iframe id="mapFrame" title="地図（embed.html）" src="./embed.html" allow="geolocation *; microphone *" referrerpolicy="no-referrer-when-downgrade"></iframe> <!-- L047 -->
+    </div> <!-- L048 -->
+  </div> <!-- L049 -->
 
-  <!-- Aiブラウザ：地図／Gemini／ChatGPT をこのタブ内で表示 -->
-  <div class="view" id="view-browser">
-    <div class="start" aria-label="Aiリンク">
-      <div class="card">
-        <div style="font-size:24px">🗺️</div>
-        <div class="row"><button class="btn" data-action="open-map-here" data-view="view-browser">地図を開く</button></div>
-      </div>
-      <div class="card">
-        <div style="font-size:24px">🧠</div>
-        <div class="title">Gemini</div>
-        <div class="row"><button class="btn" data-action="open-site" data-url="https://gemini.google.com/" data-view="view-browser">Gemini を表示</button></div>
-      </div>
-      <div class="card">
-        <div style="font-size:24px">💬</div>
-        <div class="title">ChatGPT</div>
-        <div class="row"><button class="btn" data-action="open-site" data-url="https://chatgpt.com/" data-view="view-browser">ChatGPT を表示</button></div>
-      </div>
-    </div>
-    <div class="host" id="host-view-browser">
-      <div class="overlay" id="loading-view-browser" hidden>読み込み中…</div>
-      <iframe class="site-frame" id="site-view-browser" title="サイト表示"></iframe>
-      <div class="fallback" id="fallback-view-browser">
-        このサイトは埋め込みが制限されています。<br/>このブラウザの**同一タブ**で直接開きます。
-        <div class="row" style="margin-top:10px">
-          <button class="btn" data-action="go-same-tab" data-view="view-browser">このタブで開く</button>
-          <button class="btn" data-action="back-to-cards" data-view="view-browser">戻る</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- 既定：Aiブラウザ（“このタブ内”で開く。余計な文言は削除済み） --> <!-- L050 -->
+  <div class="view" id="view-browser"> <!-- L051 -->
+    <div class="start" aria-label="リンク集"> <!-- L052 -->
+      <div class="card"> <!-- L053 -->
+        <div style="font-size:24px">🗺️</div> <!-- L054 -->
+        <div class="row"><button class="btn" data-action="open-map-here" data-view="view-browser">地図を開く</button></div> <!-- L055 -->
+      </div> <!-- L056 -->
+      <div class="card"> <!-- L057 -->
+        <div style="font-size:24px">🧠</div> <!-- L058 -->
+        <div class="title">Gemini</div> <!-- L059 -->
+        <div class="row"> <!-- L060 -->
+          <a class="btn" href="https://gemini.google.com/" data-action="open-same-tab">Gemini を表示</a> <!-- L061 -->
+        </div> <!-- L062 -->
+      </div> <!-- L063 -->
+      <div class="card"> <!-- L064 -->
+        <div style="font-size:24px">💬</div> <!-- L065 -->
+        <div class="title">ChatGPT</div> <!-- L066 -->
+        <div class="row"> <!-- L067 -->
+          <a class="btn" href="https://chatgpt.com/" data-action="open-same-tab">ChatGPT を表示</a> <!-- L068 -->
+        </div> <!-- L069 -->
+      </div> <!-- L070 -->
+    </div> <!-- L071 -->
+    <div id="mapHost-browser" style="position:absolute;inset:0;display:none;"> <!-- L072 -->
+      <iframe id="mapFrame-browser" title="Aiタブ内地図" src="" allow="geolocation *; microphone *" referrerpolicy="no-referrer-when-downgrade" style="width:100%;height:100%;border:0;background:#e5e7eb;"></iframe> <!-- L073 -->
+    </div> <!-- L074 -->
+  </div> <!-- L075 -->
 
-  <!-- 設定（骨子） -->
-  <div class="view" id="view-settings">
-    <div class="start">
-      <div class="card" style="grid-column:span 3"><div class="title">設定：v=tab-internal-view</div></div>
-    </div>
-  </div>
-</div>
+  <!-- 設定（骨子） --> <!-- L076 -->
+  <div class="view" id="view-settings"> <!-- L077 -->
+    <div class="start"><div class="card" style="grid-column:span 3"><div class="title">設定：v=tab-internal-view</div></div></div> <!-- L078 -->
+  </div> <!-- L079 -->
+</div> <!-- L080 -->
 
-<script>
-  // ===== 参照・状態 =====
-  const tabsEl=document.getElementById('tabs');
-  let googleReady=false; const mapQueue=[];
-  const mapsById=new Map();
-  const pendingNav=new Map(); // viewId -> url （埋め込み不可時のフォールバック先）
+<script> /* L081 */
+  // ===== 参照・定数 ===== /* L082 */
+  const tabsEl=document.getElementById('tabs'); /* L083 */
 
-  // ===== Google Maps 準備完了 =====
-  window.__initMaps = function(){
-    googleReady=true;
-    while(mapQueue.length){ const fn=mapQueue.shift(); try{ fn(); }catch(e){} }
-  };
+  function snapIntoView(el){ try{ el.scrollIntoView({block:'nearest',inline:'end'}); }catch(_){} } /* L084 */
 
-  // ===== 地図生成（各タブ独立・そのタブだけ） =====
-  function createMapFor(viewId){
-    const host=document.getElementById('host-'+viewId);
-    const box=document.getElementById('map-'+viewId);
-    const loader=document.getElementById('loading-'+viewId);
-    if(!host||!box) return;
+  function activateTab(btn){ /* L085 */
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); /* L086 */
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); /* L087 */
+    btn.classList.add('active'); /* L088 */
+    const vid=btn.dataset.view; if(vid) document.getElementById(vid).classList.add('active'); /* L089 */
+    snapIntoView(btn); /* L090 */
+  } /* L091 */
 
-    const mount=()=>{
-      // 既に生成済みなら表示だけ
-      if(mapsById.has(box.id)){ host.classList.add('active'); if(loader) loader.hidden=true; return; }
-      // 位置取得してから生成（初期地点の固定フォールバックは使わない）
-      if(loader) loader.hidden=false; host.classList.add('active');
-      if(navigator.geolocation){
-        navigator.geolocation.getCurrentPosition(pos=>{
-          const map=new google.maps.Map(box,{center:{lat:pos.coords.latitude,lng:pos.coords.longitude},zoom:16,disableDefaultUI:true,gestureHandling:'greedy'});
-          mapsById.set(box.id,map);
-          if(loader) loader.hidden=true;
-        }, err=>{
-          // 取得失敗時は地図を生成せず、案内に戻す
-          if(loader){ loader.textContent='現在地の取得に失敗しました。戻ってやり直してください。'; }
-        }, {enableHighAccuracy:true,timeout:7000,maximumAge:0});
-      }else{
-        if(loader){ loader.textContent='この端末では位置情報が利用できません。'; }
-      }
-    };
-    if(googleReady){ mount(); } else { mapQueue.push(mount); }
-  }
+  function nextLabel(){ /* L092 */
+    const count=[...document.querySelectorAll('.tab')]
+      .filter(n=>!n.classList.contains('add') && !['tab-map','tab-browser','tab-settings'].includes(n.id)).length; /* L093 */
+    return `新規タブ ${count+1}`; /* L094 */
+  } /* L095 */
 
-  // ===== サイトをこのタブ内で開く（埋め込み→不可なら同一タブ遷移） =====
-  function openSiteInTab(viewId, url){
-    const host=document.getElementById('host-'+viewId);
-    const start=document.querySelector('#'+viewId+' .start');
-    const frame=document.getElementById('site-'+viewId);
-    const loader=document.getElementById('loading-'+viewId);
-    const fallback=document.getElementById('fallback-'+viewId);
-    if(!host||!start||!frame) return;
-
-    // 表示切替
-    start.style.display='none';
-    host.classList.add('active');
-    if(loader) loader.hidden=false;
-    fallback?.classList.remove('active');
-
-    // iframeで試行
-    try{
-      frame.src = url;
-      // 1.5秒で埋め込み不可を推定 → フォールバックUI表示
-      setTimeout(()=>{
-        // 埋め込み可否はCSPで検出困難なため、時間ベースで案内
-        if(loader) loader.hidden=true;
-        fallback?.classList.add('active');
-        pendingNav.set(viewId, url);
-      }, 1500);
-      frame.onload = ()=>{ if(loader) loader.hidden=true; /* 埋め込み成功ならそのまま表示（多くは失敗する想定） */ };
-    }catch(e){
-      if(loader) loader.hidden=true;
-      fallback?.classList.add('active');
-      pendingNav.set(viewId, url);
-    }
-  }
-
-  // ===== 同一タブへ直接遷移（本ブラウザ内で開く） =====
-  function goSameTab(viewId){
-    const url=pendingNav.get(viewId);
-    if(url){ window.location.href = url; }
-  }
-
-  // ===== タブ切替 =====
-  function activateTab(btn){
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-    btn.classList.add('active');
-    const vid=btn.dataset.view; if(vid) document.getElementById(vid).classList.add('active');
-    try{ btn.scrollIntoView({block:'nearest',inline:'end'}); }catch(_){}
-  }
-
-  // ===== 新規タブビューHTML（Aiカード + 埋め込みホスト） =====
-  function buildNewViewHTML(viewId){
+  function startContentHTML(viewId){ /* L096 */
     return `
       <div class="start" aria-label="リンク集">
         <div class="card">
           <div style="font-size:24px">🗺️</div>
-          <div class="row"><button class="btn" data-action="open-map-here" data-view="${viewId}">地図を開く</button></div>
+          <div class="row"><button class="btn" data-action="open-map-here" data-view="\${viewId}">地図を開く</button></div>
         </div>
         <div class="card">
           <div style="font-size:24px">🧠</div>
           <div class="title">Gemini</div>
-          <div class="row"><button class="btn" data-action="open-site" data-url="https://gemini.google.com/" data-view="${viewId}">Gemini を表示</button></div>
+          <div class="row">
+            <a class="btn" href="https://gemini.google.com/" data-action="open-same-tab">Gemini を表示</a>
+          </div>
         </div>
         <div class="card">
           <div style="font-size:24px">💬</div>
           <div class="title">ChatGPT</div>
-          <div class="row"><button class="btn" data-action="open-site" data-url="https://chatgpt.com/" data-view="${viewId}">ChatGPT を表示</button></div>
-        </div>
-      </div>
-      <div class="host" id="host-${viewId}">
-        <div class="overlay" id="loading-${viewId}" hidden>読み込み中…</div>
-        <div id="map-${viewId}" class="map-box" aria-label="地図" hidden></div>
-        <iframe class="site-frame" id="site-${viewId}" title="サイト表示"></iframe>
-        <div class="fallback" id="fallback-${viewId}">
-          このサイトは埋め込みが制限されています。<br/>このブラウザの<strong>同一タブ</strong>で直接開きます。
-          <div class="row" style="margin-top:10px">
-            <button class="btn" data-action="go-same-tab" data-view="${viewId}">このタブで開く</button>
-            <button class="btn" data-action="back-to-cards" data-view="${viewId}">戻る</button>
+          <div class="row">
+            <a class="btn" href="https://chatgpt.com/" data-action="open-same-tab">ChatGPT を表示</a>
           </div>
         </div>
       </div>
+      <div id="mapHost-\${viewId}" style="position:absolute;inset:0;display:none;">
+        <iframe id="mapFrame-\${viewId}" title="タブ内地図" src="" allow="geolocation *; microphone *" referrerpolicy="no-referrer-when-downgrade" style="width:100%;height:100%;border:0;background:#e5e7eb;"></iframe>
+      </div>
     `;
-  }
+  } /* L097 */
 
-  // ===== ラベル採番・ID生成・タブ追加/削除 =====
-  function nextLabel(){
-    const n=[...document.querySelectorAll('.tab')].filter(t=>!t.classList.contains('add') && !['tab-map','tab-browser','tab-settings'].includes(t.id)).length;
-    return `新規タブ ${n+1}`;
-  }
-  let seq=0; function makeIds(){ seq++; const id=`u${Date.now()}_${seq}`; return {tabId:`tab-${id}`,viewId:`view-${id}`}; }
+  let tabCounter=0; function makeIds(){ tabCounter++; const id=\`user-\${Date.now()}-\${tabCounter}\`; return {tabId:\`tab-\${id}\`, viewId:\`view-\${id}\`}; } /* L098 */
 
-  function addTab(label){
-    const add=document.getElementById('tab-add'); const {tabId,viewId}=makeIds();
-    const tab=document.createElement('div'); tab.className='tab'; tab.id=tabId; tab.dataset.view=viewId;
-    tab.innerHTML=`<span class="label">${label}</span><span class="close" data-close="${viewId}" aria-label="閉じる">×</span>`;
-    add.before(tab); tab.classList.add('flash'); setTimeout(()=>tab.classList.remove('flash'),200);
-    const view=document.createElement('div'); view.className='view'; view.id=viewId; view.innerHTML=buildNewViewHTML(viewId);
-    document.getElementById('app').appendChild(view);
-    activateTab(tab);
-  }
+  function addTab(label){ /* L099 */
+    const {tabId,viewId}=makeIds(); const addBtn=document.getElementById('tab-add'); /* L100 */
+    const tab=document.createElement('div'); tab.className='tab'; tab.id=tabId; tab.dataset.view=viewId; /* L101 */
+    tab.innerHTML=\`<span class="label">\${label}</span><span class="close" data-close="\${viewId}" aria-label="閉じる">×</span>\`; /* L102 */
+    addBtn.before(tab); tab.classList.add('flash'); setTimeout(()=>tab.classList.remove('flash'),200); /* L103 */
 
-  function closeTab(viewId){
-    const tab=[...document.querySelectorAll('.tab')].find(t=>t.dataset.view===viewId);
-    const view=document.getElementById(viewId); if(!tab||!view) return;
-    const active=tab.classList.contains('active'); tab.remove(); view.remove();
-    if(active){ activateTab(document.getElementById('tab-map')); }
-  }
+    const view=document.createElement('div'); view.className='view'; view.id=viewId; view.innerHTML=startContentHTML(viewId); /* L104 */
+    document.getElementById('app').appendChild(view); /* L105 */
 
-  // ===== クリック抑止 + ハンドラ =====
-  tabsEl.addEventListener('click',(e)=>{
-    const t=e.target.closest('.tab'); if(!t) return; e.preventDefault(); e.stopPropagation();
-    const c=e.target.closest('.close'); if(c){ closeTab(c.dataset.close); return; }
-    if(t.id==='tab-add'){ addTab(nextLabel()); return; }
-    activateTab(t);
-  },{passive:false});
+    tabsEl.appendChild(addBtn); snapIntoView(addBtn); activateTab(tab); /* L106 */
+  } /* L107 */
 
-  document.addEventListener('click',(e)=>{
-    const b=e.target.closest('.btn'); if(!b) return; e.preventDefault(); e.stopPropagation();
-    const act=b.dataset.action; const vid=b.dataset.view;
-    if(act==='open-map-here'){ // そのタブだけで地図生成
-      // サイト用UIを隠し、地図DOMを表示してから生成
-      const host=document.getElementById('host-'+vid);
-      const start=document.querySelector('#'+vid+' .start');
-      const site=document.getElementById('site-'+vid);
-      const mapBox=document.getElementById('map-'+vid);
-      const loader=document.getElementById('loading-'+vid);
-      const fallback=document.getElementById('fallback-'+vid);
-      if(start) start.style.display='none';
-      if(host) host.classList.add('active');
-      if(site) site.removeAttribute('src');
-      if(fallback) fallback.classList.remove('active');
-      if(loader) loader.hidden=false;
-      if(mapBox){ mapBox.hidden=false; }
-      createMapFor(vid);
-      return;
-    }
-    if(act==='open-site'){ // タブ内でまず埋め込み → 不可なら同一タブ遷移
-      openSiteInTab(vid, b.dataset.url); return;
-    }
-    if(act==='go-same-tab'){ goSameTab(vid); return; }
-    if(act==='back-to-cards'){
-      const host=document.getElementById('host-'+vid);
-      const start=document.querySelector('#'+vid+' .start');
-      const loader=document.getElementById('loading-'+vid);
-      const fallback=document.getElementById('fallback-'+vid);
-      if(host) host.classList.remove('active');
-      if(start) start.style.display='';
-      if(loader) loader.hidden=true;
-      if(fallback) fallback.classList.remove('active');
-      return;
-    }
-  },{passive:false});
-</script>
+  function closeTab(viewId){ /* L108 */
+    const tab=[...document.querySelectorAll('.tab')].find(t=>t.dataset.view===viewId); /* L109 */
+    const view=document.getElementById(viewId); /* L110 */
+    if(!tab||!view) return; /* L111 */
+    const isActive=tab.classList.contains('active'); /* L112 */
+    tab.remove(); view.remove(); /* L113 */
+    if(isActive){ const mapTab=document.getElementById('tab-map'); if(mapTab) activateTab(mapTab); } /* L114 */
+  } /* L115 */
 
-<!-- Google Maps JS（本ブラウザ内で使用） -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry&callback=__initMaps" async defer></script>
-</body>
-</html>
+  function openMapHere(viewId){ /* L116 */
+    const host=document.getElementById('mapHost-'+viewId); const frame=document.getElementById('mapFrame-'+viewId); /* L117 */
+    const start=document.querySelector('#'+viewId+' .start'); /* L118 */
+    if(!host||!frame||!start) return; /* L119 */
+    start.style.display='none'; host.style.display='block'; /* L120 */
+    if(!frame.src) frame.src='./embed.html'; /* L121 */
+  } /* L122 */
+
+  // ===== クリック抑止（外部挙動を殺し、1回の視覚反応のみ）＋ハンドラ ===== /* L123 */
+  tabsEl.addEventListener('click',(e)=>{ /* L124 */
+    const btn=e.target.closest('.tab'); if(!btn) return; e.preventDefault(); e.stopPropagation(); /* L125 */
+    const close=e.target.closest('.close'); if(close){ closeTab(close.dataset.close); return false; } /* L126 */
+    if(btn.id==='tab-add'){ addTab(nextLabel()); return false; } /* L127 */
+    if(btn.dataset.view){ activateTab(btn); } /* L128 */
+    return false; /* L129 */
+  }, {passive:false}); /* L130 */
+
+  document.addEventListener('click',(e)=>{ /* L131 */
+    const btn=e.target.closest('.btn, a.btn'); if(!btn) return; e.preventDefault(); e.stopPropagation(); /* L132 */
+    const act=btn.dataset.action; const viewId=btn.dataset.view; /* L133 */
+    if(act==='open-map-here'){ openMapHere(viewId); return false; } /* L134 */
+    if(act==='open-same-tab'){ const href=btn.getAttribute('href'); if(href){ window.location.href=href; } return false; } /* L135 */
+    return false; /* L136 */
+  }, {passive:false}); /* L137 */
+
+  (function init(){ /* L138 */
+    const addBtn=document.getElementById('tab-add'); /* L139 */
+    addBtn.removeAttribute('aria-disabled'); addBtn.removeAttribute('data-disabled'); addBtn.style.pointerEvents='auto'; /* L140 */
+    activateTab(document.querySelector('.tab.active')||document.getElementById('tab-map')); /* L141 */
+    snapIntoView(addBtn); /* L142 */
+  })(); /* L143 */
+</script> <!-- L144 -->
+</body> <!-- L145 -->
+</html> <!-- L146 -->
