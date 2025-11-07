@@ -38,14 +38,14 @@
     #mapFrame{flex:1;width:100%;height:100%;border:0;background:#e5e7eb;display:block;} /* L033 */
 
     /* スタート画面 */ /* L034 */
-    .start{position:absolute;inset:0;padding:16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-content:flex-start;background:#f8fafc;} /* L035 */
+    .start{position:absolute;inset:0;padding:16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-content:flex-start;background:#f8fafc;z-index:1;} /* L035 */
     .card{display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid #e5e7eb;border-radius:14px;background:#fff;min-height:120px;text-decoration:none;color:#111;box-shadow:0 6px 16px rgba(0,0,0,.06);} /* L036 */
     .card .title{margin-top:6px;font-size:13px;color:#374151;} /* L037 */
     .card .url{margin-top:8px;font-size:12px;color:#6b7280;word-break:break-all;padding:0 10px;text-align:center;} /* L038 */
     .row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;justify-content:center;} /* L039 */
     .btn,.alink{display:inline-flex;align-items:center;justify-content:center;padding:7px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;color:#111;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.08);font-size:12px;text-decoration:none;} /* L040 */
     .muted{color:#6b7280;font-size:12px;margin-top:8px;text-align:center;grid-column:1/-1;} /* L041 */
-    .tabmap{position:absolute;inset:0;border:0;background:#e5e7eb;display:none;width:100%;height:100%;z-index:0;} /* L042 */
+    .tabmap{position:absolute;inset:0;border:0;background:#e5e7eb;display:none;width:100%;height:100%;z-index:2;} /* L042 */
     .tabmap.active{display:block;} /* L043 */
 
     /* 下配置 */ /* L044 */
@@ -72,8 +72,8 @@
     .navbtn.back{background:#fef3c7;border-color:#fde68a;} .navbtn.back svg path{fill:#b45309;} /* L062 */
     .navbtn.forward{background:#dcfce7;border-color:#bbf7d0;} .navbtn.forward svg path{fill:#16a34a;} /* L063 */
 
-    /* 縦バー時＝操作ボタンを少し大きく＋中央揃え（左右対称） */ /* L064 */
-    #app.pos-left .navbtn, #app.pos-right .navbtn{width:52px;height:52px;border-radius:14px;margin-left:auto;margin-right:auto;} /* L065: ここでセンタリング */
+    /* 縦バー時＝操作ボタン大＋中央揃え（左右対称） */ /* L064 */
+    #app.pos-left .navbtn, #app.pos-right .navbtn{width:52px;height:52px;border-radius:14px;margin-left:auto;margin-right:auto;} /* L065 */
     #app.pos-left .navtools,#app.pos-right .navtools{flex-direction:column;gap:10px;margin-top:auto;margin-bottom:6px;} /* L066 */
     #app.pos-left .topbar,#app.pos-right .topbar{padding-top:6px;padding-bottom:6px;} /* L067 */
   </style> <!-- L068 -->
@@ -105,7 +105,7 @@
   <!-- 地図タブ（embed.html） --> <!-- L081 -->
   <div class="view active" id="view-map"> <!-- L082 -->
     <div id="mapHost"> <!-- L083 -->
-      <iframe id="mapFrame" title="地図（embed.html）" src="./embed.html" allow="geolocation *; microphone *" referrerpolicy="no-referrer-when-downgrade"></iframe> <!-- L084 -->
+      <iframe id="mapFrame" title="地図（embed.html）" src="./embed.html" allow="geolocation *; microphone *" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe> <!-- L084 -->
     </div> <!-- L085 -->
   </div> <!-- L086 -->
 
@@ -131,7 +131,7 @@
       </div> <!-- L092 -->
       <div class="muted">※ リンクは新しいブラウザタブで開きます（本アプリは残ります）。『地図を表示』はこのタブ内だけに適用。</div> <!-- L093 -->
     </div> <!-- L094 -->
-    <iframe class="tabmap" id="view-browser-map" title="Aiタブ内地図" src="" allow="geolocation *; microphone *" referrerpolicy="no-referrer-when-downgrade"></iframe> <!-- L095 -->
+    <iframe class="tabmap" id="view-browser-map" title="Aiタブ内地図" src="" allow="geolocation *; microphone *" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe> <!-- L095 -->
   </div> <!-- L096 -->
 
   <!-- 設定（タブ位置切替＋即クローズ） --> <!-- L097 -->
@@ -187,7 +187,35 @@
     setTimeout(()=>swapAddressAndCoords(doc), 600);
   }
 
-  /* ===== 履歴（実履歴） ===== */ /* L104 */
+  /* ===== “真っ白”対策：状態＆自己回復ユーティリティ ===== */ /* L104 */
+  function isIframeAlive(ifr){
+    try{
+      if(!ifr || !ifr.classList.contains('active')) return false;
+      if(!ifr.src || ifr.src==='about:blank') return false;
+      var d=ifr.contentDocument || ifr.contentWindow.document;
+      if(!d) return false;
+      return d.readyState==='interactive' || d.readyState==='complete';
+    }catch(_){ return false; }
+  }
+  function reviveIframe(ifr){
+    if(!ifr) return;
+    try{
+      if(!ifr.src || ifr.src==='about:blank'){ ifr.src='./embed.html'; }
+      // 失敗時リトライ（最大3回・間隔短）
+      var tries=0;
+      var tick=function(){
+        tries++;
+        if(isIframeAlive(ifr)){ try{ hookEmbed(ifr.contentWindow.document); }catch(_){}
+          return;
+        }
+        if(tries<3){ ifr.src='./embed.html'; setTimeout(tick, 450); }
+      };
+      ifr.addEventListener('load', ()=>{ try{ hookEmbed(ifr.contentWindow.document); }catch(_){} }, {once:true});
+      setTimeout(tick, 300);
+    }catch(_){}
+  }
+
+  /* ===== 実履歴管理 ===== */ /* L105 */
   function currentState(){
     var activeTab=document.querySelector('.tab.active');
     var viewId=activeTab?activeTab.getAttribute('data-view'):'view-map';
@@ -198,7 +226,7 @@
         var map=v.querySelector('.tabmap');
         var s=v.querySelector('.start');
         if(map && map.classList.contains('active')) mode='map';
-        else if(s) mode='start';
+        else if(s && s.style.display!=='none') mode='start';
       }
     }
     return {view:viewId||'view-map', mode:mode||null};
@@ -214,11 +242,9 @@
         var map=v.querySelector('.tabmap');
         var s=v.querySelector('.start');
         if(state.mode==='map'){
-          if(map){ if(!map.src || map.src==='about:blank') map.src='./embed.html'; map.classList.add('active'); }
+          if(map){ reviveIframe(map); map.classList.add('active'); }
           if(s) s.style.display='none';
-          try{ hookEmbed(map.contentWindow.document); }catch(_){}
-        }
-        if(state.mode==='start'){
+        }else{
           if(map){ map.classList.remove('active'); }
           if(s) s.style.display='block';
         }
@@ -231,7 +257,7 @@
     if(!statesEqual(cur,newState)){ history.pushState(newState,''); }
   }
 
-  /* ===== 位置切替 ===== */ /* L105 */
+  /* ===== タブ位置 ===== */ /* L106 */
   function setTabPosition(pos){
     var p=(pos==='bottom'||pos==='left'||pos==='right')?pos:'top';
     appEl.classList.remove('pos-top','pos-bottom','pos-left','pos-right');
@@ -240,7 +266,7 @@
     snapIntoView(document.getElementById('tab-add'));
   }
 
-  /* ===== タブ切替 ===== */ /* L106 */
+  /* ===== タブ切替 ===== */ /* L107 */
   function activateTab(btn, doPush){
     if(doPush===undefined) doPush=true;
     if(!btn) return;
@@ -252,7 +278,7 @@
     snapIntoView(btn);
   }
 
-  /* ===== ユーザータブ管理 ===== */ /* L107 */
+  /* ===== ユーザータブ管理 ===== */ /* L108 */
   function nextLabel(){
     var list=[].slice.call(document.querySelectorAll('.tab')).filter(function(n){
       return !n.classList.contains('add') && ['tab-map','tab-browser','tab-settings'].indexOf(n.id)===-1;
@@ -272,7 +298,7 @@
       '<div class="url">https://chatgpt.com/</div></div>'+
       '<div class="muted">※ リンクは新しいブラウザタブで開きます。本アプリは残ります。</div>'+
     '</div>'+
-    '<iframe class="tabmap" id="'+viewId+'-map" title="タブ内地図" src="" allow="geolocation *; microphone *" referrerpolicy="no-referrer-when-downgrade"></iframe>';
+    '<iframe class="tabmap" id="'+viewId+'-map" title="タブ内地図" src="" allow="geolocation *; microphone *" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>';
   }
   var tabCounter=0;
   function makeIds(){ tabCounter++; var id='user-'+Date.now()+'-'+tabCounter; return {tabId:'tab-'+id, viewId:'view-'+id}; }
@@ -304,8 +330,7 @@
     document.getElementById('app').appendChild(view);
 
     if(state.mapOpened){
-      var m=document.getElementById(state.viewId+'-map'); if(m){ m.src='./embed.html'; m.classList.add('active'); try{ m.addEventListener('load',()=>hookEmbed(m.contentWindow.document),{once:true}); }catch(_){}
-      }
+      var m=document.getElementById(state.viewId+'-map'); if(m){ reviveIframe(m); m.classList.add('active'); }
       var s=view.querySelector('.start'); if(s) s.style.display='none';
     }
   }
@@ -315,8 +340,7 @@
       (saved.tabs||[]).forEach(addTabFromState);
       if(saved.aiOpened){
         var ai=document.getElementById('view-browser-map'); var s=document.querySelector('#view-browser .start');
-        if(ai){ ai.src='./embed.html'; ai.classList.add('active'); try{ ai.addEventListener('load',()=>hookEmbed(ai.contentWindow.document),{once:true}); }catch(_){}
-        }
+        if(ai){ reviveIframe(ai); ai.classList.add('active'); }
         if(s) s.style.display='none';
       }
     }catch(_){}
@@ -348,16 +372,20 @@
     if(isActive){ var mapTab=document.getElementById('tab-map'); if(mapTab) activateTab(mapTab); }
   }
 
-  /* ===== Aiブラウザ：ホーム／地図表示（堅牢化） ===== */ /* L108 */
-  function ensureIframeReady(iframe){
-    if(!iframe) return;
-    try{
-      if(!iframe.src || iframe.src==='about:blank'){ iframe.src='./embed.html'; }
-      iframe.addEventListener('load', function onL(){
-        try{ hookEmbed(iframe.contentWindow.document); }catch(_){}
-      }, {once:true});
-    }catch(_){}
+  /* ===== Aiブラウザ：ホーム／地図表示（堅牢化＋tap-to-wake） ===== */ /* L109 */
+  function ensureIframeHooks(ifr){
+    if(!ifr) return;
+    // タップで“起動・復帰”
+    ['pointerdown','touchstart','mousedown'].forEach(function(ev){
+      ifr.addEventListener(ev, function(){ if(!isIframeAlive(ifr)) reviveIframe(ifr); }, {passive:true});
+    });
+    // 可視化時の復帰（縦横切替・復帰など）
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting && !isIframeAlive(ifr)) reviveIframe(ifr); });
+    }, {root:null,threshold:0});
+    try{ io.observe(ifr); }catch(_){}
   }
+
   function aiHome(){
     var state={view:'view-browser', mode:'start'};
     applyState(state);
@@ -366,13 +394,17 @@
   function openMapHere(viewId){
     var v=document.getElementById(viewId); if(!v) return;
     var map=v.querySelector('.tabmap'); var s=v.querySelector('.start');
-    if(map){ ensureIframeReady(map); map.classList.add('active'); }
+    if(map){
+      reviveIframe(map);
+      map.classList.add('active');
+      ensureIframeHooks(map);
+    }
     if(s) s.style.display='none';
     persistTabs();
     pushStateIfChanged({view:viewId, mode:'map'}, false);
   }
 
-  /* ===== イベント登録 ===== */ /* L109 */
+  /* ===== イベント登録 ===== */ /* L110 */
   function bindEvents(){
     if(tabsEl){
       tabsEl.addEventListener('click', function(e){
@@ -396,35 +428,36 @@
     if(navBack){ navBack.addEventListener('click', function(){ history.back(); }); }
     if(navFwd ){ navFwd .addEventListener('click', function(){ history.forward(); }); }
 
-    document.addEventListener('keydown', function(e){
-      if((e.key==='Enter'||e.key===' '||e.code==='Space')){
-        var b=e.target.closest && e.target.closest('.btn');
-        if(b && b.getAttribute('data-action')==='open-map-here'){
-          var vid=b.getAttribute('data-view'); if(vid) openMapHere(vid);
-          e.preventDefault(); e.stopPropagation();
-        }
-      }
-    });
+    // iframe がアクティブの時は常時監視して自己回復
+    setInterval(function(){
+      document.querySelectorAll('iframe.tabmap.active').forEach(function(ifr){
+        if(!isIframeAlive(ifr)) reviveIframe(ifr);
+      });
+    }, 1500);
 
     window.addEventListener('popstate', function(ev){
       var st=ev.state || null;
       if(st){ applyState(st); }
     });
 
-    /* ページ復帰時の白画面防止（メモリ回収対策） */
+    /* 復帰時の白画面防止（ブラウザ復帰・低メモリ復帰） */
     window.addEventListener('pageshow', function(){
-      document.querySelectorAll('iframe.tabmap.active').forEach(ensureIframeReady);
+      document.querySelectorAll('iframe.tabmap.active').forEach(function(ifr){ reviveIframe(ifr); ensureIframeHooks(ifr); });
     });
     document.addEventListener('visibilitychange', function(){
       if(document.visibilityState==='visible'){
-        document.querySelectorAll('iframe.tabmap.active').forEach(ensureIframeReady);
+        document.querySelectorAll('iframe.tabmap.active').forEach(function(ifr){ reviveIframe(ifr); });
       }
     });
+
     var mf=document.getElementById('mapFrame');
-    if(mf){ mf.addEventListener('load', ()=>{ try{ hookEmbed(mf.contentWindow.document); }catch(_){}}); }
+    if(mf){
+      mf.addEventListener('load', ()=>{ try{ hookEmbed(mf.contentWindow.document); }catch(_){}}); 
+      ensureIframeHooks(mf);
+    }
   }
 
-  /* ===== 設定UI（即クローズ） ===== */ /* L110 */
+  /* ===== 設定UI（即クローズ） ===== */ /* L111 */
   function initPositionUI(){
     var saved='left'; try{ saved=localStorage.getItem(SKEY_POS)||saved; }catch(_){}
     setTabPosition(saved);
@@ -441,13 +474,15 @@
     });
   }
 
-  /* ===== 初期化 ===== */ /* L111 */
+  /* ===== 初期化 ===== */ /* L112 */
   function init(){
     initPositionUI();
     restoreTabs();
     var initialTab=document.querySelector('.tab.active')||document.getElementById('tab-map');
     activateTab(initialTab,false);
     if(!history.state){ history.replaceState(currentState(),''); }
+    // 既存の全iframeに自己回復フック
+    document.querySelectorAll('iframe.tabmap').forEach(function(ifr){ ensureIframeHooks(ifr); });
     snapIntoView(document.getElementById('tab-add'));
   }
 
@@ -457,6 +492,6 @@
     try{ bindEvents(); init(); }catch(_){ setTimeout(function(){ try{ bindEvents(); init(); }catch(__){} },0); }
   }
 })();
-</script> <!-- L112 -->
-</body> <!-- L113 -->
-</html> <!-- L114 -->
+</script> <!-- L113 -->
+</body> <!-- L114 -->
+</html> <!-- L115 -->
