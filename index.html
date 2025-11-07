@@ -15,7 +15,7 @@
     .tabs{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex:1 1 auto;} /* L014 */
     .tabs::-webkit-scrollbar{display:none;} /* L015 */
 
-    /* タブ（基準は左/右=縦方向UI想定） */ /* L016 */
+    /* タブ（縦方向UI想定のスリム化） */ /* L016 */
     .tab{display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:6px 10px;border-radius:999px;border:1px solid transparent;background:#fff;font-size:14px;color:#111;cursor:pointer;user-select:none;max-width:38vw;white-space:normal;overflow-wrap:anywhere;} /* L017 */
     #app.pos-left .tab,#app.pos-right .tab{max-width:calc(var(--barW) - 12px);} /* L018 */
     .tab .label{display:block;line-height:1.2;} /* L019 */
@@ -72,8 +72,8 @@
     .navbtn.back{background:#fef3c7;border-color:#fde68a;} .navbtn.back svg path{fill:#b45309;} /* L062 */
     .navbtn.forward{background:#dcfce7;border-color:#bbf7d0;} .navbtn.forward svg path{fill:#16a34a;} /* L063 */
 
-    /* 縦バー時＝操作ボタンを少し大きく */ /* L064 */
-    #app.pos-left .navbtn, #app.pos-right .navbtn{width:52px;height:52px;border-radius:14px;} /* L065 */
+    /* 縦バー時＝操作ボタンを少し大きく＋中央揃え（左右対称） */ /* L064 */
+    #app.pos-left .navbtn, #app.pos-right .navbtn{width:52px;height:52px;border-radius:14px;margin-left:auto;margin-right:auto;} /* L065: ここでセンタリング */
     #app.pos-left .navtools,#app.pos-right .navtools{flex-direction:column;gap:10px;margin-top:auto;margin-bottom:6px;} /* L066 */
     #app.pos-left .topbar,#app.pos-right .topbar{padding-top:6px;padding-bottom:6px;} /* L067 */
   </style> <!-- L068 -->
@@ -88,7 +88,7 @@
       <div class="tab add" id="tab-add" title="新しいタブを作成"><span class="label">＋</span></div> <!-- L077 -->
     </div> <!-- L078 -->
 
-    <!-- 独立ナビツール（色付き・スリム化） --> <!-- L079 -->
+    <!-- 独立ナビツール --> <!-- L079 -->
     <div class="navtools" id="navtools" aria-label="ナビゲーション操作">
       <button class="navbtn home" id="btn-home" aria-label="ホーム">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 8h-3v10h-5V15H11v6H6V11H3z"/></svg>
@@ -165,17 +165,16 @@
 
   function snapIntoView(el){ if(!el) return; try{ el.scrollIntoView({block:'nearest',inline:'end'}); }catch(_){} }
 
-  /* ====== 埋め込み面：住所↔緯度経度の順替え（iframe 内を同一オリジンで調整） ====== */ /* L103 */
+  /* ====== 埋め込み面：住所↔緯度経度の順替え（iframe 同一オリジン対応） ====== */ /* L103 */
   function swapAddressAndCoords(doc){
     try{
       var nodes=Array.from(doc.querySelectorAll('div,p,li,span'));
-      var addr = nodes.find(n=>/〒\s*\d{3}-?\d{4}/.test(n.textContent||''));
-      var coord= nodes.find(n=>/(現在地[^：]?：)?\s*.*(緯度|経度)/.test(n.textContent||''));
+      var addr = nodes.find(n=>/〒\s*\d{3}-?\d{4}/.test(n.textContent||''));    /* 住所 */
+      var coord= nodes.find(n=>/(現在地[^：]?：)?\s*.*(緯度|経度)/.test(n.textContent||'')); /* 緯度経度 */
       if(addr && coord){
         var parent = addr.parentElement===coord.parentElement ? addr.parentElement : (addr.closest('*')||coord.closest('*'));
         if(parent && addr !== coord){
-          if(parent && coord.parentNode){ coord.parentNode.insertBefore(addr, coord); }
-          // 文言を「現在地：緯度…／経度…」へ統一
+          if(coord.parentNode){ coord.parentNode.insertBefore(addr, coord); } /* 住所→先頭 */
           var t = (coord.textContent||'').trim();
           if(!/^現在地/.test(t)){ coord.textContent = '現在地：' + t.replace(/^(.*?：)?/,''); }
         }
@@ -184,7 +183,6 @@
   }
   function hookEmbed(doc){
     if(!doc) return;
-    // 初回 & 遅延で2回実行（内部UIの後描画に対応）
     swapAddressAndCoords(doc);
     setTimeout(()=>swapAddressAndCoords(doc), 600);
   }
@@ -218,7 +216,6 @@
         if(state.mode==='map'){
           if(map){ if(!map.src || map.src==='about:blank') map.src='./embed.html'; map.classList.add('active'); }
           if(s) s.style.display='none';
-          // iframe 内の表記順も調整
           try{ hookEmbed(map.contentWindow.document); }catch(_){}
         }
         if(state.mode==='start'){
