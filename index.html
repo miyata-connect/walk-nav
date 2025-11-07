@@ -194,7 +194,11 @@
     view.className='view'; view.id=viewId; view.innerHTML=startContentHTML(viewId);
     document.getElementById('app').appendChild(view);
 
-    tabsEl.appendChild(addBtn); snapIntoView(addBtn); activateTab(tab); persistTabs();
+    tabsEl.appendChild(addBtn);
+    activateTab(tab); /* ← 新規タブをアクティブ化（この時点で新規タブへスクロール） */
+    persistTabs();
+    /* ▼ 最終的に「＋」を表示：レイアウト確定後に＋へスクロール（安定化のため rAF を使用） */
+    try{ requestAnimationFrame(()=>snapIntoView(addBtn)); }catch(_){ snapIntoView(addBtn); }
   } /* L096 */
 
   function closeTab(viewId){
