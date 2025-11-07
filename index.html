@@ -57,7 +57,7 @@
     .navtools{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex:0 0 auto;} /* L046 */
     .navbtn{display:inline-flex;align-items:center;justify-content:center;width:var(--hit);height:var(--hit);border-radius:12px;border:1px solid #e5e7eb;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.08);cursor:pointer;user-select:none;transition:transform .06s ease;} /* L047 */
     .navbtn:active{transform:translateY(1px);} /* L048 */
-    .navbtn svg{width:22px;height:22px;display:block;} /* L049 */
+    .navbtn svg{width:28px;height:28px;display:block;} /* L049 */
     .navbtn.home{background:#e0f2fe;border-color:#bae6fd;} .navbtn.home svg path{fill:#2563eb;} /* L050 */
     .navbtn.back{background:#fef3c7;border-color:#fde68a;} .navbtn.back svg path{fill:#b45309;} /* L051 */
     .navbtn.forward{background:#dcfce7;border-color:#bbf7d0;} .navbtn.forward svg path{fill:#16a34a;} /* L052 */
@@ -73,7 +73,7 @@
     <div class="tabs" id="tabs"> <!-- L061 -->
       <div class="tab active" data-view="view-map" id="tab-map">
         <span class="label">
-          <svg viewBox="0 0 24 24" width="18" height="18">
+          <svg viewBox="0 0 24 24" width="24" height="24">
             <path fill="#62b5ff" d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/>
           </svg>
           地図
@@ -81,18 +81,18 @@
       </div>
       <div class="tab" data-view="view-browser" id="tab-browser">
         <span class="label">
-          <svg viewBox="0 0 24 24" width="18" height="18">
+          <svg viewBox="0 0 24 24" width="24" height="24">
             <circle cx="12" cy="12" r="10" fill="#25d07a"/>
             <circle cx="9" cy="10" r="1.5" fill="#fff"/>
             <circle cx="15" cy="10" r="1.5" fill="#fff"/>
             <path d="M8 14c0 2.2 1.8 4 4 4s4-1.8 4-4" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
           </svg>
-          Aiブラウザ
+          Ai
         </span>
       </div>
       <div class="tab" data-view="view-settings" id="tab-settings">
         <span class="label">
-          <svg viewBox="0 0 24 24" width="18" height="18">
+          <svg viewBox="0 0 24 24" width="24" height="24">
             <path fill="#94a3b8" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
           </svg>
           設定
@@ -100,7 +100,7 @@
       </div>
       <div class="tab add" id="tab-add" title="新しいタブを作成">
         <span class="label">
-          <svg viewBox="0 0 24 24" width="18" height="18">
+          <svg viewBox="0 0 24 24" width="24" height="24">
             <path fill="#64748b" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
           </svg>
         </span>
@@ -239,7 +239,7 @@
 
   function nextLabel(){
     const list=[...document.querySelectorAll('.tab')].filter(n=>!n.classList.contains('add') && !['tab-map','tab-browser','tab-settings'].includes(n.id));
-    return '新規タブ '+(list.length+1);
+    return 'New';
   }
   function startContentHTML(viewId){
     return `
@@ -285,7 +285,7 @@
     const addBtn=document.getElementById('tab-add');
     const tab=document.createElement('div');
     tab.className='tab'; tab.id=state.tabId; tab.dataset.view=state.viewId;
-    tab.innerHTML=`<span class="label">${state.label}</span><span class="close" data-close="${state.viewId}" aria-label="閉じる">×</span>`;
+    tab.innerHTML=`<span class="label"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="#a78bfa" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg>${state.label}</span><span class="close" data-close="${state.viewId}" aria-label="閉じる">×</span>`;
     addBtn.parentNode.insertBefore(tab, addBtn);
 
     const view=document.createElement('div');
@@ -310,7 +310,7 @@
     const {tabId,viewId}=makeIds(); const addBtn=document.getElementById('tab-add');
     const tab=document.createElement('div');
     tab.className='tab'; tab.id=tabId; tab.dataset.view=viewId;
-    tab.innerHTML=`<span class="label">${label}</span><span class="close" data-close="${viewId}" aria-label="閉じる">×</span>`;
+    tab.innerHTML=`<span class="label"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="#a78bfa" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg>${label}</span><span class="close" data-close="${viewId}" aria-label="閉じる">×</span>`;
     addBtn.parentNode.insertBefore(tab, addBtn);
     tab.classList.add('flash'); setTimeout(()=>tab.classList.remove('flash'),200);
 
