@@ -1,3 +1,4 @@
+以下が修正済みのCSSファイル全文です。コピーしてご利用ください:
 :root{  
   --bg:#0b1220;  
   --glass: rgba(20,28,44,.78);  
@@ -33,8 +34,8 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
 }  
 .panel{  
   position:absolute;  
-  left:16px;  
-  right:16px;  
+  left:28px;  
+  right:28px;  
   bottom:16px;  
   top:auto;  
   background:var(--glass-strong);border:1px solid var(--stroke);  
@@ -202,7 +203,7 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   
 .route-panel{  
   position:absolute;  
-  left:16px;  
+  left:28px;  
   bottom:16px;  
   top:auto;  
   right: 144px;    
@@ -241,8 +242,8 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
 /* 道順案内パネル（現在地パネル） */  
 .nav-panel{  
   position:absolute;  
-  left: 16px;  
-  right: 16px;    
+  left: 28px;  
+  right: 28px;    
   top: 16px;      
   bottom: auto;    
   background:var(--glass-strong);  
@@ -332,7 +333,7 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
 /* インシデントパネル */  
 .incident-panel{  
   position:absolute;  
-  left:16px;  
+  left:28px;  
   right: 144px;  
   bottom: calc(16px + 142px + 10px);  
   top:auto;  
