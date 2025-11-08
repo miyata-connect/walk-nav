@@ -720,7 +720,17 @@
 
           incidentPanel.classList.add('has-incidents');
 
-          console.log('インシデント: 情報がありません');
+          // 強制的に表示
+
+          incidentPanel.style.display = 'block';
+
+          console.log('インシデント: 情報がありません（パネルを表示）', {
+
+            hasClass: incidentPanel.classList.contains('has-incidents'),
+
+            display: window.getComputedStyle(incidentPanel).display
+
+          });
 
           return;
 
@@ -744,7 +754,19 @@
 
         incidentPanel.classList.add('has-incidents');
 
-        console.log('インシデント: パネルを表示しました', { count: filteredIncidents.length });
+        // 強制的に表示
+
+        incidentPanel.style.display = 'block';
+
+        console.log('インシデント: パネルを表示しました', { 
+
+          count: filteredIncidents.length,
+
+          hasClass: incidentPanel.classList.contains('has-incidents'),
+
+          display: window.getComputedStyle(incidentPanel).display
+
+        });
 
       }
 
@@ -814,17 +836,7 @@
 
       // デバッグ用: ページ読み込み時にテスト表示
 
-      // DOMContentLoaded後に強制的に表示
-
-      if (document.readyState === 'loading') {
-
-        document.addEventListener('DOMContentLoaded', initIncidentPanel);
-
-      } else {
-
-        initIncidentPanel();
-
-      }
+      // 即座に初期化を実行
 
       function initIncidentPanel() {
 
@@ -832,7 +844,9 @@
 
           panel: !!incidentPanel, 
 
-          list: !!incidentList 
+          list: !!incidentList,
+
+          readyState: document.readyState
 
         });
 
@@ -850,13 +864,21 @@
 
           });
 
+          // 再試行
+
+          setTimeout(initIncidentPanel, 1000);
+
           return;
 
         }
 
         
 
-        // 3秒後にテスト表示（現在地が取得できていない場合でも表示を確認）
+        console.log('インシデント: パネル要素を確認しました');
+
+        
+
+        // 即座にテスト表示（現在地が取得できていない場合でも表示を確認）
 
         setTimeout(() => {
 
@@ -870,9 +892,39 @@
 
           updateIncidentPanel(testLat, testLon);
 
-        }, 3000);
+        }, 1000);
 
       }
+
+      
+
+      // 複数のタイミングで初期化を試行
+
+      if (document.readyState === 'loading') {
+
+        document.addEventListener('DOMContentLoaded', initIncidentPanel);
+
+      } else {
+
+        initIncidentPanel();
+
+      }
+
+      
+
+      // window.onloadでも試行
+
+      window.addEventListener('load', function() {
+
+        console.log('インシデント: window.onload');
+
+        if (!incidentPanel || !incidentPanel.classList.contains('has-incidents')) {
+
+          initIncidentPanel();
+
+        }
+
+      });
 
 
 
