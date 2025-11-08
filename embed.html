@@ -22,53 +22,39 @@
 
   <style>
 
-    /* インシデントパネルのスタイル */
+    /* インシデントパネルのスタイル（案内パネル内に配置） */
 
-    .incident-panel {
+    .nav-incident {
 
-      position: fixed;
-
-      bottom: 0;
-
-      left: 0;
-
-      right: 0;
-
-      max-height: 200px;
-
-      overflow-y: auto;
-
-      background: rgba(255, 255, 255, 0.95);
-
-      backdrop-filter: blur(10px);
-
-      border-top: 2px solid #ef4444;
+      margin-top: 12px;
 
       padding: 12px;
 
-      z-index: 10000;
+      background: rgba(255, 255, 255, 0.1);
+
+      border-radius: 8px;
+
+      border-top: 2px solid #ef4444;
 
       display: none;
 
-      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
-
     }
 
-    .incident-panel.has-incidents {
+    .nav-incident.has-incidents {
 
-      display: block !important;
+      display: block;
 
     }
 
     .incident-header {
 
-      font-size: 14px;
+      font-size: 13px;
 
       font-weight: 600;
 
       margin-bottom: 8px;
 
-      color: #111;
+      color: #fff;
 
       display: flex;
 
@@ -84,23 +70,29 @@
 
       flex-direction: column;
 
-      gap: 8px;
+      gap: 6px;
+
+      max-height: 150px;
+
+      overflow-y: auto;
 
     }
 
     .incident-item {
 
-      padding: 10px;
+      padding: 8px;
 
-      border-radius: 8px;
+      border-radius: 6px;
 
       border-left: 3px solid;
 
-      background: #fff;
+      background: rgba(255, 255, 255, 0.95);
 
-      font-size: 12px;
+      font-size: 11px;
 
-      line-height: 1.5;
+      line-height: 1.4;
+
+      margin-bottom: 6px;
 
     }
 
@@ -154,15 +146,19 @@
 
       color: #374151;
 
-      margin-bottom: 4px;
+      margin-bottom: 3px;
+
+      font-size: 11px;
 
     }
 
     .incident-time {
 
-      font-size: 11px;
+      font-size: 10px;
 
       color: #6b7280;
+
+      margin-top: 2px;
 
     }
 
@@ -328,29 +324,29 @@
 
       </div> <!-- L075 -->
 
+      <!-- インシデント情報（案内パネル内に配置） -->
+
+      <div class="nav-incident" id="incidentPanel"> <!-- L078 -->
+
+        <div class="incident-header">
+
+          <span>⚠️</span>
+
+          <span>インシデント情報（半径10km）</span>
+
+        </div>
+
+        <div class="incident-list" id="incidentList">
+
+          <!-- インシデント項目がここに動的に追加されます -->
+
+        </div>
+
+      </div> <!-- L078 -->
+
       <div class="nav-instructions-list" id="navPanelInstructions"></div> <!-- L076 -->
 
     </div> <!-- L077 -->
-
-    
-
-    <div class="incident-panel" id="incidentPanel"> <!-- L078 -->
-
-      <div class="incident-header">
-
-        <span>⚠️</span>
-
-        <span>インシデント情報（半径10km）</span>
-
-      </div>
-
-      <div class="incident-list" id="incidentList">
-
-        <!-- インシデント項目がここに動的に追加されます -->
-
-      </div>
-
-    </div> <!-- L078 -->
 
 
 
@@ -634,11 +630,13 @@
 
           // エラー時もパネルに表示
 
-          if (incidentList) {
+          if (incidentList && incidentPanel) {
 
             incidentList.innerHTML = `<div class="incident-item" style="color:#ef4444;text-align:center;padding:16px;">エラー: ${error.message}</div>`;
 
             incidentPanel.classList.add('has-incidents');
+
+            incidentPanel.style.display = 'block';
 
           }
 
