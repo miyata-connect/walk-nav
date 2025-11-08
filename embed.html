@@ -50,6 +50,8 @@
 
       display: none;
 
+      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+
     }
 
     .incident-panel.has-incidents {
@@ -430,9 +432,7 @@
 
       // Cloudflare Workers経由でインシデント情報を取得するエンドポイント
 
-      // 実際のエンドポイントURLに置き換えてください
-
-      const INCIDENT_API_ENDPOINT = '/api/incidents'; // Cloudflare Workersのエンドポイント
+      const INCIDENT_API_ENDPOINT = 'https://ors-proxy.miyata-connect-jp.workers.dev/incidents';
 
 
 
@@ -596,23 +596,51 @@
 
         try {
 
+          const url = `${INCIDENT_API_ENDPOINT}?lat=${currentLat}&lng=${currentLon}&radius=${INCIDENT_RADIUS_KM}`;
+
+          console.log('インシデント: API呼び出し', { url });
+
+          
+
           // Cloudflare Workers経由でAPIを呼び出し
 
-          const response = await fetch(`${INCIDENT_API_ENDPOINT}?lat=${currentLat}&lon=${currentLon}&radius=${INCIDENT_RADIUS_KM}`);
+          const response = await fetch(url);
+
+          
+
+          console.log('インシデント: APIレスポンス', { status: response.status, ok: response.ok });
+
+          
 
           if (!response.ok) {
 
-            throw new Error('インシデント情報の取得に失敗しました');
+            const errorText = await response.text();
+
+            console.error('インシデント: APIエラー', { status: response.status, errorText });
+
+            throw new Error(`インシデント情報の取得に失敗しました: ${response.status} ${errorText}`);
 
           }
 
           const data = await response.json();
+
+          console.log('インシデント: APIデータ', data);
 
           return data.incidents || [];
 
         } catch (error) {
 
           console.error('インシデント情報の取得エラー:', error);
+
+          // エラー時もパネルに表示
+
+          if (incidentList) {
+
+            incidentList.innerHTML = `<div class="incident-item" style="color:#ef4444;text-align:center;padding:16px;">エラー: ${error.message}</div>`;
+
+            incidentPanel.classList.add('has-incidents');
+
+          }
 
           return [];
 
@@ -644,7 +672,17 @@
 
       async function updateIncidentPanel(currentLat, currentLon) {
 
-        if (!currentLat || !currentLon) return;
+        if (!currentLat || !currentLon) {
+
+          console.log('インシデント: 現在地が取得できていません', { currentLat, currentLon });
+
+          return;
+
+        }
+
+        
+
+        console.log('インシデント: 情報を取得中...', { lat: currentLat, lon: currentLon });
 
         
 
@@ -654,9 +692,17 @@
 
         
 
+        console.log('インシデント: 取得結果', { count: incidents.length, incidents });
+
+        
+
         // 半径10km以内でフィルタリング（API側でフィルタリングされていない場合）
 
         const filteredIncidents = filterIncidentsByRadius(incidents, currentLat, currentLon);
+
+        
+
+        console.log('インシデント: フィルタリング後', { count: filteredIncidents.length });
 
         
 
@@ -668,7 +714,13 @@
 
         if (filteredIncidents.length === 0) {
 
-          incidentPanel.classList.remove('has-incidents');
+          // インシデントがない場合でも、パネルを表示（デバッグ用）
+
+          incidentList.innerHTML = '<div class="incident-item" style="color:#6b7280;text-align:center;padding:16px;">インシデント情報はありません</div>';
+
+          incidentPanel.classList.add('has-incidents');
+
+          console.log('インシデント: 情報がありません');
 
           return;
 
@@ -691,6 +743,8 @@
         // パネルを表示
 
         incidentPanel.classList.add('has-incidents');
+
+        console.log('インシデント: パネルを表示しました', { count: filteredIncidents.length });
 
       }
 
@@ -769,4 +823,3 @@
 </body> <!-- L108 -->
 
 </html> <!-- L109 -->
-
