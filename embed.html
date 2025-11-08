@@ -1,127 +1,772 @@
 <!DOCTYPE html> <!-- L001 -->
+
 <html lang="ja"> <!-- L002 -->
+
 <head> <!-- L003 -->
+
   <meta charset="utf-8" /> <!-- L004 -->
+
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" /> <!-- L005 -->
+
   <title>WalkNav</title> <!-- L006 -->
 
+
+
   <meta name="x-issue" content="idx202511050540-split" /> <!-- L007 -->
+
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" /> <!-- L008 -->
 
+
+
   <link rel="stylesheet" href="app.css?v=3" /> <!-- L009 -->
+
+  <style>
+
+    /* インシデントパネルのスタイル */
+
+    .incident-panel {
+
+      position: absolute;
+
+      bottom: 0;
+
+      left: 0;
+
+      right: 0;
+
+      max-height: 200px;
+
+      overflow-y: auto;
+
+      background: rgba(255, 255, 255, 0.95);
+
+      backdrop-filter: blur(10px);
+
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+
+      padding: 12px;
+
+      z-index: 1000;
+
+      display: none;
+
+    }
+
+    .incident-panel.has-incidents {
+
+      display: block;
+
+    }
+
+    .incident-header {
+
+      font-size: 14px;
+
+      font-weight: 600;
+
+      margin-bottom: 8px;
+
+      color: #111;
+
+      display: flex;
+
+      align-items: center;
+
+      gap: 6px;
+
+    }
+
+    .incident-list {
+
+      display: flex;
+
+      flex-direction: column;
+
+      gap: 8px;
+
+    }
+
+    .incident-item {
+
+      padding: 10px;
+
+      border-radius: 8px;
+
+      border-left: 3px solid;
+
+      background: #fff;
+
+      font-size: 12px;
+
+      line-height: 1.5;
+
+    }
+
+    .incident-item.transport {
+
+      border-left-color: #f59e0b;
+
+      background: #fef3c7;
+
+    }
+
+    .incident-item.accident {
+
+      border-left-color: #ef4444;
+
+      background: #fee2e2;
+
+    }
+
+    .incident-item.weather {
+
+      border-left-color: #3b82f6;
+
+      background: #dbeafe;
+
+    }
+
+    .incident-item.other {
+
+      border-left-color: #6b7280;
+
+      background: #f3f4f6;
+
+    }
+
+    .incident-type {
+
+      font-weight: 600;
+
+      margin-bottom: 4px;
+
+      display: flex;
+
+      align-items: center;
+
+      gap: 4px;
+
+    }
+
+    .incident-description {
+
+      color: #374151;
+
+      margin-bottom: 4px;
+
+    }
+
+    .incident-time {
+
+      font-size: 11px;
+
+      color: #6b7280;
+
+    }
+
+    .incident-icon {
+
+      display: inline-block;
+
+      width: 16px;
+
+      height: 16px;
+
+      margin-right: 4px;
+
+    }
+
+  </style>
+
 </head> <!-- L010 -->
+
 <body id="appBody"> <!-- L011 -->
+
   <div class="app"> <!-- L012 -->
+
     <div id="map" aria-label="地図"></div> <!-- L013 -->
 
+
+
     <section class="panel" id="searchPanel" aria-label="検索パネル"> <!-- L014 -->
+
       <h2>近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2> <!-- L015 -->
+
       
+
       <div class="row" style="margin-bottom:8px;justify-content:center;flex-wrap:wrap;"> <!-- L016 -->
+
         <button class="chip active" id="r10">10km</button> <!-- L017 -->
+
         <button class="chip" id="r20">20km</button> <!-- L018 -->
+
         <button class="chip" id="r30">30km</button> <!-- L019 -->
+
         <button class="chip" id="btnPointSearch" style="flex-grow: 1; min-width: 120px;">📍 ポイント選択</button> <!-- L020 -->
+
       </div> <!-- L021 -->
+
       
+
       <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px; display: none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;" id="pointAddressBlock"> <!-- L022 -->
+
         <div id="pointAddress" style="line-height:1.5; color: var(--warning);">ポイント：取得中...</div> <!-- L023 -->
+
         <div id="pointCoords" style="line-height:1.5;"></div> <!-- L024 -->
+
       </div> <!-- L025 -->
+
       
+
       <div class="row" style="margin-bottom:8px"> <!-- L026 -->
+
         <button class="btn" id="btnSaveLocation" style="flex:1">現在地登録</button> <!-- L027 -->
+
         <button class="btn" id="btnEditLocation" style="flex:1">登録地修正</button> <!-- L028 -->
+
       </div> <!-- L029 -->
+
       
+
       <div class="row" style="margin-bottom:8px"> <!-- L030 -->
+
         <div class="input-wrapper"> <!-- L031 -->
+
           <span class="icon icon-g"> <!-- L032 -->
+
             <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor;"> <!-- L033 -->
+
               <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5.03,16.21 5.03,12.39C5.03,8.57 8.36,5.5 12.19,5.5C14.73,5.5 16.29,6.5 17.2,7.38L19.31,5.26C17.38,3.53 15.05,2.5 12.19,2.5C6.92,2.5 2.73,6.63 2.73,12.39C2.73,18.15 6.92,22.28 12.19,22.28C17.63,22.28 21.64,18.5 21.64,12.61C21.64,12 21.52,11.55 21.35,11.1Z"></path> <!-- L034 -->
+
             </svg> <!-- L035 -->
+
           </span> <!-- L036 -->
+
           <input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" style="flex:1" autocomplete="off" /> <!-- L037 -->
+
           <span class="icon icon-search" id="btnSearchIcon"> <!-- L038 -->
+
             <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;"> <!-- L039 -->
+
               <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path> <!-- L040 -->
+
             </svg> <!-- L041 -->
+
           </span> <!-- L042 -->
+
           <span class="icon icon-mic" id="btnVoiceIcon"> <!-- L043 -->
+
             <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;"> <!-- L044 -->
+
               <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c1.66 1.66 3 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"></path> <!-- L045 -->
+
             </svg> <!-- L046 -->
+
           </span> <!-- L047 -->
+
         </div> <!-- L048 -->
+
       </div> <!-- L049 -->
+
       
+
       <div id="results" class="results" style="display:none"></div> <!-- L050 -->
+
       
+
       <div class="row" style="margin-top:12px; gap: 8px;"> <!-- L051 -->
+
         <button id="btnReset" class="btn danger" style="flex:1">リセット</button> <!-- L052 -->
+
         <button id="btnLocatePanel" class="btn" style="flex:1;background:rgba(98, 181, 255, 0.2); color: var(--primary);">現在地</button> <!-- L053 -->
+
         <button id="btnClosePanel" class="btn" style="flex:1;background:rgba(255,255,255,0.1)">閉じる</button> <!-- L054 -->
+
       </div> <!-- L055 -->
+
       </section> <!-- L056 -->
 
+
+
     <div class="nav-panel" id="navPanel"> <!-- L057 -->
+
       <div class="nav-location"> <!-- L058 -->
+
         <div id="locCoords">現在地：取得中...</div> <!-- L059 -->
+
         <div id="locAddress"></div> <!-- L060 -->
+
       </div> <!-- L061 -->
+
       <div class="nav-weather" id="navWeather"> <!-- L062 -->
+
         <div class="weather-item"> <!-- L063 -->
+
           <span>3H</span> <!-- L064 -->
+
           <span id="weather3h">--</span> <!-- L065 -->
+
         </div> <!-- L066 -->
+
         <div class="weather-item"> <!-- L067 -->
+
           <span>6H</span> <!-- L068 -->
+
           <span id="weather6h">--</span> <!-- L069 -->
+
         </div> <!-- L070 -->
+
         <div class="weather-item"> <!-- L071 -->
+
           <span>9H</span> <!-- L072 -->
+
           <span id="weather9h">--</span> <!-- L073 -->
+
         </div> <!-- L074 -->
+
       </div> <!-- L075 -->
+
       <div class="nav-instructions-list" id="navPanelInstructions"></div> <!-- L076 -->
+
     </div> <!-- L077 -->
+
     
-    <div class="incident-panel" id="incidentPanel"></div> <!-- L078 -->
+
+    <div class="incident-panel" id="incidentPanel"> <!-- L078 -->
+
+      <div class="incident-header">
+
+        <span>⚠️</span>
+
+        <span>インシデント情報（半径10km）</span>
+
+      </div>
+
+      <div class="incident-list" id="incidentList">
+
+        <!-- インシデント項目がここに動的に追加されます -->
+
+      </div>
+
+    </div> <!-- L078 -->
+
+
 
     <div class="route-panel" id="routePanel"> <!-- L079 -->
+
       <div class="route-info"> <!-- L080 -->
+
         <span id="destinationName">目的地</span>へのルート <!-- L081 -->
+
       </div> <!-- L082 -->
+
       <div> <!-- L083 -->
+
         <span class="route-distance" id="routeDistance">--</span> <!-- L084 -->
+
         <span class="route-time" id="routeTime">徒歩 --分</span> <!-- L085 -->
+
       </div> <!-- L086 -->
+
       <div class="route-actions"> <!-- L087 -->
+
         <button id="btnExportText" class="btn" style="width:100%;background:rgba(255,255,255,0.1)">道順をコピー</button> <!-- L088 -->
+
         <button id="btnStopRoute" class="btn danger" style="width:100%">ルート終了</button> <!-- L089 -->
+
       </div> <!-- L090 -->
+
     </div> <!-- L091 -->
 
+
+
     <div class="fab-stack" id="fabStack"> <!-- L092 -->
+
       <div class="fab" id="btnSearch">検索パネル</div> <!-- L093 -->
+
       <div class="fab" id="btnLocate">現在地</div> <!-- L094 -->
+
       <div class="fab" id="btnDestination" style="display:none">目的地</div> <!-- L095 -->
+
       <div class="fab" id="btnPause">一時停止</div> <!-- L096 -->
+
       <div class="fab" id="btnReroute">リルート</div> <!-- L097 -->
+
     </div> <!-- L098 -->
 
+
+
     <div class="loading" id="loading"> <!-- L099 -->
+
       <div style="text-align:center"> <!-- L100 -->
+
         <div style="font-size:24px;margin-bottom:16px">📍 現在地取得中</div> <!-- L101 -->
+
         <div style="font-size:16px;opacity:0.8">しばらくお待ちください...</div> <!-- L102 -->
+
       </div> <!-- L103 -->
+
     </div> <!-- L104 -->
+
+
 
   </div> <!-- L105 -->
 
+
+
   <script src="app.js" defer></script> <!-- L106 -->
+
+  <script>
+
+    // インシデント情報を取得・表示する機能
+
+    (function() {
+
+      const incidentPanel = document.getElementById('incidentPanel');
+
+      const incidentList = document.getElementById('incidentList');
+
+      const INCIDENT_RADIUS_KM = 10; // 半径10km
+
+      // Cloudflare Workers経由でインシデント情報を取得するエンドポイント
+
+      // 実際のエンドポイントURLに置き換えてください
+
+      const INCIDENT_API_ENDPOINT = '/api/incidents'; // Cloudflare Workersのエンドポイント
+
+
+
+      // 2点間の距離を計算（Haversine formula）
+
+      function calculateDistance(lat1, lon1, lat2, lon2) {
+
+        const R = 6371; // 地球の半径（km）
+
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c;
+
+      }
+
+
+
+      // インシデントタイプに応じたクラス名を取得
+
+      function getIncidentClass(type) {
+
+        if (type.includes('遅延') || type.includes('運休') || type.includes('バス') || 
+
+            type.includes('電車') || type.includes('JR') || type.includes('私鉄') || 
+
+            type.includes('航空') || type.includes('船')) {
+
+          return 'transport';
+
+        } else if (type.includes('事故') || type.includes('事件')) {
+
+          return 'accident';
+
+        } else if (type.includes('台風') || type.includes('地震') || type.includes('豪雨') || 
+
+                   type.includes('気象') || type.includes('警報')) {
+
+          return 'weather';
+
+        }
+
+        return 'other';
+
+      }
+
+
+
+      // インシデントタイプに応じたアイコンを取得
+
+      function getIncidentIcon(type) {
+
+        if (type.includes('遅延') || type.includes('運休') || type.includes('バス') || 
+
+            type.includes('電車') || type.includes('JR') || type.includes('私鉄') || 
+
+            type.includes('航空') || type.includes('船')) {
+
+          return '🚌';
+
+        } else if (type.includes('事故') || type.includes('事件')) {
+
+          return '🚨';
+
+        } else if (type.includes('台風') || type.includes('地震') || type.includes('豪雨') || 
+
+                   type.includes('気象') || type.includes('警報')) {
+
+          return '🌧️';
+
+        }
+
+        return '⚠️';
+
+      }
+
+
+
+      // インシデント項目を表示
+
+      function renderIncident(incident) {
+
+        const item = document.createElement('div');
+
+        item.className = `incident-item ${getIncidentClass(incident.type)}`;
+
+        
+
+        const icon = getIncidentIcon(incident.type);
+
+        const timeAgo = incident.time ? formatTimeAgo(incident.time) : '';
+
+        
+
+        item.innerHTML = `
+
+          <div class="incident-type">
+
+            <span class="incident-icon">${icon}</span>
+
+            <span>${incident.type}</span>
+
+          </div>
+
+          <div class="incident-description">${incident.description}</div>
+
+          ${incident.location ? `<div class="incident-description" style="font-size:11px;color:#6b7280;">📍 ${incident.location}</div>` : ''}
+
+          ${timeAgo ? `<div class="incident-time">${timeAgo}</div>` : ''}
+
+        `;
+
+        
+
+        return item;
+
+      }
+
+
+
+      // 時間の経過を表示（例: "5分前"）
+
+      function formatTimeAgo(timestamp) {
+
+        const now = Date.now();
+
+        const diff = now - timestamp;
+
+        const minutes = Math.floor(diff / 60000);
+
+        const hours = Math.floor(minutes / 60);
+
+        const days = Math.floor(hours / 24);
+
+        
+
+        if (days > 0) return `${days}日前`;
+
+        if (hours > 0) return `${hours}時間前`;
+
+        if (minutes > 0) return `${minutes}分前`;
+
+        return 'たった今';
+
+      }
+
+
+
+      // インシデント情報を取得
+
+      async function fetchIncidents(currentLat, currentLon) {
+
+        try {
+
+          // Cloudflare Workers経由でAPIを呼び出し
+
+          const response = await fetch(`${INCIDENT_API_ENDPOINT}?lat=${currentLat}&lon=${currentLon}&radius=${INCIDENT_RADIUS_KM}`);
+
+          if (!response.ok) {
+
+            throw new Error('インシデント情報の取得に失敗しました');
+
+          }
+
+          const data = await response.json();
+
+          return data.incidents || [];
+
+        } catch (error) {
+
+          console.error('インシデント情報の取得エラー:', error);
+
+          return [];
+
+        }
+
+      }
+
+
+
+      // インシデント情報をフィルタリング（半径10km以内）
+
+      function filterIncidentsByRadius(incidents, currentLat, currentLon) {
+
+        return incidents.filter(incident => {
+
+          if (!incident.lat || !incident.lon) return false;
+
+          const distance = calculateDistance(currentLat, currentLon, incident.lat, incident.lon);
+
+          return distance <= INCIDENT_RADIUS_KM;
+
+        });
+
+      }
+
+
+
+      // インシデントパネルを更新
+
+      async function updateIncidentPanel(currentLat, currentLon) {
+
+        if (!currentLat || !currentLon) return;
+
+        
+
+        // インシデント情報を取得
+
+        const incidents = await fetchIncidents(currentLat, currentLon);
+
+        
+
+        // 半径10km以内でフィルタリング（API側でフィルタリングされていない場合）
+
+        const filteredIncidents = filterIncidentsByRadius(incidents, currentLat, currentLon);
+
+        
+
+        // リストをクリア
+
+        incidentList.innerHTML = '';
+
+        
+
+        if (filteredIncidents.length === 0) {
+
+          incidentPanel.classList.remove('has-incidents');
+
+          return;
+
+        }
+
+        
+
+        // インシデント項目を追加
+
+        filteredIncidents.forEach(incident => {
+
+          const item = renderIncident(incident);
+
+          incidentList.appendChild(item);
+
+        });
+
+        
+
+        // パネルを表示
+
+        incidentPanel.classList.add('has-incidents');
+
+      }
+
+
+
+      // 現在地が更新されたときにインシデント情報を更新
+
+      window.updateIncidents = function(lat, lon) {
+
+        if (lat && lon) {
+
+          currentLocation = { lat, lon };
+
+          updateIncidentPanel(lat, lon);
+
+        }
+
+      };
+
+
+
+      // 定期的にインシデント情報を更新（5分ごと）
+
+      let currentLocation = null;
+
+      setInterval(() => {
+
+        if (currentLocation) {
+
+          updateIncidentPanel(currentLocation.lat, currentLocation.lon);
+
+        }
+
+      }, 5 * 60 * 1000); // 5分
+
+
+
+      // 現在地の変更を監視（カスタムイベント）
+
+      document.addEventListener('locationUpdated', function(e) {
+
+        if (e.detail && e.detail.lat && e.detail.lon) {
+
+          window.updateIncidents(e.detail.lat, e.detail.lon);
+
+        }
+
+      });
+
+
+
+      // app.jsで現在地が更新されたときに呼び出されることを想定
+
+      // app.js側で以下のように呼び出す:
+
+      // window.updateIncidents(lat, lon);
+
+      // または
+
+      // document.dispatchEvent(new CustomEvent('locationUpdated', { 
+
+      //   detail: { lat: lat, lon: lon } 
+
+      // }));
+
+    })();
+
+  </script>
+
   <script
+
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry"
+
     async defer></script> <!-- L107 -->
+
 </body> <!-- L108 -->
+
 </html> <!-- L109 -->
+
