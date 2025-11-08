@@ -240,7 +240,7 @@
 
   function nextLabel(){
     const list=[...document.querySelectorAll('.tab')].filter(n=>!n.classList.contains('add') && !['tab-map','tab-browser','tab-settings'].includes(n.id));
-    return 'タブ'+(list.length+1);
+    return 'Ai('+(list.length+1)+')';
   }
   function startContentHTML(viewId){
     return `
