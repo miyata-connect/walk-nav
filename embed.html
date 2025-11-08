@@ -26,7 +26,7 @@
 
     .incident-panel {
 
-      position: absolute;
+      position: fixed;
 
       bottom: 0;
 
@@ -42,21 +42,21 @@
 
       backdrop-filter: blur(10px);
 
-      border-top: 1px solid rgba(0, 0, 0, 0.1);
+      border-top: 2px solid #ef4444;
 
       padding: 12px;
 
-      z-index: 1000;
+      z-index: 10000;
 
       display: none;
 
-      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
 
     }
 
     .incident-panel.has-incidents {
 
-      display: block;
+      display: block !important;
 
     }
 
@@ -809,6 +809,108 @@
       //   detail: { lat: lat, lon: lon } 
 
       // }));
+
+
+
+      // デバッグ用: ページ読み込み時にテスト表示
+
+      // DOMContentLoaded後に強制的に表示
+
+      if (document.readyState === 'loading') {
+
+        document.addEventListener('DOMContentLoaded', initIncidentPanel);
+
+      } else {
+
+        initIncidentPanel();
+
+      }
+
+      function initIncidentPanel() {
+
+        console.log('インシデント: 初期化開始', { 
+
+          panel: !!incidentPanel, 
+
+          list: !!incidentList 
+
+        });
+
+        
+
+        // パネルが存在するか確認
+
+        if (!incidentPanel || !incidentList) {
+
+          console.error('インシデント: パネル要素が見つかりません', { 
+
+            panel: incidentPanel, 
+
+            list: incidentList 
+
+          });
+
+          return;
+
+        }
+
+        
+
+        // 3秒後にテスト表示（現在地が取得できていない場合でも表示を確認）
+
+        setTimeout(() => {
+
+          console.log('インシデント: テスト表示を実行します', { currentLocation });
+
+          // テスト用の座標（東京駅付近）
+
+          const testLat = 35.6812;
+
+          const testLon = 139.7671;
+
+          updateIncidentPanel(testLat, testLon);
+
+        }, 3000);
+
+      }
+
+
+
+      // グローバルに公開（デバッグ用）
+
+      window.testIncidents = function(lat, lon) {
+
+        const testLat = lat || 35.6812;
+
+        const testLon = lon || 139.7671;
+
+        console.log('インシデント: テスト実行', { lat: testLat, lon: testLon });
+
+        updateIncidentPanel(testLat, testLon);
+
+      };
+
+
+
+      // パネルの表示状態を確認する関数
+
+      window.checkIncidentPanel = function() {
+
+        console.log('インシデントパネルの状態:', {
+
+          exists: !!incidentPanel,
+
+          visible: incidentPanel ? incidentPanel.classList.contains('has-incidents') : false,
+
+          display: incidentPanel ? window.getComputedStyle(incidentPanel).display : 'N/A',
+
+          innerHTML: incidentList ? incidentList.innerHTML.substring(0, 100) : 'N/A'
+
+        });
+
+        return incidentPanel;
+
+      };
 
     })();
 
