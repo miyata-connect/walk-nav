@@ -11,8 +11,9 @@
     #app{position:relative;width:100%;height:100dvh;overflow:hidden;} /* L011 */
 
     .topbar{position:absolute;inset:0 0 auto 0;height:var(--bar);display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.92);backdrop-filter:saturate(180%) blur(8px);box-shadow:0 8px 24px rgba(0,0,0,.08);z-index:9999;} /* L012 */
-    .tabs{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex:1 1 auto;} /* L013 */
-    .tabs::-webkit-scrollbar{display:none;} /* L014 */
+    .tabs-container{display:flex;gap:6px;flex:1 1 auto;align-items:center;overflow:hidden;} /* 新規：全体コンテナ */
+    .tabs-scroll{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex:1 1 auto;} /* 新規：スクロール領域 */
+    .tabs-scroll::-webkit-scrollbar{display:none;} /* スクロールバー非表示 */
 
     .tab{display:flex;flex-direction:row;align-items:center;gap:4px;padding:6px 10px;border-radius:999px;border:1px solid transparent;background:#fff;font-size:14px;color:#111;cursor:pointer;user-select:none;max-width:38vw;white-space:normal;overflow-wrap:anywhere;} /* L015 */
     #app.pos-left .tab,#app.pos-right .tab{max-width:calc(var(--barW) - 12px);flex-direction:column;align-items:center;} /* L016 */
@@ -49,11 +50,13 @@
 
     #app.pos-left .topbar{inset:0 auto 0 0;width:var(--barW);height:auto;display:flex;flex-direction:column;align-items:flex-start;box-shadow:8px 0 24px rgba(0,0,0,.08);} /* L040 */
     #app.pos-left .view{top:0;left:var(--barW);right:0;bottom:0;} /* L041 */
-    #app.pos-left .tabs{flex-direction:column;overflow-y:auto;overflow-x:hidden;height:100%;flex:1 1 auto;} /* L042 */
+    #app.pos-left .tabs-container{flex-direction:column;width:100%;} /* 新規：縦並び */
+    #app.pos-left .tabs-scroll{flex-direction:column;overflow-y:auto;overflow-x:hidden;width:100%;} /* 新規：縦スクロール */
 
     #app.pos-right .topbar{inset:0 0 0 auto;width:var(--barW);height:auto;display:flex;flex-direction:column;align-items:flex-end;box-shadow:-8px 0 24px rgba(0,0,0,.08);} /* L043 */
     #app.pos-right .view{top:0;left:0;right:var(--barW);bottom:0;} /* L044 */
-    #app.pos-right .tabs{flex-direction:column;overflow-y:auto;overflow-x:hidden;height:100%;flex:1 1 auto;} /* L045 */
+    #app.pos-right .tabs-container{flex-direction:column;width:100%;} /* 新規：縦並び */
+    #app.pos-right .tabs-scroll{flex-direction:column;overflow-y:auto;overflow-x:hidden;width:100%;} /* 新規：縦スクロール */
 
     .navtools{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex:0 0 auto;} /* L046 */
     .navbtn{display:inline-flex;align-items:center;justify-content:center;width:var(--hit);height:var(--hit);border-radius:12px;border:1px solid #e5e7eb;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.08);cursor:pointer;user-select:none;transition:transform .06s ease;} /* L047 */
@@ -71,7 +74,8 @@
 <body> <!-- L058 -->
 <div id="app" class="pos-left"> <!-- L059 -->
   <div class="topbar"> <!-- L060 -->
-    <div class="tabs" id="tabs"> <!-- L061 -->
+    <div class="tabs-container">
+      <!-- 固定：地図タブ -->
       <div class="tab active" data-view="view-map" id="tab-map">
         <span class="label">
           <svg viewBox="0 0 24 24" width="24" height="24">
@@ -80,17 +84,30 @@
           地図
         </span>
       </div>
-      <div class="tab" data-view="view-browser" id="tab-browser">
-        <span class="label">
-          <svg viewBox="0 0 24 24" width="24" height="24">
-            <circle cx="12" cy="12" r="10" fill="#25d07a"/>
-            <circle cx="9" cy="10" r="1.5" fill="#fff"/>
-            <circle cx="15" cy="10" r="1.5" fill="#fff"/>
-            <path d="M8 14c0 2.2 1.8 4 4 4s4-1.8 4-4" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-          </svg>
-          <span>Ai</span>
-        </span>
+
+      <!-- スクロール可能：Aiタブ領域 -->
+      <div class="tabs-scroll" id="tabs">
+        <div class="tab" data-view="view-browser" id="tab-browser">
+          <span class="label">
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <circle cx="12" cy="12" r="10" fill="#25d07a"/>
+              <circle cx="9" cy="10" r="1.5" fill="#fff"/>
+              <circle cx="15" cy="10" r="1.5" fill="#fff"/>
+              <path d="M8 14c0 2.2 1.8 4 4 4s4-1.8 4-4" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            </svg>
+            <span>Ai</span>
+          </span>
+        </div>
+        <div class="tab add" id="tab-add" title="新しいタブを作成">
+          <span class="label">
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path fill="#64748b" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+            </svg>
+          </span>
+        </div>
       </div>
+
+      <!-- 固定：設定タブ -->
       <div class="tab" data-view="view-settings" id="tab-settings">
         <span class="label">
           <svg viewBox="0 0 24 24" width="24" height="24">
@@ -99,14 +116,7 @@
           設定
         </span>
       </div>
-      <div class="tab add" id="tab-add" title="新しいタブを作成">
-        <span class="label">
-          <svg viewBox="0 0 24 24" width="24" height="24">
-            <path fill="#64748b" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-          </svg>
-        </span>
-      </div>
-    </div> <!-- L066 -->
+    </div>
 
     <div class="navtools" aria-label="ナビゲーション操作">
       <button class="navbtn home" id="btn-home" aria-label="ホーム">
@@ -175,6 +185,7 @@
 (function(){
   const appEl=document.getElementById('app');
   const tabsEl=document.getElementById('tabs');
+  const tabsContainer=document.querySelector('.tabs-container');
   const SKEY_TABS='WN_TABS_LOCAL_V2';
   const SKEY_POS ='WN_TAB_POS_V1';
 
@@ -286,7 +297,7 @@
     const addBtn=document.getElementById('tab-add');
     const tab=document.createElement('div');
     tab.className='tab'; tab.id=state.tabId; tab.dataset.view=state.viewId;
-    tab.innerHTML=`<span class="label"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="#a78bfa" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg>${state.label}</span><span class="close" data-close="${state.viewId}" aria-label="閉じる">×</span>`;
+    tab.innerHTML=`<span class="label"><svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="#25d07a"/><circle cx="9" cy="10" r="1.5" fill="#fff"/><circle cx="15" cy="10" r="1.5" fill="#fff"/><path d="M8 14c0 2.2 1.8 4 4 4s4-1.8 4-4" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>${state.label}</span><span class="close" data-close="${state.viewId}" aria-label="閉じる">×</span>`;
     addBtn.parentNode.insertBefore(tab, addBtn);
 
     const view=document.createElement('div');
@@ -311,7 +322,7 @@
     const {tabId,viewId}=makeIds(); const addBtn=document.getElementById('tab-add');
     const tab=document.createElement('div');
     tab.className='tab'; tab.id=tabId; tab.dataset.view=viewId;
-    tab.innerHTML=`<span class="label"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="#a78bfa" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg>${label}</span><span class="close" data-close="${viewId}" aria-label="閉じる">×</span>`;
+    tab.innerHTML=`<span class="label"><svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="#25d07a"/><circle cx="9" cy="10" r="1.5" fill="#fff"/><circle cx="15" cy="10" r="1.5" fill="#fff"/><path d="M8 14c0 2.2 1.8 4 4 4s4-1.8 4-4" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>${label}</span><span class="close" data-close="${viewId}" aria-label="閉じる">×</span>`;
     addBtn.parentNode.insertBefore(tab, addBtn);
     tab.classList.add('flash'); setTimeout(()=>tab.classList.remove('flash'),200);
 
@@ -332,7 +343,7 @@
   }
 
   /* イベント */
-  tabsEl.addEventListener('click',(e)=>{
+  tabsContainer.addEventListener('click',(e)=>{
     const btn=e.target.closest('.tab'); if(!btn) return;
     const close=e.target.closest('.close');
     if(close){ closeTab(close.dataset.close); return; }
