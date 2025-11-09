@@ -767,6 +767,87 @@
 
   <script src="app.js" defer></script> <!-- L106 -->
 
+  <script>
+
+    // app.jsが要素を見つけられるように、要素の存在を確認
+
+    window.addEventListener('DOMContentLoaded', function() {
+
+      setTimeout(function() {
+
+        const locCoords = document.getElementById('locCoords');
+
+        const locAddress = document.getElementById('locAddress');
+
+        const navPanel = document.getElementById('navPanel');
+
+        const map = document.getElementById('map');
+
+        console.log('要素の存在確認:', {
+
+          locCoords: !!locCoords,
+
+          locAddress: !!locAddress,
+
+          navPanel: !!navPanel,
+
+          map: !!map,
+
+          locCoordsText: locCoords ? locCoords.textContent : 'N/A',
+
+          locCoordsParent: locCoords ? locCoords.parentElement : null
+
+        });
+
+        // app.jsが要素を更新するのを待つ
+
+        if (locCoords) {
+
+          let checkCount = 0;
+
+          const checkInterval = setInterval(function() {
+
+            checkCount++;
+
+            const currentText = locCoords.textContent;
+
+            console.log(`現在地チェック ${checkCount}回目:`, currentText);
+
+            // 30秒経過しても更新されない場合は警告
+
+            if (checkCount >= 30) {
+
+              console.warn('app.jsが現在地を更新していない可能性があります。30秒経過しました。', {
+
+                currentText: currentText,
+
+                element: locCoords
+
+              });
+
+              clearInterval(checkInterval);
+
+            }
+
+            // 更新されたら停止
+
+            if (currentText && !currentText.includes('取得中') && currentText.match(/\d+\.\d+/)) {
+
+              console.log('現在地が更新されました！', currentText);
+
+              clearInterval(checkInterval);
+
+            }
+
+          }, 1000);
+
+        }
+
+      }, 2000);
+
+    });
+
+  </script>
 
   <script>
 
