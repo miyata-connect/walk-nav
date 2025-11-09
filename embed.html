@@ -192,7 +192,9 @@
 
     .nav-share.has-location {
 
-      display: block;
+      display: block !important;
+
+      visibility: visible !important;
 
     }
 
@@ -1364,23 +1366,39 @@
 
       function getCurrentLocationInfo() {
 
-        const coordsText = locCoords ? locCoords.textContent : '';
+        if (!locCoords || !locAddress) {
 
-        const addressText = locAddress ? locAddress.textContent : '';
+          console.log('SNSシェア: locCoordsまたはlocAddressが見つかりません', { locCoords: !!locCoords, locAddress: !!locAddress });
 
-        // 緯度経度を抽出
+          return { coords: '', address: '', lat: null, lng: null };
 
-        const coordMatch = coordsText.match(/(\d+\.\d+),\s*(\d+\.\d+)/);
+        }
+
+        const coordsText = locCoords.textContent || '';
+
+        const addressText = locAddress.textContent || '';
+
+        console.log('SNSシェア: 現在地テキストを取得', { coordsText, addressText });
+
+        // 緯度経度を抽出（「現在地：」の部分も考慮）
+
+        const coordMatch = coordsText.match(/(\d+\.\d+)[,\s]+(\d+\.\d+)/);
 
         let lat = null;
 
         let lng = null;
 
-        if (coordMatch) {
+        if (coordMatch && coordMatch.length >= 3) {
 
           lat = parseFloat(coordMatch[1]);
 
           lng = parseFloat(coordMatch[2]);
+
+          console.log('SNSシェア: 緯度経度を抽出', { lat, lng });
+
+        } else {
+
+          console.log('SNSシェア: 緯度経度の抽出に失敗', { coordsText, coordMatch });
 
         }
 
@@ -1570,7 +1588,19 @@
 
         if (!navShare) {
 
-          console.error('navShare要素が見つかりません');
+          console.error('SNSシェア: navShare要素が見つかりません');
+
+          return;
+
+        }
+
+        // 案内ページがアクティブかどうか確認
+
+        const pageNav = document.getElementById('pageNav');
+
+        if (pageNav && !pageNav.classList.contains('active')) {
+
+          console.log('SNSシェア: 案内ページが非アクティブのためスキップ');
 
           return;
 
@@ -1580,15 +1610,19 @@
 
         console.log('SNSシェア: 現在地情報をチェック', info);
 
-        if (info.lat && info.lng && info.coords && info.coords !== '現在地：取得中...') {
+        // 緯度経度が取得できていれば表示
+
+        if (info.lat && info.lng && !isNaN(info.lat) && !isNaN(info.lng)) {
 
           navShare.classList.add('has-location');
 
           navShare.style.display = 'block';
 
+          navShare.style.visibility = 'visible';
+
           currentShareLocation = { lat: info.lat, lng: info.lng };
 
-          console.log('SNSシェア: ボタンを表示しました', { lat: info.lat, lng: info.lng });
+          console.log('SNSシェア: ボタンを表示しました', { lat: info.lat, lng: info.lng, element: navShare });
 
         } else {
 
@@ -1596,7 +1630,7 @@
 
           navShare.style.display = 'none';
 
-          console.log('SNSシェア: 現在地情報が取得できていません');
+          console.log('SNSシェア: 現在地情報が取得できていません', { lat: info.lat, lng: info.lng, coords: info.coords });
 
         }
 
@@ -1641,6 +1675,26 @@
       setTimeout(updateSharePanel, 3000);
 
       setTimeout(updateSharePanel, 5000);
+
+      setTimeout(updateSharePanel, 10000);
+
+      // MutationObserverでlocCoordsの変更を監視
+
+      if (locCoords) {
+
+        const observer = new MutationObserver(function(mutations) {
+
+          console.log('SNSシェア: locCoordsが変更されました');
+
+          setTimeout(updateSharePanel, 500);
+
+        });
+
+        observer.observe(locCoords, { childList: true, characterData: true, subtree: true });
+
+        console.log('SNSシェア: MutationObserverを設定しました');
+
+      }
 
     })();
 
