@@ -507,6 +507,9 @@
 
     </div> <!-- L014-12 統合パネル終了 -->
 
+    <!-- app.jsとの互換性のため、searchPanel要素を追加（非表示） -->
+    <section class="panel" id="searchPanel" style="display: none !important;"></section>
+
 
 
     <div class="route-panel" id="routePanel"> <!-- L079 -->
@@ -606,71 +609,47 @@
         return true;
       }
       
+      // app.jsが要素を更新するのを待つ
+      function startLocationCheck() {
+        const locCoords = document.getElementById('locCoords');
+        if (locCoords) {
+          let checkCount = 0;
+          const checkInterval = setInterval(function() {
+            checkCount++;
+            const currentText = locCoords.textContent;
+            console.log(`現在地チェック ${checkCount}回目:`, currentText);
+            
+            // 30秒経過しても更新されない場合は警告
+            if (checkCount >= 30) {
+              console.warn('app.jsが現在地を更新していない可能性があります。30秒経過しました。', {
+                currentText: currentText,
+                element: locCoords,
+                elementId: locCoords.id,
+                elementParent: locCoords.parentElement ? locCoords.parentElement.id : null
+              });
+              clearInterval(checkInterval);
+            }
+            
+            // 更新されたら停止
+            if (currentText && !currentText.includes('取得中') && currentText.match(/\d+\.\d+/)) {
+              console.log('現在地が更新されました！', currentText);
+              clearInterval(checkInterval);
+            }
+          }, 1000);
+        }
+      }
+      
       // 複数のタイミングで要素を確認
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
           checkElements();
-          // app.jsが要素を更新するのを待つ
-          setTimeout(function() {
-            const locCoords = document.getElementById('locCoords');
-            if (locCoords) {
-              let checkCount = 0;
-              const checkInterval = setInterval(function() {
-                checkCount++;
-                const currentText = locCoords.textContent;
-                console.log(`現在地チェック ${checkCount}回目:`, currentText);
-                
-                // 30秒経過しても更新されない場合は警告
-                if (checkCount >= 30) {
-                  console.warn('app.jsが現在地を更新していない可能性があります。30秒経過しました。', {
-                    currentText: currentText,
-                    element: locCoords,
-                    elementId: locCoords.id,
-                    elementParent: locCoords.parentElement ? locCoords.parentElement.id : null
-                  });
-                  clearInterval(checkInterval);
-                }
-                
-                // 更新されたら停止
-                if (currentText && !currentText.includes('取得中') && currentText.match(/\d+\.\d+/)) {
-                  console.log('現在地が更新されました！', currentText);
-                  clearInterval(checkInterval);
-                }
-              }, 1000);
-            }
-          }, 2000);
+          // app.jsが読み込まれるのを待つ
+          setTimeout(startLocationCheck, 2000);
         });
       } else {
         // 既にDOMContentLoadedが完了している場合
         checkElements();
-        setTimeout(function() {
-          const locCoords = document.getElementById('locCoords');
-          if (locCoords) {
-            let checkCount = 0;
-            const checkInterval = setInterval(function() {
-              checkCount++;
-              const currentText = locCoords.textContent;
-              console.log(`現在地チェック ${checkCount}回目:`, currentText);
-              
-              // 30秒経過しても更新されない場合は警告
-              if (checkCount >= 30) {
-                console.warn('app.jsが現在地を更新していない可能性があります。30秒経過しました。', {
-                  currentText: currentText,
-                  element: locCoords,
-                  elementId: locCoords.id,
-                  elementParent: locCoords.parentElement ? locCoords.parentElement.id : null
-                });
-                clearInterval(checkInterval);
-              }
-              
-              // 更新されたら停止
-              if (currentText && !currentText.includes('取得中') && currentText.match(/\d+\.\d+/)) {
-                console.log('現在地が更新されました！', currentText);
-                clearInterval(checkInterval);
-              }
-            }, 1000);
-          }
-        }, 2000);
+        setTimeout(startLocationCheck, 2000);
       }
     })();
 
