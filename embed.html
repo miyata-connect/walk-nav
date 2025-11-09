@@ -329,9 +329,7 @@
 
     /* パネル表示制御（古いパネルを非表示） */
 
-    .nav-panel.hidden,
-
-    .nav-panel {
+    .nav-panel.hidden {
 
       display: none !important;
 
@@ -489,13 +487,17 @@
 
         <div class="panel-page active" id="pageNav"> <!-- L014-6 -->
 
-          <div class="nav-location"> <!-- L058 -->
+          <!-- 古いnav-panel構造を維持（app.jsとの互換性のため） -->
 
-            <div id="locCoords">現在地：取得中...</div> <!-- L059 -->
+          <div class="nav-panel" id="navPanel" style="display: block;"> <!-- L057 -->
 
-            <div id="locAddress"></div> <!-- L060 -->
+            <div class="nav-location"> <!-- L058 -->
 
-          </div> <!-- L061 -->
+              <div id="locCoords">現在地：取得中...</div> <!-- L059 -->
+
+              <div id="locAddress"></div> <!-- L060 -->
+
+            </div> <!-- L061 -->
 
           <!-- SNSシェアボタン -->
 
@@ -589,7 +591,9 @@
 
           </div> <!-- L078 -->
 
-          <div class="nav-instructions-list" id="navPanelInstructions"></div> <!-- L076 -->
+            <div class="nav-instructions-list" id="navPanelInstructions"></div> <!-- L076 -->
+
+          </div> <!-- L077 nav-panel終了 -->
 
         </div> <!-- L014-7 案内ページ終了 -->
 
