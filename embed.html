@@ -1462,17 +1462,35 @@
 
       function updateSharePanel() {
 
+        if (!navShare) {
+
+          console.error('navShare要素が見つかりません');
+
+          return;
+
+        }
+
         const info = getCurrentLocationInfo();
 
-        if (info.lat && info.lng && info.coords !== '現在地：取得中...') {
+        console.log('SNSシェア: 現在地情報をチェック', info);
+
+        if (info.lat && info.lng && info.coords && info.coords !== '現在地：取得中...') {
 
           navShare.classList.add('has-location');
 
+          navShare.style.display = 'block';
+
           currentShareLocation = { lat: info.lat, lng: info.lng };
+
+          console.log('SNSシェア: ボタンを表示しました', { lat: info.lat, lng: info.lng });
 
         } else {
 
           navShare.classList.remove('has-location');
+
+          navShare.style.display = 'none';
+
+          console.log('SNSシェア: 現在地情報が取得できていません');
 
         }
 
@@ -1488,15 +1506,35 @@
 
         if (e.detail && e.detail.lat && e.detail.lon) {
 
+          console.log('SNSシェア: locationUpdatedイベントを受信', e.detail);
+
           setTimeout(updateSharePanel, 500);
 
         }
 
       });
 
-      // 初期化
+      // 初期化（複数のタイミングで試行）
 
-      setTimeout(updateSharePanel, 2000);
+      if (document.readyState === 'loading') {
+
+        document.addEventListener('DOMContentLoaded', function() {
+
+          setTimeout(updateSharePanel, 1000);
+
+        });
+
+      } else {
+
+        setTimeout(updateSharePanel, 1000);
+
+      }
+
+      // さらに遅延して初期化（現在地取得を待つ）
+
+      setTimeout(updateSharePanel, 3000);
+
+      setTimeout(updateSharePanel, 5000);
 
     })();
 
