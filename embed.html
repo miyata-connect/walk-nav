@@ -755,53 +755,6 @@
 
   <script src="app.js" defer></script> <!-- L106 -->
 
-  <script>
-
-    // 現在地要素の存在確認とデバッグ
-
-    window.addEventListener('load', function() {
-
-      setTimeout(function() {
-
-        const locCoords = document.getElementById('locCoords');
-
-        const locAddress = document.getElementById('locAddress');
-
-        console.log('現在地要素の確認:', {
-
-          locCoords: locCoords ? locCoords.textContent : '要素が見つかりません',
-
-          locAddress: locAddress ? locAddress.textContent : '要素が見つかりません',
-
-          locCoordsElement: !!locCoords,
-
-          locAddressElement: !!locAddress
-
-        });
-
-        // 要素が存在する場合、定期的に内容をチェック
-
-        if (locCoords) {
-
-          setInterval(function() {
-
-            console.log('現在地要素の状態:', {
-
-              coords: locCoords.textContent,
-
-              address: locAddress ? locAddress.textContent : 'N/A'
-
-            });
-
-          }, 5000);
-
-        }
-
-      }, 2000);
-
-    });
-
-  </script>
 
   <script>
 
