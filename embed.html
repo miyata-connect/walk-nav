@@ -376,15 +376,19 @@
 
     }
 
-    /* パネル表示制御 */
+    /* パネル表示制御（古いパネルを非表示） */
 
-    .nav-panel.hidden {
+    .nav-panel.hidden,
+
+    .nav-panel {
 
       display: none !important;
 
     }
 
-    .panel.hidden {
+    .panel.hidden,
+
+    section.panel#searchPanel {
 
       display: none !important;
 
@@ -394,27 +398,29 @@
 
     .unified-panel {
 
-      position: fixed;
+      position: fixed !important;
 
-      bottom: 0;
+      bottom: 0 !important;
 
-      left: 0;
+      left: 0 !important;
 
-      right: 0;
+      right: 0 !important;
 
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.85) !important;
 
       backdrop-filter: blur(10px);
 
       border-top: 1px solid rgba(255, 255, 255, 0.1);
 
-      z-index: 1000;
+      z-index: 1000 !important;
 
       max-height: 60vh;
 
-      display: flex;
+      display: flex !important;
 
       flex-direction: column;
+
+      width: 100% !important;
 
     }
 
@@ -1698,23 +1704,29 @@
 
     })();
 
-    // ==================== パネル切り替え機能 ====================
+    // ==================== パネルタブ切り替え機能 ====================
 
     (function() {
 
-      const btnTogglePanel = document.getElementById('btnTogglePanel');
+      const tabNav = document.getElementById('tabNav');
 
-      const toggleIcon = document.getElementById('toggleIcon');
+      const tabSearch = document.getElementById('tabSearch');
 
-      const toggleText = document.getElementById('toggleText');
+      const pageNav = document.getElementById('pageNav');
 
-      const navPanel = document.getElementById('navPanel');
-
-      const searchPanel = document.getElementById('searchPanel');
+      const pageSearch = document.getElementById('pageSearch');
 
       // タブ切り替え関数
 
       function switchTab(targetTab) {
+
+        if (!tabNav || !tabSearch || !pageNav || !pageSearch) {
+
+          console.error('タブまたはページ要素が見つかりません');
+
+          return;
+
+        }
 
         // すべてのタブとページを非アクティブに
 
@@ -1734,11 +1746,15 @@
 
           pageNav.classList.add('active');
 
+          console.log('案内タブに切り替え');
+
         } else if (targetTab === 'search') {
 
           tabSearch.classList.add('active');
 
           pageSearch.classList.add('active');
+
+          console.log('検索タブに切り替え');
 
         }
 
@@ -1783,6 +1799,20 @@
         switchTab('nav');
 
       }
+
+      // 初期化を確認
+
+      console.log('統合パネルのタブ切り替え機能を初期化しました', {
+
+        tabNav: !!tabNav,
+
+        tabSearch: !!tabSearch,
+
+        pageNav: !!pageNav,
+
+        pageSearch: !!pageSearch
+
+      });
 
     })();
 
