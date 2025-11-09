@@ -326,55 +326,6 @@
 
     }
 
-    /* パネル切り替えボタンのスタイル */
-
-    .btn-toggle {
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 4px;
-
-      padding: 6px 12px;
-
-      border: 1px solid rgba(255, 255, 255, 0.3);
-
-      border-radius: 6px;
-
-      background: rgba(255, 255, 255, 0.1);
-
-      color: #fff;
-
-      font-size: 12px;
-
-      font-weight: 500;
-
-      cursor: pointer;
-
-      transition: all 0.2s;
-
-    }
-
-    .btn-toggle:hover {
-
-      background: rgba(255, 255, 255, 0.2);
-
-      border-color: rgba(255, 255, 255, 0.5);
-
-    }
-
-    .btn-toggle:active {
-
-      transform: scale(0.95);
-
-    }
-
-    #toggleIcon {
-
-      font-size: 14px;
-
-    }
 
     /* パネル表示制御（古いパネルを非表示） */
 
@@ -432,6 +383,8 @@
 
       background: rgba(0, 0, 0, 0.3);
 
+      flex-shrink: 0;
+
     }
 
     .panel-tab {
@@ -482,7 +435,11 @@
 
       overflow-y: auto;
 
+      overflow-x: hidden;
+
       padding: 16px;
+
+      min-height: 0;
 
     }
 
@@ -1386,9 +1343,9 @@
 
         console.log('SNSシェア: 現在地テキストを取得', { coordsText, addressText });
 
-        // 緯度経度を抽出（「現在地：」の部分も考慮）
+        // 緯度経度を抽出（「現在地：」の部分も考慮、カンマやスペースに対応）
 
-        const coordMatch = coordsText.match(/(\d+\.\d+)[,\s]+(\d+\.\d+)/);
+        let coordMatch = coordsText.match(/(\d+\.\d+)[,\s]+(\d+\.\d+)/);
 
         let lat = null;
 
@@ -1400,11 +1357,27 @@
 
           lng = parseFloat(coordMatch[2]);
 
-          console.log('SNSシェア: 緯度経度を抽出', { lat, lng });
+          console.log('SNSシェア: 緯度経度を抽出', { lat, lng, coordsText });
 
         } else {
 
-          console.log('SNSシェア: 緯度経度の抽出に失敗', { coordsText, coordMatch });
+          // 別のパターンも試す（「現在地：緯度, 経度」形式）
+
+          coordMatch = coordsText.match(/現在地[：:]\s*(\d+\.\d+)[,\s]+(\d+\.\d+)/);
+
+          if (coordMatch && coordMatch.length >= 3) {
+
+            lat = parseFloat(coordMatch[1]);
+
+            lng = parseFloat(coordMatch[2]);
+
+            console.log('SNSシェア: 緯度経度を抽出（代替パターン）', { lat, lng, coordsText });
+
+          } else {
+
+            console.log('SNSシェア: 緯度経度の抽出に失敗', { coordsText, coordMatch });
+
+          }
 
         }
 
@@ -1606,7 +1579,11 @@
 
         if (pageNav && !pageNav.classList.contains('active')) {
 
-          console.log('SNSシェア: 案内ページが非アクティブのためスキップ');
+          console.log('SNSシェア: 案内ページが非アクティブのためスキップ（ただし要素は保持）');
+
+          // 非アクティブでも要素は保持するが、表示はしない
+
+          navShare.style.display = 'none';
 
           return;
 
@@ -1684,6 +1661,10 @@
 
       setTimeout(updateSharePanel, 10000);
 
+      // グローバルに公開（タブ切り替え時などに呼び出せるように）
+
+      window.updateSharePanel = updateSharePanel;
+
       // MutationObserverでlocCoordsの変更を監視
 
       if (locCoords) {
@@ -1747,6 +1728,18 @@
           pageNav.classList.add('active');
 
           console.log('案内タブに切り替え');
+
+          // 案内タブに切り替えたら、SNSシェアボタンを再チェック
+
+          setTimeout(function() {
+
+            if (window.updateSharePanel) {
+
+              window.updateSharePanel();
+
+            }
+
+          }, 100);
 
         } else if (targetTab === 'search') {
 
