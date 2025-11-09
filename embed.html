@@ -335,6 +335,14 @@
 
     }
 
+    /* 統合パネル内のnav-panelは表示 */
+
+    .unified-panel .nav-panel {
+
+      display: block !important;
+
+    }
+
     .panel.hidden,
 
     section.panel#searchPanel {
@@ -1360,9 +1368,19 @@
 
         const addressText = locAddress.textContent || '';
 
-        console.log('SNSシェア: 現在地テキストを取得', { coordsText, addressText });
+        console.log('SNSシェア: 現在地テキストを取得', { coordsText, addressText, element: locCoords });
 
-        // 緯度経度を抽出（「現在地：」の部分も考慮、カンマやスペースに対応）
+        // 緯度経度を抽出（「現在地：」や「現在地:」の部分も考慮、カンマやスペースに対応）
+
+        // まず「現在地:取得中...」や「現在地：取得中...」を除外
+
+        if (coordsText.includes('取得中') || coordsText.includes('取得失敗') || coordsText.includes('未対応')) {
+
+          console.log('SNSシェア: 現在地がまだ取得されていません（app.jsが更新していない可能性）', { coordsText });
+
+          return { coords: coordsText, address: addressText, lat: null, lng: null };
+
+        }
 
         let coordMatch = coordsText.match(/(\d+\.\d+)[,\s]+(\d+\.\d+)/);
 
@@ -1690,15 +1708,59 @@
 
         const observer = new MutationObserver(function(mutations) {
 
-          console.log('SNSシェア: locCoordsが変更されました');
+          mutations.forEach(function(mutation) {
 
-          setTimeout(updateSharePanel, 500);
+            if (mutation.type === 'characterData' || mutation.type === 'childList') {
+
+              const newText = locCoords.textContent || '';
+
+              console.log('SNSシェア: locCoordsが変更されました', { 
+
+                oldValue: mutation.oldValue, 
+
+                newValue: newText,
+
+                type: mutation.type
+
+              });
+
+              // 「取得中」から実際の座標に変わった場合のみ更新
+
+              if (!newText.includes('取得中') && !newText.includes('取得失敗') && !newText.includes('未対応') && newText.match(/\d+\.\d+/)) {
+
+                console.log('SNSシェア: 座標が検出されました！更新します', { newText });
+
+                setTimeout(updateSharePanel, 500);
+
+              } else {
+
+                console.log('SNSシェア: まだ座標が含まれていません', { newText });
+
+              }
+
+            }
+
+          });
 
         });
 
-        observer.observe(locCoords, { childList: true, characterData: true, subtree: true });
+        observer.observe(locCoords, { 
 
-        console.log('SNSシェア: MutationObserverを設定しました');
+          childList: true, 
+
+          characterData: true, 
+
+          subtree: true,
+
+          characterDataOldValue: true
+
+        });
+
+        console.log('SNSシェア: MutationObserverを設定しました', { element: locCoords });
+
+      } else {
+
+        console.error('SNSシェア: locCoords要素が見つかりません（MutationObserver設定失敗）');
 
       }
 
