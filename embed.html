@@ -595,37 +595,28 @@
           const searchPanel = document.createElement('section');
           searchPanel.id = 'searchPanel';
           searchPanel.className = 'panel';
+          searchPanel.style.display = 'none';
           
-          // searchPanelのstyle.displayを監視して、unifiedPanelを制御
-          const originalStyle = searchPanel.style;
-          let displayValue = 'none';
+          document.body.appendChild(searchPanel);
           
-          Object.defineProperty(searchPanel.style, 'display', {
-            get: function() {
-              return displayValue;
-            },
-            set: function(value) {
-              displayValue = value;
-              // unifiedPanelの表示を制御
-              if (value === 'block') {
+          // searchPanelのstyle.displayの変更を監視
+          let lastDisplay = 'none';
+          setInterval(function() {
+            const currentDisplay = searchPanel.style.display;
+            if (currentDisplay !== lastDisplay) {
+              lastDisplay = currentDisplay;
+              if (currentDisplay === 'block') {
                 unifiedPanel.style.display = 'block';
                 // 検索タブをアクティブにする
                 const tabSearch = document.getElementById('tabSearch');
                 if (tabSearch) {
                   tabSearch.click();
                 }
-              } else {
-                unifiedPanel.style.display = value;
+              } else if (currentDisplay === 'none') {
+                unifiedPanel.style.display = 'none';
               }
-            },
-            configurable: true,
-            enumerable: true
-          });
-          
-          // 初期状態を設定
-          searchPanel.style.display = 'none';
-          
-          document.body.appendChild(searchPanel);
+            }
+          }, 100);
         }
       }
     })();
