@@ -324,6 +324,70 @@
 
     }
 
+    /* パネル切り替えボタンのスタイル */
+
+    .btn-toggle {
+
+      display: flex;
+
+      align-items: center;
+
+      gap: 4px;
+
+      padding: 6px 12px;
+
+      border: 1px solid rgba(255, 255, 255, 0.3);
+
+      border-radius: 6px;
+
+      background: rgba(255, 255, 255, 0.1);
+
+      color: #fff;
+
+      font-size: 12px;
+
+      font-weight: 500;
+
+      cursor: pointer;
+
+      transition: all 0.2s;
+
+    }
+
+    .btn-toggle:hover {
+
+      background: rgba(255, 255, 255, 0.2);
+
+      border-color: rgba(255, 255, 255, 0.5);
+
+    }
+
+    .btn-toggle:active {
+
+      transform: scale(0.95);
+
+    }
+
+    #toggleIcon {
+
+      font-size: 14px;
+
+    }
+
+    /* パネル表示制御 */
+
+    .nav-panel.hidden {
+
+      display: none !important;
+
+    }
+
+    .panel.hidden {
+
+      display: none !important;
+
+    }
+
   </style>
 
 </head> <!-- L010 -->
@@ -338,7 +402,19 @@
 
     <section class="panel" id="searchPanel" aria-label="検索パネル"> <!-- L014 -->
 
-      <h2>近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2> <!-- L015 -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;"> <!-- L014-1 -->
+
+        <h2 style="margin: 0;">近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2> <!-- L015 -->
+
+        <button id="btnTogglePanel" class="btn-toggle" title="案内パネル/検索パネルを切り替え"> <!-- L014-2 -->
+
+          <span id="toggleIcon">📋</span> <!-- L014-3 -->
+
+          <span id="toggleText">案内</span> <!-- L014-4 -->
+
+        </button> <!-- L014-5 -->
+
+      </div> <!-- L014-6 -->
 
       
 
@@ -1421,6 +1497,90 @@
       // 初期化
 
       setTimeout(updateSharePanel, 2000);
+
+    })();
+
+    // ==================== パネル切り替え機能 ====================
+
+    (function() {
+
+      const btnTogglePanel = document.getElementById('btnTogglePanel');
+
+      const toggleIcon = document.getElementById('toggleIcon');
+
+      const toggleText = document.getElementById('toggleText');
+
+      const navPanel = document.getElementById('navPanel');
+
+      const searchPanel = document.getElementById('searchPanel');
+
+      // 現在の表示状態を管理（true: 両方表示, false: 検索パネルのみ）
+
+      let showNavPanel = true;
+
+      // ローカルストレージから状態を復元
+
+      const savedState = localStorage.getItem('panelToggleState');
+
+      if (savedState !== null) {
+
+        showNavPanel = savedState === 'true';
+
+      }
+
+      // 初期状態を設定
+
+      updatePanelDisplay();
+
+      // 切り替えボタンのクリックイベント
+
+      btnTogglePanel.addEventListener('click', function() {
+
+        showNavPanel = !showNavPanel;
+
+        updatePanelDisplay();
+
+        // 状態をローカルストレージに保存
+
+        localStorage.setItem('panelToggleState', showNavPanel.toString());
+
+      });
+
+      // パネルの表示を更新
+
+      function updatePanelDisplay() {
+
+        if (showNavPanel) {
+
+          // 案内パネルを表示、検索パネルを表示
+
+          navPanel.classList.remove('hidden');
+
+          searchPanel.classList.remove('hidden');
+
+          toggleIcon.textContent = '📋';
+
+          toggleText.textContent = '案内';
+
+          btnTogglePanel.title = '案内パネルを非表示';
+
+        } else {
+
+          // 案内パネルを非表示、検索パネルのみ表示
+
+          navPanel.classList.add('hidden');
+
+          searchPanel.classList.remove('hidden');
+
+          toggleIcon.textContent = '📍';
+
+          toggleText.textContent = '案内を表示';
+
+          btnTogglePanel.title = '案内パネルを表示';
+
+        }
+
+      }
 
     })();
 
