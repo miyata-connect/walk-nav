@@ -507,8 +507,6 @@
 
     </div> <!-- L014-12 統合パネル終了 -->
 
-    <!-- app.jsとの互換性のため、searchPanel要素を追加（非表示） -->
-    <section class="panel" id="searchPanel" style="display: none !important;"></section>
 
 
 
@@ -575,6 +573,63 @@
 
 
   <script src="app.js" defer></script> <!-- L106 -->
+
+  <script>
+    // app.jsとの互換性のため、searchPanelをunifiedPanelにリダイレクト
+    (function() {
+      // DOMContentLoadedの前に実行
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+          setupSearchPanelRedirect();
+        });
+      } else {
+        setupSearchPanelRedirect();
+      }
+      
+      function setupSearchPanelRedirect() {
+        const unifiedPanel = document.getElementById('unifiedPanel');
+        const pageSearch = document.getElementById('pageSearch');
+        
+        if (unifiedPanel && pageSearch) {
+          // searchPanel要素を作成（app.jsが参照するため）
+          const searchPanel = document.createElement('section');
+          searchPanel.id = 'searchPanel';
+          searchPanel.className = 'panel';
+          
+          // searchPanelのstyle.displayを監視して、unifiedPanelを制御
+          const originalStyle = searchPanel.style;
+          let displayValue = 'none';
+          
+          Object.defineProperty(searchPanel.style, 'display', {
+            get: function() {
+              return displayValue;
+            },
+            set: function(value) {
+              displayValue = value;
+              // unifiedPanelの表示を制御
+              if (value === 'block') {
+                unifiedPanel.style.display = 'block';
+                // 検索タブをアクティブにする
+                const tabSearch = document.getElementById('tabSearch');
+                if (tabSearch) {
+                  tabSearch.click();
+                }
+              } else {
+                unifiedPanel.style.display = value;
+              }
+            },
+            configurable: true,
+            enumerable: true
+          });
+          
+          // 初期状態を設定
+          searchPanel.style.display = 'none';
+          
+          document.body.appendChild(searchPanel);
+        }
+      }
+    })();
+  </script>
 
   <script>
     // app.jsが要素を見つけられるように、要素の存在を確認
