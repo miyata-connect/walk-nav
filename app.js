@@ -1,10 +1,14 @@
 'use strict';
 
-// ==========================================
-// Constants
-// ==========================================
-const ISSUE_ID = 'idx202511050540';
-const API_KEY = 'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk'; // Maps JS only
+/* =========================================================
+   WalkNav - app.js (OpenWeather対応・安定版 / 差分禁止・全行)
+   ========================================================= */
+
+/* -----------------------------
+   定数定義
+----------------------------- */
+const ISSUE_ID = 'idx202511050540'; // ISSUEトラッキング用
+const API_KEY = 'AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk'; // ★Maps JavaScript 表示専用
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
@@ -15,9 +19,9 @@ const LOCATION_OPTIONS = {
   maximumAge: 0
 };
 
-// ==========================================
-// App State
-// ==========================================
+/* -----------------------------
+   状態管理
+----------------------------- */
 const appState = {
   map: null,
   userMarker: null,
@@ -39,75 +43,65 @@ const appState = {
   currentRouteData: null
 };
 
-// ==========================================
-// fetch with retry
-// ==========================================
+/* -----------------------------
+   fetch（リトライ付き）
+----------------------------- */
 async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
   for (let i = 0; i < retries; i++) {
     try {
       const response = await fetch(url, options);
       if (!response.ok && i < retries - 1) {
         console.log(`[Retry] ${i + 1}/${retries}: ${url}`);
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (i + 1)));
+        await new Promise(r => setTimeout(r, RETRY_DELAY * (i + 1)));
         continue;
       }
       return response;
     } catch (error) {
       if (i === retries - 1) throw error;
       console.log(`[Retry] ${i + 1}/${retries}: ${error.message}`);
-      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (i + 1)));
+      await new Promise(r => setTimeout(r, RETRY_DELAY * (i + 1)));
     }
   }
 }
 
-// ==========================================
-// APIs via Worker
-// ==========================================
+/* -----------------------------
+   API呼び出し（Worker経由）
+----------------------------- */
 async function placesTextSearch(payload, fieldMask) {
-  try {
-    const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(fieldMask ? { 'X-Goog-FieldMask': fieldMask } : {})
-      },
-      body: JSON.stringify(payload)
-    });
-    if (!resp.ok) {
-      const text = await resp.text();
-      throw new Error(`TextSearch ${resp.status}: ${text}`);
-    }
-    return await resp.json();
-  } catch (error) {
-    console.error(`検索エラー: ${error.message}`);
-    throw error;
+  const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(fieldMask ? { 'X-Goog-FieldMask': fieldMask } : {})
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`TextSearch ${resp.status}: ${text}`);
   }
+  return await resp.json();
 }
 
 async function placesNearby(payload, fieldMask) {
-  try {
-    const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchNearby`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(fieldMask ? { 'X-Goog-FieldMask': fieldMask } : {})
-      },
-      body: JSON.stringify(payload)
-    });
-    if (!resp.ok) {
-      const text = await resp.text();
-      throw new Error(`Nearby ${resp.status}: ${text}`);
-    }
-    return await resp.json();
-  } catch (error) {
-    console.error(`検索エラー: ${error.message}`);
-    throw error;
+  const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchNearby`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(fieldMask ? { 'X-Goog-FieldMask': fieldMask } : {})
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`Nearby ${resp.status}: ${text}`);
   }
+  return await resp.json();
 }
 
-// ==========================================
-// Map init
-// ==========================================
+/* -----------------------------
+   地図初期化
+----------------------------- */
 function initMap(center) {
   appState.map = new google.maps.Map(document.getElementById('map'), {
     center,
@@ -129,9 +123,9 @@ function initMap(center) {
   console.log('[WalkNav] Map initialized');
 }
 
-// ==========================================
-// User marker (SVG arrow)
-// ==========================================
+/* -----------------------------
+   ユーザーマーカー（SVG矢印）
+----------------------------- */
 function setUserMarker(lat, lng) {
   appState.currentPos = { lat, lng };
 
@@ -142,15 +136,12 @@ function setUserMarker(lat, lng) {
 
     pin.innerHTML = `
       <svg id="user-marker-icon" viewBox="0 0 24 24"
-            style="width: 100%; height: 100%;
-                   transform: rotate(${appState.currentHeading}deg);
-                   transition: transform 0.2s ease-out;
-                   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
+           style="width:100%;height:100%;
+                  transform:rotate(${appState.currentHeading}deg);
+                  transition:transform .2s ease-out;
+                  filter:drop-shadow(0 2px 4px rgba(0,0,0,.4));">
         <path d="M12 2L4.5 20.5L12 16.5L19.5 20.5L12 2Z"
-              fill="#3aa0ff"
-              stroke="#ffffff"
-              stroke-width="2"
-              stroke-linejoin="round" />
+              fill="#3aa0ff" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
       </svg>
     `;
 
@@ -160,15 +151,14 @@ function setUserMarker(lat, lng) {
       content: pin,
       zIndex: 1000
     });
-
   } else {
     appState.userMarker.position = { lat, lng };
   }
 }
 
-// ==========================================
-// Search point
-// ==========================================
+/* -----------------------------
+   検索地点設定
+----------------------------- */
 function setSearchPoint(lat, lng) {
   appState.searchPoint = { lat, lng };
 
@@ -184,7 +174,7 @@ function setSearchPoint(lat, lng) {
   pin.style.border = '3px solid #fff';
   pin.style.transform = 'rotate(-45deg)';
   pin.style.boxShadow = '0 4px 8px rgba(0,0,0,.3)';
-  pin.style.transition = 'all 0.3s ease-out';
+  pin.style.transition = 'all .3s ease-out';
 
   appState.searchPointMarker = new google.maps.marker.AdvancedMarkerElement({
     map: appState.map,
@@ -199,23 +189,23 @@ function setSearchPoint(lat, lng) {
   fetchPointAddress(lat, lng);
 }
 
-// ==========================================
-// Distance
-// ==========================================
+/* -----------------------------
+   距離計算
+----------------------------- */
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371000;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+  const a = Math.sin(dLat / 2) ** 2 +
             Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            Math.sin(dLon / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
-// ==========================================
-// Read leg display
-// ==========================================
+/* -----------------------------
+   距離/時間表示文字列
+----------------------------- */
 function readLegDistanceText(leg) {
   if (leg?.distance?.text) return leg.distance.text;
   if (typeof leg?.distanceMeters === 'number') {
@@ -235,9 +225,9 @@ function readLegDurationText(leg) {
   return leg?.localizedValues?.duration?.text || '--';
 }
 
-// ==========================================
-// Route polyline
-// ==========================================
+/* -----------------------------
+   ルートポリライン
+----------------------------- */
 function getEncodedPolylineFromRoute(route) {
   if (route?.overview_polyline?.points) return route.overview_polyline.points;
   if (route?.polyline?.encodedPolyline) return route.polyline.encodedPolyline;
@@ -260,7 +250,7 @@ function drawRoutePolyline(route) {
 
   const path = google.maps.geometry.encoding.decodePath(encoded);
   appState.currentPolyline = new google.maps.Polyline({
-    path: path,
+    path,
     geodesic: true,
     strokeColor: '#62b5ff',
     strokeOpacity: 0.8,
@@ -271,9 +261,9 @@ function drawRoutePolyline(route) {
   console.log('[Navigation] Polyline drawn');
 }
 
-// ==========================================
-// Compass
-// ==========================================
+/* -----------------------------
+   コンパス
+----------------------------- */
 const compassHandler = (event) => {
   if (appState.isNavigating) return;
   let heading = null;
@@ -296,8 +286,8 @@ function startCompassListener() {
   console.log('[Compass] Starting compass listener...');
   if (typeof DeviceOrientationEvent.requestPermission === 'function') {
     DeviceOrientationEvent.requestPermission()
-      .then(permissionState => {
-        if (permissionState === 'granted') {
+      .then(state => {
+        if (state === 'granted') {
           window.addEventListener('deviceorientationabsolute', compassHandler, true);
           window.addEventListener('deviceorientation', compassHandler, true);
           appState.compassWatchId = 1;
@@ -322,14 +312,12 @@ function stopCompassListener() {
 
 function updateMarkerRotation() {
   const icon = document.getElementById('user-marker-icon');
-  if (icon) {
-    icon.style.transform = `rotate(${appState.currentHeading}deg)`;
-  }
+  if (icon) icon.style.transform = `rotate(${appState.currentHeading}deg)`;
 }
 
-// ==========================================
-// Location watch (during navigation)
-// ==========================================
+/* -----------------------------
+   位置監視（ナビ中）
+----------------------------- */
 function startLocationWatcher() {
   if (appState.locationWatchId) {
     navigator.geolocation.clearWatch(appState.locationWatchId);
@@ -347,10 +335,10 @@ function startLocationWatcher() {
     if (appState.isNavigating && !appState.isPaused) {
       appState.map.panTo({ lat: latitude, lng: longitude });
       if (appState.currentDestination && google.maps.geometry) {
-        const currentLatLng = new google.maps.LatLng(latitude, longitude);
-        const destLatLng = new google.maps.LatLng(appState.currentDestination.lat, appState.currentDestination.lng);
-        let headingDeg = google.maps.geometry.spherical.computeHeading(currentLatLng, destLatLng);
-        if (headingDeg < 0) { headingDeg += 360; }
+        const cur = new google.maps.LatLng(latitude, longitude);
+        const dst = new google.maps.LatLng(appState.currentDestination.lat, appState.currentDestination.lng);
+        let headingDeg = google.maps.geometry.spherical.computeHeading(cur, dst);
+        if (headingDeg < 0) headingDeg += 360;
         appState.currentHeading = headingDeg;
         updateMarkerRotation();
       }
@@ -378,9 +366,9 @@ function stopLocationWatcher() {
   }
 }
 
-// ==========================================
-// Start navigation (supports simulation)
-// ==========================================
+/* -----------------------------
+   ナビ開始（シミュレーション対応）
+----------------------------- */
 async function startNavigation(destination) {
   let originLat, originLng;
   if (appState.pointSearchMode && appState.searchPoint) {
@@ -416,7 +404,8 @@ async function startNavigation(destination) {
       language: 'ja'
     });
 
-    const response = await fetchWithRetry(`${WORKER_ORIGIN}/directions?${params.toString()}`);
+    // リトライ内蔵
+    const response = await fetchWithRetry(`${WORKER_ORIGIN}/directions?${params.toString()}`, {}, 3);
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Directions API Error: ${response.status} - ${errorText}`);
@@ -442,12 +431,13 @@ async function startNavigation(destination) {
 
       const instructionsList = document.getElementById('navPanelInstructions');
       instructionsList.innerHTML = '';
-      if (l0 && l0.steps && l0.steps.length > 0) {
+      if (l0 && Array.isArray(l0.steps) && l0.steps.length > 0) {
         l0.steps.forEach(step => {
           const item = document.createElement('div');
           item.className = 'nav-instruction-item';
-          const cleanInstruction = (step.html_instructions || '').replace(/<[^>]+>/g, ' ');
-          item.textContent = `${cleanInstruction} (${step.distance.text})`;
+          const cleanInstruction = (step.html_instructions || '').replace(/<[^>]+>/g, ' ').trim();
+          const distText = step?.distance?.text || step?.distance || '';
+          item.textContent = distText ? `${cleanInstruction} (${distText})` : cleanInstruction;
           instructionsList.appendChild(item);
         });
       }
@@ -470,7 +460,7 @@ async function startNavigation(destination) {
         incidentPanel.style.display = 'none';
       }
 
-      // Weather (OpenWeather via Worker)
+      // 天気（OpenWeather via Worker）
       await fetchWeather(originLat, originLng);
 
       if (appState.isSimulation) {
@@ -480,7 +470,7 @@ async function startNavigation(destination) {
           const currentLatLng = new google.maps.LatLng(originLat, originLng);
           const destLatLng = new google.maps.LatLng(appState.currentDestination.lat, appState.currentDestination.lng);
           let headingDeg = google.maps.geometry.spherical.computeHeading(currentLatLng, destLatLng);
-          if (headingDeg < 0) { headingDeg += 360; }
+          if (headingDeg < 0) headingDeg += 360;
           appState.currentHeading = headingDeg;
           updateMarkerRotation();
         }
@@ -519,9 +509,9 @@ async function startNavigation(destination) {
   }
 }
 
-// ==========================================
-// Stop navigation
-// ==========================================
+/* -----------------------------
+   ナビ停止
+----------------------------- */
 function stopNavigation() {
   stopLocationWatcher();
   startCompassListener();
@@ -573,9 +563,9 @@ function stopNavigation() {
   console.log('[Navigation] ルート案内終了');
 }
 
-// ==========================================
-// Pause / Resume
-// ==========================================
+/* -----------------------------
+   一時停止/再開
+----------------------------- */
 function togglePause() {
   if (appState.isSimulation) {
     console.warn('シミュレーション中は一時停止できません');
@@ -606,20 +596,20 @@ function togglePause() {
   }
 }
 
-// ==========================================
-// Search (via Worker)
-// ==========================================
+/* -----------------------------
+   検索（Worker経由）
+----------------------------- */
 const TYPE_MAP = {
-  "コンビニ": "convenience_store",
-  "スーパー": "supermarket",
-  "レストラン": "restaurant",
-  "カフェ": "cafe",
-  "ホテル": "lodging",
-  "病院": "hospital",
-  "薬局": "pharmacy",
-  "ガソリンスタンド": "gas_station",
-  "駐車場": "parking",
-  "銀行": "bank"
+  'コンビニ': 'convenience_store',
+  'スーパー': 'supermarket',
+  'レストラン': 'restaurant',
+  'カフェ': 'cafe',
+  'ホテル': 'lodging',
+  '病院': 'hospital',
+  '薬局': 'pharmacy',
+  'ガソリンスタンド': 'gas_station',
+  '駐車場': 'parking',
+  '銀行': 'bank'
 };
 
 async function performSearch(query) {
@@ -689,9 +679,9 @@ async function performSearch(query) {
   document.getElementById('navPanel').style.display = 'block';
 }
 
-// ==========================================
-// Render results
-// ==========================================
+/* -----------------------------
+   検索結果表示
+----------------------------- */
 function displayResults(places, centerLat, centerLng) {
   document.getElementById('navPanel').style.display = 'none';
 
@@ -724,16 +714,14 @@ function displayResults(places, centerLat, centerLng) {
     item.innerHTML = `
       <div class="result-name">${index + 1}. ${name}</div>
       <div class="result-address">${address}</div>
-      <div style="font-size:11px;color:#62b5ff;margin-top:4px">
-        📍 ${distanceKm}km
-      </div>
+      <div style="font-size:11px;color:#62b5ff;margin-top:4px">📍 ${distanceKm}km</div>
     `;
 
     item.onclick = () => {
       startNavigation({
-        name: name,
-        lat: lat,
-        lng: lng
+        name,
+        lat,
+        lng
       });
     };
 
@@ -769,9 +757,9 @@ function displayResults(places, centerLat, centerLng) {
   console.log(`[Search] ${limitedResults.length}件の結果を表示しました`);
 }
 
-// ==========================================
-// Speech Recognition
-// ==========================================
+/* -----------------------------
+   音声認識
+----------------------------- */
 function initSpeechRecognition() {
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
     console.log('[Voice] 音声認識は非対応です');
@@ -835,9 +823,9 @@ function startVoiceSearch() {
   }
 }
 
-// ==========================================
-// Acquire current location (once)
-// ==========================================
+/* -----------------------------
+   現在地取得（起動時1回）
+----------------------------- */
 function acquireLocation() {
   const onSuccess = (pos) => {
     const { latitude, longitude } = pos.coords;
@@ -848,8 +836,7 @@ function acquireLocation() {
     appState.map.setCenter({ lat: latitude, lng: longitude });
     setUserMarker(latitude, longitude);
     fetchLocationNameGoogle(latitude, longitude);
-    // Weather on boot
-    fetchWeather(latitude, longitude);
+    fetchWeather(latitude, longitude); // ★起動直後の天気
     console.log('現在地を取得しました');
   };
 
@@ -857,7 +844,7 @@ function acquireLocation() {
     console.log('[WalkNav] geolocation error', error?.message || error);
     document.getElementById('loading')?.remove();
     if (!appState.map) {
-      initMap({ lat: 35.0, lng: 135.0 });
+      initMap({ lat: 35.0, lng: 135.0 }); // フォールバック
     }
     const addressElement = document.getElementById('locAddress');
     const coordsElement = document.getElementById('locCoords');
@@ -874,9 +861,9 @@ function acquireLocation() {
   }
 }
 
-// ==========================================
-// Reverse geocoding via Worker
-// ==========================================
+/* -----------------------------
+   逆ジオコーディング（現在地）
+----------------------------- */
 async function fetchLocationNameGoogle(lat, lng) {
   const addressElement = document.getElementById('locAddress');
   const coordsElement = document.getElementById('locCoords');
@@ -890,21 +877,21 @@ async function fetchLocationNameGoogle(lat, lng) {
 
   try {
     console.log('[Geocode] Fetching address from Cloudflare...');
-    const params = new URLSearchParams({ lat: lat, lng: lng, language: 'ja' });
+    const params = new URLSearchParams({ lat, lng, language: 'ja' });
     const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode?${params.toString()}`);
     if (!response.ok) {
-      const errorText = await resp.text?.() || await response.text();
+      const errorText = await response.text();
       throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
     }
     const data = await response.json();
-    if (data.status === 'OK' && data.results[0]) {
-      const address = data.results[0].formatted_address;
+    const results = Array.isArray(data?.results) ? data.results : [];
+    if (data.status === 'OK' && results[0]) {
+      const address = results[0].formatted_address || '';
       const cleanAddress = address.replace(/^日本、\s*/, '');
-      const formattedAddress = cleanAddress + ' 付近';
-      addressElement.textContent = formattedAddress;
+      addressElement.textContent = `${cleanAddress} 付近`;
     } else {
       addressElement.textContent = '住所情報なし';
-      if (data.status !== 'ZERO_RESULTS') {
+      if (data.status && data.status !== 'ZERO_RESULTS') {
         console.error(`住所取得エラー: ${data.status}`);
       }
     }
@@ -914,9 +901,9 @@ async function fetchLocationNameGoogle(lat, lng) {
   }
 }
 
-// ==========================================
-// Reverse geocoding for point
-// ==========================================
+/* -----------------------------
+   逆ジオコーディング（ポイント）
+----------------------------- */
 async function fetchPointAddress(lat, lng) {
   const addressBlock = document.getElementById('pointAddressBlock');
   const addressElement = document.getElementById('pointAddress');
@@ -932,18 +919,18 @@ async function fetchPointAddress(lat, lng) {
   addressBlock.style.display = 'flex';
 
   try {
-    const params = new URLSearchParams({ lat: lat, lng: lng, language: 'ja' });
+    const params = new URLSearchParams({ lat, lng, language: 'ja' });
     const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode?${params.toString()}`);
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
     }
     const data = await response.json();
-    if (data.status === 'OK' && data.results[0]) {
-      const address = data.results[0].formatted_address;
+    const results = Array.isArray(data?.results) ? data.results : [];
+    if (data.status === 'OK' && results[0]) {
+      const address = results[0].formatted_address || '';
       const cleanAddress = address.replace(/^日本、\s*/, '');
-      const formattedAddress = 'ポイント：' + cleanAddress + ' 付近';
-      addressElement.textContent = formattedAddress;
+      addressElement.textContent = `ポイント：${cleanAddress} 付近`;
     } else {
       addressElement.textContent = 'ポイント：住所情報なし';
     }
@@ -953,9 +940,9 @@ async function fetchPointAddress(lat, lng) {
   }
 }
 
-// ==========================================
-// Weather via Worker (OpenWeather)
-// ==========================================
+/* -----------------------------
+   天気（OpenWeather 3時間予報 → 1/2/3時間後）
+----------------------------- */
 async function fetchWeather(lat, lng) {
   try {
     const params = new URLSearchParams({
@@ -964,38 +951,57 @@ async function fetchWeather(lat, lng) {
       units: 'metric',
       lang: 'ja'
     });
-    const response = await fetchWithRetry(`${WORKER_ORIGIN}/weather?${params.toString()}`);
+
+    const response = await fetchWithRetry(`${WORKER_ORIGIN}/weather?${params.toString()}`, {}, 3);
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Weather fetch failed (${response.status}): ${errorText}`);
     }
-    const data = await response.json(); // expecting OpenWeather forecast passthrough
+
+    const data = await response.json();
     console.log('[Weather] Worker Response:', data);
 
-    const now = Date.now();
+    // OpenWeatherの形式に厳密対応
     const list = Array.isArray(data?.list) ? data.list : [];
-    const forecasts = list.filter(item => {
-      const dt = (item?.dt || 0) * 1000;
-      const diffHours = Math.round((dt - now) / (1000 * 60 * 60));
-      return [1, 2, 3].includes(diffHours);
-    });
 
+    // まずクリア
     ['weather1h', 'weather2h', 'weather3h'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.textContent = '--';
     });
 
-    forecasts.forEach(item => {
-      const dt = (item?.dt || 0) * 1000;
-      const diffHours = Math.round((dt - now) / (1000 * 60 * 60));
-      const temp = Math.round(item?.main?.temp ?? NaN);
-      const condition = (item?.weather && item.weather[0]?.description) ? item.weather[0].description : '';
-      const el = document.getElementById(`weather${diffHours}h`);
-      if (el && !Number.isNaN(temp)) el.textContent = `${temp}℃ / ${condition}`;
+    if (list.length === 0) return;
+
+    const now = Date.now();
+    // できる限り「現在時刻に近い 1/2/3時間後」に近いエントリを選ぶ
+    // OpenWeatherのlistは3時間刻みなので、±1.5h以内を「近い」とみなす
+    const targets = [1, 2, 3];
+    targets.forEach(targetHour => {
+      const targetMs = now + targetHour * 3600 * 1000;
+      let best = null;
+      let bestDiff = Infinity;
+      for (const item of list) {
+        const t = (item?.dt || 0) * 1000;
+        const diff = Math.abs(t - targetMs);
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          best = item;
+        }
+      }
+      const el = document.getElementById(`weather${targetHour}h`);
+      if (el && best) {
+        const temp = Math.round(best?.main?.temp ?? NaN);
+        const cond = (best?.weather && best.weather[0]?.description) ? best.weather[0].description : '';
+        if (!Number.isNaN(temp)) {
+          el.textContent = `${temp}℃ / ${cond}`;
+        } else {
+          el.textContent = cond || '--';
+        }
+      }
     });
 
   } catch (error) {
-    console.error('[Weather] Error:', error.message);
+    console.error('[Weather] Error:', error?.message || error);
     ['weather1h', 'weather2h', 'weather3h'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.textContent = '--';
@@ -1003,9 +1009,9 @@ async function fetchWeather(lat, lng) {
   }
 }
 
-// ==========================================
-// Dialog utilities
-// ==========================================
+/* -----------------------------
+   ダイアログ
+----------------------------- */
 function createDialog(config) {
   const overlay = document.createElement('div');
   overlay.className = `dialog-overlay ${config.scroll ? 'scroll' : ''}`;
@@ -1020,9 +1026,9 @@ function createDialog(config) {
   return overlay;
 }
 
-// ==========================================
-// Save current location dialog
-// ==========================================
+/* -----------------------------
+   現在地登録ダイアログ
+----------------------------- */
 function showSaveLocationDialog() {
   if (!appState.currentPos) {
     console.error('現在地が取得できていません');
@@ -1070,9 +1076,9 @@ function showSaveLocationDialog() {
   });
 }
 
-// ==========================================
-// Edit saved locations dialog
-// ==========================================
+/* -----------------------------
+   登録地点修正ダイアログ
+----------------------------- */
 function showEditLocationDialog() {
   const locations = JSON.parse(localStorage.getItem('savedLocations') || '[]');
   if (locations.length === 0) {
@@ -1187,9 +1193,9 @@ function showEditLocationDialog() {
   });
 }
 
-// ==========================================
-// Export route text
-// ==========================================
+/* -----------------------------
+   道順コピー
+----------------------------- */
 function exportRouteToClipboard() {
   if (!appState.currentRouteData) {
     console.warn('コピーするルートデータがありません');
@@ -1199,21 +1205,23 @@ function exportRouteToClipboard() {
   let textOutput = `■ 目的地: ${data.destinationName}\n`;
   textOutput += `■ 概要: ${data.summary} (約 ${data.distance}, 徒歩 ${data.duration})\n\n`;
   if (data.warnings.length > 0) {
-    textOutput += "■ 警告:\n";
+    textOutput += '■ 警告:\n';
     data.warnings.forEach(w => {
       textOutput += `・ ${w.replace(/<[^>]+>/g, ' ')}\n`;
     });
-    textOutput += "\n";
+    textOutput += '\n';
   }
-  textOutput += "■ 道順:\n";
+  textOutput += '■ 道順:\n';
   if (data.steps && data.steps.length > 0) {
     data.steps.forEach((step, index) => {
-      const instruction = (step.html_instructions || '').replace(/<[^>]+>/g, ' ');
-      textOutput += `${index + 1}. ${instruction} (${step.distance.text})\n`;
+      const instruction = (step.html_instructions || '').replace(/<[^>]+>/g, ' ').trim();
+      const distText = step?.distance?.text || step?.distance || '';
+      textOutput += `${index + 1}. ${instruction}${distText ? ` (${distText})` : ''}\n`;
     });
   } else {
-    textOutput += "詳細な道順はありません。\n";
+    textOutput += '詳細な道順はありません。\n';
   }
+
   if (navigator.clipboard) {
     navigator.clipboard.writeText(textOutput)
       .then(() => console.log('道順をクリップボードにコピーしました'))
@@ -1226,15 +1234,15 @@ function exportRouteToClipboard() {
   }
 }
 
-// ==========================================
-// Locate user now
-// ==========================================
+/* -----------------------------
+   現在地へ移動
+----------------------------- */
 let lastLocateTime = 0;
 function locateUser() {
   if (typeof DeviceOrientationEvent.requestPermission === 'function') {
     DeviceOrientationEvent.requestPermission()
-      .then(permissionState => {
-        if (permissionState === 'granted') {
+      .then(state => {
+        if (state === 'granted') {
           console.log('[Compass] iOS permission granted.');
           stopCompassListener();
           appState.compassWatchId = null;
@@ -1256,9 +1264,9 @@ function locateUser() {
   }
 }
 
-// ==========================================
-// Keyboard watcher
-// ==========================================
+/* -----------------------------
+   キーボード表示監視
+----------------------------- */
 function bindKeyboardWatch() {
   const searchInput = document.getElementById('q');
   const searchPanel = document.getElementById('searchPanel');
@@ -1287,9 +1295,9 @@ function bindKeyboardWatch() {
   });
 }
 
-// ==========================================
-// UI binding
-// ==========================================
+/* -----------------------------
+   UI イベント紐付け
+----------------------------- */
 function bindSearchPanelEvents() {
   const radiusLabel = document.getElementById('radiusLabel');
   const r10 = document.getElementById('r10');
@@ -1444,9 +1452,9 @@ function bindUI() {
   console.log('[WalkNav] UI binding complete');
 }
 
-// ==========================================
-// Boot
-// ==========================================
+/* -----------------------------
+   アプリ起動
+----------------------------- */
 function startApp() {
   console.log('[WalkNav] Starting app...');
   document.documentElement.lang = 'ja';
