@@ -77,164 +77,198 @@ function passthroughJSON(h) {
   return o;
 }
 
-/* ----------------------------- Places: Text Search ----------------------------- */
-
-async function handlePlacesText(request, env, origin) {
-  const apiKey = env.GMAPS_API_KEY;
-  if (!apiKey) return json({ ok: false, error: "missing_api_key" }, origin, 500);
-
-  const body = await request.text();
-  const payload = parseJSONSafely(body, {});
-  // Default languageCode if not provided
-  if (!payload.languageCode) payload.languageCode = "ja";
-
-  const fieldMask = request.headers.get("X-Goog-FieldMask") ||
-    "places.displayName,places.formattedAddress,places.location,places.id,places.types";
-
-  const upstream = await fetch("https://places.googleapis.com/v1/places:searchText", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Goog-Api-Key": apiKey,
-      "X-Goog-FieldMask": fieldMask
-    },
-    body: JSON.stringify(payload)
-  });
-
-  const text = await upstream.text();
-  const status = upstream.status;
-  if (!upstream.ok) {
-    return json({ ok: false, error: "places_text_error", status, body: tryParse(text) }, origin, 502);
-  }
-  return new Response(text, { status: 200, headers: corsHeaders(origin, true) });
+// -------------------------- 既存：Geocode/Directions/Places --------------------------
+async function handleGeocode(u, env) {
+  const apiKey = requireEnv('GMAPS_API_KEY', env);
+  const lat = u.searchParams.get('lat');
+  const lng = u.searchParams.get('lng');
+  const language = u.searchParams.get('language') || 'ja';
+  if (!lat || !lng) return json({ status: 'INVALID_REQUEST', error_message: 'lat & lng required' }, 400);
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=${encodeURIComponent(language)}&key=${apiKey}`;
+  const r = await fetch(url);
+  return new Response(r.body, { status: r.status, headers: passthroughJSON(r.headers) });
+}
+async function handleDirections(u, env) {
+  const apiKey = requireEnv('GMAPS_API_KEY', env);
+  const qs = new URLSearchParams(u.search); qs.delete('key'); qs.append('key', apiKey);
+  const url = `https://maps.googleapis.com/maps/api/directions/json?${qs.toString()}`;
+  const r = await fetch(url);
+  return new Response(r.body, { status: r.status, headers: passthroughJSON(r.headers) });
+}
+async function handlePlacesText(request, env) {
+  const apiKey = requireEnv('GMAPS_API_KEY', env);
+  const url = `https://places.googleapis.com/v1/places:searchText?key=${apiKey}`;
+  const headers = cloneInboundHeaders(request.headers);
+  const r = await fetch(url, { method: 'POST', headers, body: request.body });
+  return new Response(r.body, { status: r.status, headers: passthroughJSON(r.headers) });
+}
+async function handlePlacesNearby(request, env) {
+  const apiKey = requireEnv('GMAPS_API_KEY', env);
+  const url = `https://places.googleapis.com/v1/places:searchNearby?key=${apiKey}`;
+  const headers = cloneInboundHeaders(request.headers);
+  const r = await fetch(url, { method: 'POST', headers, body: request.body });
+  return new Response(r.body, { status: r.status, headers: passthroughJSON(r.headers) });
 }
 
-/* ----------------------------- Places: Nearby Search ----------------------------- */
+// -------------------------- 追加：Google Weather --------------------------
+/**
+ * /weather-google?lat=..&lng=..&hours=9&language=ja&unit=METRIC
+ * 返却：Google の生JSON（200/4xx/5xx をそのままパススルー）
+ * 実体：v1/forecast:hourly を POST でコール
+ */
+async function handleWeatherGoogle(request, env) {
+  const u = new URL(request.url);
+  const key = requireEnv('GOOGLE_WEATHER_API_KEY', env);
 
-async function handlePlacesNearby(request, env, origin) {
-  const apiKey = env.GMAPS_API_KEY;
-  if (!apiKey) return json({ ok: false, error: "missing_api_key" }, origin, 500);
+  // app.js (GET) からのパラメータを取得
+  const lat = u.searchParams.get('lat');
+  const lng = u.searchParams.get('lng');
+  if (!lat || !lng) return json({ status: 'INVALID_REQUEST', error_message: 'lat & lng required' }, 400);
 
-  const body = await request.text();
-  const payload = parseJSONSafely(body, {});
-  if (!payload.languageCode) payload.languageCode = "ja";
+  const hours    = Number(u.searchParams.get('hours') || 9);
+  const language = u.searchParams.get('language') || 'ja';
+  const unit     = u.searchParams.get('unit') || 'METRIC'; // (app.js側がMETRICを送る前提)
 
-  const fieldMask = request.headers.get("X-Goog-FieldMask") ||
-    "places.displayName,places.formattedAddress,places.location,places.id,places.types";
+  // 正しいエンドポイントURL
+  const weatherUrl = `https://weather.googleapis.com/v1/forecast:hourly`;
 
-  const upstream = await fetch("https://places.googleapis.com/v1/places:searchNearby", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Goog-Api-Key": apiKey,
-      "X-Goog-FieldMask": fieldMask
+  // Google APIが要求するPOSTボディを作成
+  const requestBody = {
+    "location": {
+      "latitude": Number(lat),
+      "longitude": Number(lng)
     },
-    body: JSON.stringify(payload)
+    "hours": hours,
+    "languageCode": language,
+    "units": unit
+  };
+
+  // Google APIに送るヘッダーを作成
+  const forcedRef = (env.FORCED_REFERRER || '').trim();
+  const headers = new Headers({
+    'X-Goog-Api-Key': key,
+    'Content-Type': 'application/json',
+    ...(forcedRef ? { 'Referer': forcedRef } : {}),
+    'X-Goog-FieldMask': [
+      'forecast',
+      'forecast.hours',
+      'forecast.hours.temperature',
+      'forecast.hours.precipitationChance',
+      'forecast.hours.precipitationType',
+      'forecast.hours.uvIndex',
+      'forecast.hours.humidity',
+      'forecast.hours.condition',
+    ].join(',')
   });
 
-  const text = await upstream.text();
-  const status = upstream.status;
-  if (!upstream.ok) {
-    return json({ ok: false, error: "places_nearby_error", status, body: tryParse(text) }, origin, 502);
-  }
-  return new Response(text, { status: 200, headers: corsHeaders(origin, true) });
+  const r = await fetch(weatherUrl, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(requestBody)
+  });
+
+  return new Response(r.body, { status: r.status, headers: passthroughJSON(r.headers) });
 }
 
-/* ----------------------------- Reverse Geocode (GET /geocode) ----------------------------- */
+// -------------------------- 追加：OpenWeatherMap --------------------------
+/**
+ * /weather-openweather?lat=..&lng=..&units=metric&lang=ja
+ * 返却：OpenWeatherMap の生JSON（200/4xx/5xx をそのままパススルー）
+ */
+async function handleWeatherOpenWeather(u, env) {
+  const apiKey = requireEnv('OPENWEATHER_API_KEY', env);
+  const lat = u.searchParams.get('lat');
+  const lng = u.searchParams.get('lng');
+  if (!lat || !lng) return json({ status: 'INVALID_REQUEST', error_message: 'lat & lng required' }, 400);
 
-async function handleReverseGeocode(request, env, origin) {
-  const apiKey = env.GMAPS_API_KEY;
-  if (!apiKey) return json({ ok: false, error: "missing_api_key" }, origin, 500);
+  const units = u.searchParams.get('units') || 'metric';
+  const lang = u.searchParams.get('lang') || 'ja';
 
-  const url = new URL(request.url);
+  const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&units=${units}&lang=${lang}&appid=${apiKey}`;
+  const r = await fetch(url);
+  return new Response(r.body, { status: r.status, headers: passthroughJSON(r.headers) });
+}
 
-  // Accept multiple aliases for robustness
-  const latParam =
-    url.searchParams.get("lat") ||
-    url.searchParams.get("latitude") ||
-    url.searchParams.get("LAT") ||
-    url.searchParams.get("Latitude");
+// -------------------------- 追加：インシデント情報 --------------------------
+/**
+ * /incidents?lat=..&lng=..&radius=10
+ * ダミーのインシデント情報を返す（将来的に実際のAPIに置き換え可能）
+ */
+async function handleIncidents(u, env) {
+  const lat = u.searchParams.get('lat');
+  const lng = u.searchParams.get('lng');
+  const radius = u.searchParams.get('radius') || '10';
 
-  const lngParam =
-    url.searchParams.get("lng") ||
-    url.searchParams.get("lon") ||
-    url.searchParams.get("longitude") ||
-    url.searchParams.get("LON") ||
-    url.searchParams.get("Longitude");
+  if (!lat || !lng) {
+    return json({ status: 'INVALID_REQUEST', error_message: 'lat & lng required' }, 400);
+  }
 
-  const lat = latParam != null ? Number(latParam) : NaN;
-  const lng = lngParam != null ? Number(lngParam) : NaN;
+  // ダミーのインシデントデータを生成
+  // 実際の運用では、ここで実際のインシデントAPIを呼び出すか、
+  // データベースから情報を取得する
+  const incidents = generateDummyIncidents(Number(lat), Number(lng), Number(radius));
 
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return json(
-      {
-        ok: false,
-        error: "missing_latlng",
-        debug: {
-          url: url.toString(),
-          receivedParams: Object.fromEntries(url.searchParams.entries()),
-          latParam, lngParam, latParsed: String(lat), lngParsed: String(lng)
-        }
+  return json({
+    status: 'OK',
+    incidents: incidents,
+    timestamp: new Date().toISOString()
+  });
+}
+
+/**
+ * ダミーのインシデントデータを生成
+ * @param {number} centerLat - 中心緯度
+ * @param {number} centerLng - 中心経度
+ * @param {number} radius - 検索半径(km)
+ * @returns {Array} インシデント配列
+ */
+function generateDummyIncidents(centerLat, centerLng, radius) {
+  // 現在の時刻に基づいて動的にダミーデータを生成
+  const now = new Date();
+  const hour = now.getHours();
+  
+  // ラッシュアワー時は多めのインシデントを生成
+  const isRushHour = (hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19);
+  const incidentCount = isRushHour ? 3 : 1;
+  
+  const incidentTypes = [
+    { type: 'traffic', title: '交通渋滞', severity: 'medium', icon: '🚗' },
+    { type: 'construction', title: '道路工事', severity: 'low', icon: '🚧' },
+    { type: 'accident', title: '交通事故', severity: 'high', icon: '⚠️' },
+    { type: 'event', title: 'イベント開催', severity: 'info', icon: 'ℹ️' },
+    { type: 'weather', title: '悪天候注意', severity: 'medium', icon: '🌧️' }
+  ];
+
+  const incidents = [];
+  
+  for (let i = 0; i < incidentCount; i++) {
+    const incidentType = incidentTypes[Math.floor(Math.random() * incidentTypes.length)];
+    
+    // 中心点から半径内にランダムな位置を生成
+    const angle = Math.random() * 2 * Math.PI;
+    const distance = Math.random() * radius * 0.8; // 半径の80%以内
+    const offsetLat = (distance / 111) * Math.cos(angle); // 1度≒111km
+    const offsetLng = (distance / (111 * Math.cos(centerLat * Math.PI / 180))) * Math.sin(angle);
+    
+    incidents.push({
+      id: `incident_${Date.now()}_${i}`,
+      type: incidentType.type,
+      title: incidentType.title,
+      description: `${incidentType.title}が発生しています。通行にご注意ください。`,
+      severity: incidentType.severity,
+      icon: incidentType.icon,
+      location: {
+        lat: centerLat + offsetLat,
+        lng: centerLng + offsetLng
       },
-      origin,
-      400
-    );
+      distance: distance.toFixed(1) + 'km',
+      timestamp: new Date(Date.now() - Math.random() * 3600000).toISOString(), // 過去1時間以内
+      estimatedClearTime: isRushHour ? '30分以上' : '15分程度'
+    });
   }
 
-  // Maps Geocoding API (must be enabled in your project)
-  const api = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=ja&key=${apiKey}`;
-  const resp = await fetch(api);
-  const text = await resp.text();
-  const data = tryParse(text);
-
-  if (!resp.ok) {
-    return json({ ok: false, error: "geocode_upstream_error", status: resp.status, body: data }, origin, 502);
-  }
-
-  const formatted =
-    data?.results?.[0]?.formatted_address ??
-    data?.plus_code?.compound_code ??
-    "";
-
-  return json({ ok: true, formattedAddress: formatted, lat, lng }, origin);
-}
-
-/* ----------------------------- Directions (GET /directions) ----------------------------- */
-
-async function handleDirections(request, env, origin) {
-  const apiKey = env.GMAPS_API_KEY;
-  if (!apiKey) return json({ ok: false, error: "missing_api_key" }, origin, 500);
-
-  const url = new URL(request.url);
-  const originStr = url.searchParams.get("origin");
-  const destStr = url.searchParams.get("destination");
-  const mode = (url.searchParams.get("mode") || "walking").toLowerCase();
-  const language = url.searchParams.get("language") || "ja";
-
-  if (!originStr || !destStr) {
-    return json({ ok: false, error: "missing_params", message: "origin and destination are required" }, origin, 400);
-  }
-
-  // Try Maps Directions API (v1) first
-  // If you intend to use Routes API, adapt accordingly.
-  const api =
-    `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(originStr)}` +
-    `&destination=${encodeURIComponent(destStr)}&mode=${encodeURIComponent(mode)}&language=${encodeURIComponent(language)}` +
-    `&key=${apiKey}`;
-
-  const resp = await fetch(api);
-  const text = await resp.text();
-  const data = tryParse(text);
-
-  if (!resp.ok) {
-    return json({ ok: false, error: "directions_upstream_error", status: resp.status, body: data }, origin, 502);
-  }
-
-  return json(data, origin);
-}
-
-/* ----------------------------- Utils ----------------------------- */
-
-function tryParse(s) {
-  try { return JSON.parse(s); } catch { return { raw: s }; }
+  // 距離でソート
+  incidents.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
+  
+  return incidents;
 }
