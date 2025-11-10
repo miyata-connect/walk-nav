@@ -893,7 +893,7 @@ async function fetchLocationNameGoogle(lat, lng) {
     const params = new URLSearchParams({ lat: lat, lng: lng, language: 'ja' });
     const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode?${params.toString()}`);
     if (!response.ok) {
-      const errorText = await response.text();
+      const errorText = await resp.text?.() || await response.text();
       throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
     }
     const data = await response.json();
