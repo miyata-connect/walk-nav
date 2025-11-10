@@ -554,9 +554,9 @@ function stopNavigation() {
   document.getElementById('results').style.display = 'none';
   document.getElementById('results').innerHTML = '';
   
+  document.getElementById('weather1h').textContent = '--';
+  document.getElementById('weather2h').textContent = '--';
   document.getElementById('weather3h').textContent = '--';
-  document.getElementById('weather6h').textContent = '--';
-  document.getElementById('weather9h').textContent = '--';
   
   document.getElementById('fabStack').style.display = 'none';
   document.getElementById('btnSearch').style.display = 'flex';  
@@ -963,52 +963,50 @@ async function fetchPointAddress(lat, lng) {
 }
 
 // ==========================================
-// 天気予報取得（Google Weather API）
+// OpenWeatherMap 天気取得（1時間おき3時間分）
 // ==========================================
-function iconFromWeatherType(type, isDay) {
-  const t = (type || '').toUpperCase();
-  // Google Weather の weatherCondition.type を想定
-  if (t.includes('THUNDER')) return '⛈️';
-  if (t.includes('RAIN') || t.includes('DRIZZLE')) return '🌧️';
-  if (t.includes('SNOW') || t.includes('SLEET')) return '❄️';
-  if (t.includes('FOG') || t.includes('MIST') || t.includes('HAZE')) return '🌫️';
-  if (t.includes('CLOUD')) return isDay ? '🌤️' : '☁️';
-  if (t.includes('CLEAR')) return isDay ? '☀️' : '🌙';
-  return isDay ? '☀️' : '🌙';
-}
+const OPENWEATHER_API_KEY = 'YOUR_API_KEY_HERE'; // ← OpenWeatherMapのAPIキーに置き換えてください
 
 async function fetchWeather(lat, lng) {
-  console.log('[Weather] Fetching Google Weather (via Worker)...');
+  const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&units=metric&lang=ja&appid=${OPENWEATHER_API_KEY}`;
+
   try {
-    const params = new URLSearchParams({
-      lat: String(lat),
-      lng: String(lng),
-      hours: '9',
-      lang: 'ja',
-      units: 'METRIC'
-    });
-    const response = await fetchWithRetry(`${WORKER_ORIGIN}/weather-google?${params.toString()}`);
+    const response = await fetch(url);
     if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Weather fetch failed (${response.status}): ${errText}`);
+      const errorText = await response.text();
+      throw new Error(`Weather fetch failed (${response.status}): ${errorText}`);
     }
+
     const data = await response.json();
+    console.log('[Weather] OpenWeatherMap Response:', data);
 
-    // 期待フォーマット：
-    // { forecastHours: [ { isDaytime, weatherCondition: { type }, ... }, ... ] }
-    const fh = Array.isArray(data.forecastHours) ? data.forecastHours : [];
-    const icon3 = fh[2] ? iconFromWeatherType(fh[2]?.weatherCondition?.type, !!fh[2]?.isDaytime) : null;
-    const icon6 = fh[5] ? iconFromWeatherType(fh[5]?.weatherCondition?.type, !!fh[5]?.isDaytime) : null;
-    const icon9 = fh[8] ? iconFromWeatherType(fh[8]?.weatherCondition?.type, !!fh[8]?.isDaytime) : null;
+    const now = Date.now();
+    const forecasts = data.list.filter(item => {
+      const dt = item.dt * 1000;
+      const diffHours = Math.round((dt - now) / (1000 * 60 * 60));
+      return [1, 2, 3].includes(diffHours);
+    });
 
-    document.getElementById('weather3h').textContent = icon3 || '—';
-    document.getElementById('weather6h').textContent = icon6 || '—';
-    document.getElementById('weather9h').textContent = icon9 || '—';
+    ['weather1h', 'weather2h', 'weather3h'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '--';
+    });
+
+    forecasts.forEach(item => {
+      const dt = item.dt * 1000;
+      const diffHours = Math.round((dt - now) / (1000 * 60 * 60));
+      const temp = Math.round(item.main.temp);
+      const condition = item.weather[0].description;
+      const el = document.getElementById(`weather${diffHours}h`);
+      if (el) el.textContent = `${temp}℃ / ${condition}`;
+    });
+
   } catch (error) {
-    console.error('[Weather] Error:', error);
-    document.getElementById('weather3h').textContent = 'X';
-    document.getElementById('weather6h').textContent = 'X';
-    document.getElementById('weather9h').textContent = 'X';
+    console.error('[Weather] Error:', error.message);
+    ['weather1h', 'weather2h', 'weather3h'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '--';
+    });
   }
 }
 
