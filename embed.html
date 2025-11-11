@@ -32,10 +32,11 @@
     .incident-time { font-size: 10px; color: #6b7280; margin-top: 2px; }
     .incident-icon { display: inline-block; width: 16px; height: 16px; margin-right: 4px; }
 
-    /* 統合パネル一式 */
+    /* 統合パネル一式（親は常時表示。タブで中身を切替） */
     .nav-panel.hidden { display: none !important; }
     .unified-panel .nav-panel { display: block !important; }
-    .panel.hidden, section.panel#searchPanel { display: none !important; }
+    .panel.hidden, section.panel#searchPanel { /* 旧コード互換。以降JSで常時blockに固定 */ }
+
     .unified-panel {
       position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important;
       background: rgba(0, 0, 0, 0.85) !important; backdrop-filter: blur(10px);
@@ -167,44 +168,36 @@
 
   <script src="app.js" defer></script>
 
-  <!-- searchPanel のダミー要素生成 & 表示同期（app.js互換用） -->
+  <!-- searchPanel を常時固定（app.js が display を変更しても即復元） -->
   <script>
     (function() {
-      function setupSearchPanelRedirect() {
-        const unifiedPanel = document.getElementById('unifiedPanel');
-        if (!unifiedPanel) return;
-
-        const searchPanel = document.createElement('section');
-        searchPanel.id = 'searchPanel';
-        searchPanel.className = 'panel';
-        searchPanel.style.display = 'none';
-        document.body.appendChild(searchPanel);
-
-        let lastDisplay = 'none';
-        setInterval(function() {
-          const currentDisplay = searchPanel.style.display;
-          if (currentDisplay !== lastDisplay) {
-            lastDisplay = currentDisplay;
-            if (currentDisplay === 'block') {
-              unifiedPanel.style.display = 'block';
-              const tabSearch = document.getElementById('tabSearch');
-              tabSearch && tabSearch.click();
-            } else if (currentDisplay === 'none') {
-              unifiedPanel.style.display = 'none';
-            }
-          }
-        }, 100);
+      function ensureSearchPanel() {
+        let sp = document.getElementById('searchPanel');
+        if (!sp) {
+          sp = document.createElement('section');
+          sp.id = 'searchPanel';
+          sp.className = 'panel';
+          document.body.appendChild(sp);
+        }
+        // 常時固定：display:block を強制維持
+        const forceBlock = () => { if (sp.style.display !== 'block') sp.style.display = 'block'; };
+        forceBlock();
+        // style 変更を監視し、即座に block に戻す
+        try {
+          const mo = new MutationObserver(forceBlock);
+          mo.observe(sp, { attributes: true, attributeFilter: ['style'] });
+        } catch (_) {}
       }
 
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', setupSearchPanelRedirect);
+        document.addEventListener('DOMContentLoaded', ensureSearchPanel);
       } else {
-        setupSearchPanelRedirect();
+        ensureSearchPanel();
       }
     })();
   </script>
 
-  <!-- 要素存在確認＆現在地更新の監視（デバッグログは残すが通信なし） -->
+  <!-- 要素存在確認＆現在地更新の監視（通信なし・ログのみ） -->
   <script>
     (function() {
       function checkElements() {
@@ -212,44 +205,34 @@
         const locAddress = document.getElementById('locAddress');
         const navPanel = document.getElementById('navPanel');
         const map = document.getElementById('map');
-        console.log('要素の存在確認:', {
-          locCoords: !!locCoords, locAddress: !!locAddress, navPanel: !!navPanel, map: !!map
-        });
+        console.log('要素の存在確認:', { locCoords: !!locCoords, locAddress: !!locAddress, navPanel: !!navPanel, map: !!map });
         return !!(locCoords && locAddress && map);
       }
 
       function startLocationCheck() {
         const locCoords = document.getElementById('locCoords');
         if (!locCoords) return;
-        let checkCount = 0;
+        let n = 0;
         const h = setInterval(function() {
-          checkCount++;
-          const currentText = locCoords.textContent;
-          console.log(`現在地チェック ${checkCount}回目:`, currentText);
-          if (checkCount >= 30) {
-            console.warn('app.jsが現在地を更新していない可能性: 30秒経過', { currentText });
-            clearInterval(h);
-          }
-          if (currentText && !currentText.includes('取得中') && currentText.match(/\d+\.\d+/)) {
-            console.log('現在地が更新されました！', currentText);
-            clearInterval(h);
-          }
+          n++;
+          const t = locCoords.textContent;
+          console.log(`現在地チェック ${n}回目:`, t);
+          if (n >= 30) { console.warn('app.jsが現在地を更新していない可能性: 30秒経過', { t }); clearInterval(h); }
+          if (t && !t.includes('取得中') && t.match(/\d+\.\d+/)) { console.log('現在地が更新されました！', t); clearInterval(h); }
         }, 1000);
       }
 
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
-          checkElements();
-          setTimeout(startLocationCheck, 2000);
+          checkElements(); setTimeout(startLocationCheck, 2000);
         });
       } else {
-        checkElements();
-        setTimeout(startLocationCheck, 2000);
+        checkElements(); setTimeout(startLocationCheck, 2000);
       }
     })();
   </script>
 
-  <!-- 統合パネル：タブ切り替え -->
+  <!-- 統合パネル：タブ切り替え（親の display は触らない） -->
   <script>
     (function() {
       const tabNav = document.getElementById('tabNav');
@@ -261,11 +244,8 @@
         if (!tabNav || !tabSearch || !pageNav || !pageSearch) return;
         tabNav.classList.remove('active'); tabSearch.classList.remove('active');
         pageNav.classList.remove('active'); pageSearch.classList.remove('active');
-        if (targetTab === 'nav') {
-          tabNav.classList.add('active'); pageNav.classList.add('active');
-        } else {
-          tabSearch.classList.add('active'); pageSearch.classList.add('active');
-        }
+        if (targetTab === 'nav') { tabNav.classList.add('active'); pageNav.classList.add('active'); }
+        else { tabSearch.classList.add('active'); pageSearch.classList.add('active'); }
         localStorage.setItem('activeTab', targetTab);
       }
 
