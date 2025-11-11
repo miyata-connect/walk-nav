@@ -922,7 +922,7 @@ async function fetchPointAddress(lat, lng) {
     const params = new URLSearchParams({ lat, lng, language: 'ja' });
     const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode?${params.toString()}`);
     if (!response.ok) {
-      const errorText = await resp.text();
+      const errorText = await response.text();
       throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
     }
     const data = await response.json();
