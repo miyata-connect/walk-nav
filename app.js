@@ -390,7 +390,8 @@ async function startNavigation(destination) {
   appState.isNavigating = true;
   appState.isPaused = false;
 
-  document.getElementById('searchPanel').style.display = 'none';
+  // ▼ 仕様変更：searchPanel は常時表示を維持（非表示にしない）
+  // document.getElementById('searchPanel').style.display = 'none';
   document.getElementById('fabStack').style.display = 'flex';
   document.getElementById('appBody').classList.remove('panel-open');
   stopCompassListener();
@@ -425,7 +426,8 @@ async function startNavigation(destination) {
       document.getElementById('routeDistance').textContent = distanceText;
       document.getElementById('routeTime').textContent = `徒歩 ${durationText}`;
       document.getElementById('routePanel').style.display = 'block';
-      document.getElementById('searchPanel').style.display = 'none';
+      // ▼ 仕様変更：searchPanel を隠さない
+      // document.getElementById('searchPanel').style.display = 'none';
       document.getElementById('results').style.display = 'none';
       document.getElementById('btnDestination').style.display = 'flex';
 
@@ -533,6 +535,7 @@ function stopNavigation() {
   document.getElementById('navPanelInstructions').innerHTML = '';
   document.getElementById('incidentPanel').style.display = 'none';
   document.getElementById('incidentPanel').innerHTML = '';
+  // 常時表示方針：明示的に block を維持
   document.getElementById('searchPanel').style.display = 'block';
   document.getElementById('btnDestination').style.display = 'none';
   document.getElementById('q').value = '';
@@ -1399,6 +1402,7 @@ function bindSearchEvents() {
 
 function bindFABEvents() {
   document.getElementById('btnSearch').onclick = () => {
+    // 常時表示方針：明示的に block を維持
     document.getElementById('searchPanel').style.display = 'block';
     document.getElementById('fabStack').style.display = 'none';
     document.getElementById('appBody').classList.add('panel-open');
@@ -1409,7 +1413,8 @@ function bindFABEvents() {
     document.getElementById('incidentPanel').style.display = 'none';
   };
   document.getElementById('btnClosePanel').onclick = () => {
-    document.getElementById('searchPanel').style.display = 'none';
+    // 常時表示方針：searchPanel を隠さない（機能は最小限：FAB表示やパネル状態のみ調整）
+    // document.getElementById('searchPanel').style.display = 'none';
     if (!appState.isNavigating) {
       document.getElementById('fabStack').style.display = 'none';
       document.getElementById('navPanel').style.display = 'none';
@@ -1458,6 +1463,7 @@ function bindUI() {
 function startApp() {
   console.log('[WalkNav] Starting app...');
   document.documentElement.lang = 'ja';
+  // 常時表示方針：起動時から block
   document.getElementById('searchPanel').style.display = 'block';
   document.getElementById('fabStack').style.display = 'none';
   document.getElementById('btnSearch').style.display = 'flex';
