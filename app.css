@@ -329,7 +329,7 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-famil
   margin-top: 10px;  
 }  
   
-/* インシデントパネル（UIコンテナは残すが、fetchは行わない） */  
+/* インシデントパネル */  
 .incident-panel{  
   position:absolute;  
   left:28px;  
