@@ -35,8 +35,7 @@
     /* 統合パネル一式 */
     .nav-panel.hidden { display: none !important; }
     .unified-panel .nav-panel { display: block !important; }
-    .panel.hidden, section.panel#searchPanel { display: none !important; } /* ← app.jsではsearchPanelを常時blockにする */
-
+    .panel.hidden, section.panel#searchPanel { display: none !important; }
     .unified-panel {
       position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important;
       background: rgba(0, 0, 0, 0.85) !important; backdrop-filter: blur(10px);
@@ -79,7 +78,7 @@
               <div class="weather-item"><span>3H</span><span id="weather3h">--</span></div>
             </div>
 
-            <!-- ルートAPI warnings 表示用（自動取得なし） -->
+            <!-- ルートAPIのwarningsを表示（自動取得はしない） -->
             <div class="nav-incident" id="incidentPanel">
               <div class="incident-header"><span>⚠️</span><span>インシデント情報</span></div>
               <div class="incident-list" id="incidentList"></div>
@@ -100,7 +99,7 @@
             <button class="chip" id="r30">30km</button>
             <button class="chip" id="btnPointSearch" style="flex-grow: 1; min-width: 120px;">📍 ポイント選択</button>
           </div>
-          <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px; display: none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;" id="pointAddressBlock">
+          <div class="row" id="pointAddressBlock" style="font-size:13px;color:var(--muted);margin-bottom:8px; display: none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;">
             <div id="pointAddress" style="line-height:1.5; color: var(--warning);">ポイント：取得中...</div>
             <div id="pointCoords" style="line-height:1.5;"></div>
           </div>
@@ -178,11 +177,24 @@
         const searchPanel = document.createElement('section');
         searchPanel.id = 'searchPanel';
         searchPanel.className = 'panel';
-        searchPanel.style.display = 'block'; // ★ 常時固定（app.js でも block を維持）
+        searchPanel.style.display = 'block'; // ★常時表示に変更
         document.body.appendChild(searchPanel);
 
-        // unifiedPanelは常時表示。以降の同期は無効化（常時固定ポリシー）
+        // unifiedPanel 可視性は searchPanel に追従
+        let lastDisplay = 'block';
+        setInterval(function() {
+          const currentDisplay = searchPanel.style.display || 'block';
+          if (currentDisplay !== lastDisplay) {
+            lastDisplay = currentDisplay;
+            unifiedPanel.style.display = (currentDisplay === 'block') ? 'block' : 'none';
+            if (currentDisplay === 'block') {
+              const tabSearch = document.getElementById('tabSearch');
+              tabSearch && tabSearch.click();
+            }
+          }
+        }, 100);
       }
+
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', setupSearchPanelRedirect);
       } else {
@@ -191,7 +203,52 @@
     })();
   </script>
 
-  <!-- 統合パネル：タブ切り替え（常時固定でもタブ自体は動かす） -->
+  <!-- 要素存在確認＆現在地更新の監視（通信なし） -->
+  <script>
+    (function() {
+      function checkElements() {
+        const locCoords = document.getElementById('locCoords');
+        const locAddress = document.getElementById('locAddress');
+        const navPanel = document.getElementById('navPanel');
+        const map = document.getElementById('map');
+        console.log('要素の存在確認:', {
+          locCoords: !!locCoords, locAddress: !!locAddress, navPanel: !!navPanel, map: !!map
+        });
+        return !!(locCoords && locAddress && map);
+      }
+
+      function startLocationCheck() {
+        const locCoords = document.getElementById('locCoords');
+        if (!locCoords) return;
+        let checkCount = 0;
+        const h = setInterval(function() {
+          checkCount++;
+          const currentText = locCoords.textContent;
+          console.log(`現在地チェック ${checkCount}回目:`, currentText);
+          if (checkCount >= 30) {
+            console.warn('app.jsが現在地を更新していない可能性: 30秒経過', { currentText });
+            clearInterval(h);
+          }
+          if (currentText && !currentText.includes('取得中') && currentText.match(/\d+\.\d+/)) {
+            console.log('現在地が更新されました！', currentText);
+            clearInterval(h);
+          }
+        }, 1000);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+          checkElements();
+          setTimeout(startLocationCheck, 2000);
+        });
+      } else {
+        checkElements();
+        setTimeout(startLocationCheck, 2000);
+      }
+    })();
+  </script>
+
+  <!-- 統合パネル：タブ切り替え -->
   <script>
     (function() {
       const tabNav = document.getElementById('tabNav');
@@ -216,6 +273,8 @@
 
       const savedTab = localStorage.getItem('activeTab');
       switchTab(savedTab === 'search' ? 'search' : 'nav');
+
+      console.log('統合パネルのタブ切り替え 初期化OK');
     })();
   </script>
 
