@@ -10,62 +10,62 @@
 
   <link rel="stylesheet" href="app.css?v=3" />
   <style>
-    /* インシデント（統合パネル版UIコンテナ）。fetchロジックは撤去済み */
+    /* === 常時表示の強制（最優先） === */
+    #unifiedPanel { display:flex !important; }
+    #pageNav { display:block !important; }
+    #navPanel { display:block !important; }
+    section.panel#searchPanel { display:block !important; }
+
+    /* インシデント（UIコンテナのみ。自動取得ロジックは撤去済み） */
     .nav-incident {
-      margin-top: 12px;
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      border-top: 2px solid #ef4444;
+      margin-top: 12px; padding: 12px;
+      background: rgba(255, 255, 255, 0.1); border-radius: 8px; border-top: 2px solid #ef4444;
       display: none;
     }
     .nav-incident.has-incidents { display: block; }
     .incident-header { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #fff; display: flex; align-items: center; gap: 6px; }
     .incident-list { display: flex; flex-direction: column; gap: 6px; max-height: 150px; overflow-y: auto; }
-    .incident-item { padding: 8px; border-radius: 6px; border-left: 3px solid; background: rgba(255, 255, 255, 0.95); font-size: 11px; line-height: 1.4; margin-bottom: 6px; }
-    .incident-item.transport { border-left-color: #f59e0b; background: #fef3c7; }
-    .incident-item.accident { border-left-color: #ef4444; background: #fee2e2; }
-    .incident-item.weather { border-left-color: #3b82f6; background: #dbeafe; }
-    .incident-item.other { border-left-color: #6b7280; background: #f3f4f6; }
-    .incident-type { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
-    .incident-description { color: #374151; margin-bottom: 3px; font-size: 11px; }
-    .incident-time { font-size: 10px; color: #6b7280; margin-top: 2px; }
-    .incident-icon { display: inline-block; width: 16px; height: 16px; margin-right: 4px; }
+    .incident-item { padding: 8px; border-radius: 6px; border-left: 3px solid; background: rgba(255,255,255,.95); font-size: 11px; line-height: 1.4; margin-bottom: 6px; }
+    .incident-item.transport { border-left-color:#f59e0b; background:#fef3c7; }
+    .incident-item.accident  { border-left-color:#ef4444; background:#fee2e2; }
+    .incident-item.weather   { border-left-color:#3b82f6; background:#dbeafe; }
+    .incident-item.other     { border-left-color:#6b7280; background:#f3f4f6; }
+    .incident-type { font-weight: 600; margin-bottom: 4px; display:flex; align-items:center; gap:4px; }
+    .incident-description { color:#374151; margin-bottom:3px; font-size:11px; }
+    .incident-time { font-size:10px; color:#6b7280; margin-top:2px; }
+    .incident-icon { display:inline-block; width:16px; height:16px; margin-right:4px; }
 
-    /* 統合パネル一式（親は常時表示。タブで中身を切替） */
-    .nav-panel.hidden { display: none !important; }
-    /* ⚠ 問題だった強制非表示ルールは削除済み */
-
+    /* 統合パネル（親は常時表示。中身はタブで切替） */
     .unified-panel {
-      position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important;
-      background: rgba(0, 0, 0, 0.85) !important; backdrop-filter: blur(10px);
-      border-top: 1px solid rgba(255, 255, 255, 0.1); z-index: 1000 !important;
+      position: fixed !important; inset: auto 0 0 0 !important;
+      background: rgba(0,0,0,.85) !important; backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(255,255,255,.1); z-index: 1000 !important;
       max-height: 60vh; display: flex !important; flex-direction: column; width: 100% !important;
     }
-    .panel-tabs { display: flex; border-bottom: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.3); flex-shrink: 0; }
-    .panel-tab { flex: 1; padding: 12px 16px; background: transparent; border: none; color: rgba(255, 255, 255, 0.6);
-      font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent; }
-    .panel-tab.active { color: #fff; border-bottom-color: #62b5ff; background: rgba(255, 255, 255, 0.05); }
-    .panel-tab:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
-    .panel-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px; min-height: 0; }
-    .panel-page { display: none; }
-    .panel-page.active { display: block; }
+    .panel-tabs { display:flex; border-bottom:1px solid rgba(255,255,255,.1); background: rgba(0,0,0,.3); flex-shrink:0; }
+    .panel-tab { flex:1; padding:12px 16px; background:transparent; border:none; color:rgba(255,255,255,.6);
+      font-size:14px; font-weight:500; cursor:pointer; transition:all .2s; border-bottom:2px solid transparent; }
+    .panel-tab.active { color:#fff; border-bottom-color:#62b5ff; background:rgba(255,255,255,.05); }
+    .panel-tab:hover { color:#fff; background:rgba(255,255,255,.05); }
+    .panel-content { flex:1; overflow-y:auto; overflow-x:hidden; padding:16px; min-height:0; }
+    .panel-page { display:none; }
+    .panel-page.active { display:block; }
   </style>
 </head>
 <body id="appBody">
   <div class="app">
     <div id="map" aria-label="地図"></div>
 
-    <!-- 統合パネル（案内と検索を統合：常時表示） -->
-    <div class="unified-panel" id="unifiedPanel">
+    <!-- 統合パネル（常時表示） -->
+    <div class="unified-panel" id="unifiedPanel" style="display:flex">
       <div class="panel-tabs">
         <button class="panel-tab active" id="tabNav" data-page="nav">📍 案内</button>
         <button class="panel-tab" id="tabSearch" data-page="search">🔍 検索</button>
       </div>
       <div class="panel-content">
         <!-- 案内ページ -->
-        <div class="panel-page active" id="pageNav">
-          <!-- app.js互換の旧nav-panel構造 -->
+        <div class="panel-page active" id="pageNav" style="display:block">
+          <!-- app.js互換の旧nav-panel構造（常時表示） -->
           <div class="nav-panel" id="navPanel" style="display:block;">
             <div class="nav-location">
               <div id="locCoords">現在地：取得中...</div>
@@ -78,7 +78,7 @@
               <div class="weather-item"><span>3H</span><span id="weather3h">--</span></div>
             </div>
 
-            <!-- ルートAPIのwarningsを表示（自動取得は撤去） -->
+            <!-- ルートAPI warnings 表示のみ（自動取得は撤去） -->
             <div class="nav-incident" id="incidentPanel">
               <div class="incident-header"><span>⚠️</span><span>インシデント情報</span></div>
               <div class="incident-list" id="incidentList"></div>
@@ -167,21 +167,44 @@
 
   <script src="app.js" defer></script>
 
-  <!-- searchPanel を常時固定（実体を事前配置・display:block を強制維持） -->
+  <!-- searchPanel を常時固定（実体を事前配置 + 監視で常時 block） -->
   <section id="searchPanel" class="panel" style="display:block"></section>
+
+  <!-- 可視性ウォッチャ（他JS/CSSによる display:none を即座に打ち消し） -->
   <script>
     (function(){
-      const sp = document.getElementById('searchPanel');
-      const forceBlock = () => { if (sp && sp.style.display !== 'block') sp.style.display = 'block'; };
-      forceBlock();
-      try{
-        const mo = new MutationObserver(forceBlock);
-        mo.observe(sp, { attributes:true, attributeFilter:['style'] });
-      }catch(_){}
+      const targets = [
+        ['unifiedPanel','flex'],
+        ['pageNav','block'],
+        ['navPanel','block'],
+        ['searchPanel','block']
+      ];
+      const els = targets.map(([id]) => document.getElementById(id));
+
+      function forceVisible(el, mode){
+        if(!el) return;
+        const cur = (el.style && el.style.display) || '';
+        if(cur !== mode) el.style.display = mode;
+        el.style.visibility = 'visible';
+        el.style.opacity = '1';
+      }
+      function tick(){
+        targets.forEach(([id,mode]) => forceVisible(document.getElementById(id), mode));
+      }
+      // 初回
+      tick();
+      // 属性変化監視
+      const obs = new MutationObserver(tick);
+      els.forEach(el=>{
+        if(!el) return;
+        obs.observe(el,{attributes:true,attributeFilter:['style','class']});
+      });
+      // 念のためポーリング（外部コードの後勝ち対策）
+      setInterval(tick, 400);
     })();
   </script>
 
-  <!-- 統合パネル：タブ切り替え（親の display は触らない） -->
+  <!-- タブ切替（親 display は触らない） -->
   <script>
     (function() {
       const tabNav = document.getElementById('tabNav');
@@ -189,20 +212,16 @@
       const pageNav = document.getElementById('pageNav');
       const pageSearch = document.getElementById('pageSearch');
 
-      function switchTab(targetTab) {
-        if (!tabNav || !tabSearch || !pageNav || !pageSearch) return;
-        tabNav.classList.remove('active'); tabSearch.classList.remove('active');
-        pageNav.classList.remove('active'); pageSearch.classList.remove('active');
-        if (targetTab === 'nav') { tabNav.classList.add('active'); pageNav.classList.add('active'); }
-        else { tabSearch.classList.add('active'); pageSearch.classList.add('active'); }
-        localStorage.setItem('activeTab', targetTab);
+      function switchTab(target) {
+        tabNav.classList.toggle('active', target==='nav');
+        tabSearch.classList.toggle('active', target==='search');
+        pageNav.style.display = target==='nav' ? 'block' : 'none';
+        pageSearch.style.display = target==='search' ? 'block' : 'none';
+        localStorage.setItem('activeTab', target);
       }
-
-      tabNav && tabNav.addEventListener('click', () => switchTab('nav'));
-      tabSearch && tabSearch.addEventListener('click', () => switchTab('search'));
-
-      const savedTab = localStorage.getItem('activeTab');
-      switchTab(savedTab === 'search' ? 'search' : 'nav');
+      tabNav.addEventListener('click', ()=>switchTab('nav'));
+      tabSearch.addEventListener('click', ()=>switchTab('search'));
+      switchTab(localStorage.getItem('activeTab')==='search' ? 'search' : 'nav');
     })();
   </script>
 
