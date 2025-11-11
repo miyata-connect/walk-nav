@@ -21,295 +21,150 @@
   <link rel="stylesheet" href="app.css?v=3" /> <!-- L009 -->
 
   <style>
-
     /* インシデントパネルのスタイル（案内パネル内に配置） */
-
     .nav-incident {
-
       margin-top: 12px;
-
       padding: 12px;
-
       background: rgba(255, 255, 255, 0.1);
-
       border-radius: 8px;
-
       border-top: 2px solid #ef4444;
-
       display: none;
-
     }
-
     .nav-incident.has-incidents {
-
       display: block;
-
     }
-
     .incident-header {
-
       font-size: 13px;
-
       font-weight: 600;
-
       margin-bottom: 8px;
-
       color: #fff;
-
       display: flex;
-
       align-items: center;
-
       gap: 6px;
-
     }
-
     .incident-list {
-
       display: flex;
-
       flex-direction: column;
-
       gap: 6px;
-
       max-height: 150px;
-
       overflow-y: auto;
-
     }
-
     .incident-item {
-
       padding: 8px;
-
       border-radius: 6px;
-
       border-left: 3px solid;
-
       background: rgba(255, 255, 255, 0.95);
-
       font-size: 11px;
-
       line-height: 1.4;
-
       margin-bottom: 6px;
-
     }
-
     .incident-item.transport {
-
       border-left-color: #f59e0b;
-
       background: #fef3c7;
-
     }
-
     .incident-item.accident {
-
       border-left-color: #ef4444;
-
       background: #fee2e2;
-
     }
-
     .incident-item.weather {
-
       border-left-color: #3b82f6;
-
       background: #dbeafe;
-
     }
-
     .incident-item.other {
-
       border-left-color: #6b7280;
-
       background: #f3f4f6;
-
     }
-
     .incident-type {
-
       font-weight: 600;
-
       margin-bottom: 4px;
-
       display: flex;
-
       align-items: center;
-
       gap: 4px;
-
     }
-
     .incident-description {
-
       color: #374151;
-
       margin-bottom: 3px;
-
       font-size: 11px;
-
     }
-
     .incident-time {
-
       font-size: 10px;
-
       color: #6b7280;
-
       margin-top: 2px;
-
     }
-
     .incident-icon {
-
       display: inline-block;
-
       width: 16px;
-
       height: 16px;
-
       margin-right: 4px;
-
     }
-
-
 
     /* パネル表示制御（古いパネルを非表示） */
-
     .nav-panel.hidden {
-
       display: none !important;
-
     }
-
     /* 統合パネル内のnav-panelは表示 */
-
     .unified-panel .nav-panel {
-
       display: block !important;
-
     }
-
     .panel.hidden,
-
     section.panel#searchPanel {
-
       display: none !important;
-
     }
-
     /* 統合パネルのスタイル */
-
     .unified-panel {
-
       position: fixed !important;
-
       bottom: 0 !important;
-
       left: 0 !important;
-
       right: 0 !important;
-
       background: rgba(0, 0, 0, 0.85) !important;
-
       backdrop-filter: blur(10px);
-
       border-top: 1px solid rgba(255, 255, 255, 0.1);
-
       z-index: 1000 !important;
-
       max-height: 60vh;
-
       display: flex !important;
-
       flex-direction: column;
-
       width: 100% !important;
-
     }
-
     .panel-tabs {
-
       display: flex;
-
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-
       background: rgba(0, 0, 0, 0.3);
-
       flex-shrink: 0;
-
     }
-
     .panel-tab {
-
       flex: 1;
-
       padding: 12px 16px;
-
       background: transparent;
-
       border: none;
-
       color: rgba(255, 255, 255, 0.6);
-
       font-size: 14px;
-
       font-weight: 500;
-
       cursor: pointer;
-
       transition: all 0.2s;
-
       border-bottom: 2px solid transparent;
-
     }
-
     .panel-tab.active {
-
       color: #fff;
-
       border-bottom-color: #62b5ff;
-
       background: rgba(255, 255, 255, 0.05);
-
     }
-
     .panel-tab:hover {
-
       color: #fff;
-
       background: rgba(255, 255, 255, 0.05);
-
     }
-
     .panel-content {
-
       flex: 1;
-
       overflow-y: auto;
-
       overflow-x: hidden;
-
       padding: 16px;
-
       min-height: 0;
-
     }
-
     .panel-page {
-
       display: none;
-
     }
-
     .panel-page.active {
-
       display: block;
-
     }
-
   </style>
 
 </head> <!-- L010 -->
