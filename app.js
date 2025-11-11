@@ -1,7 +1,7 @@
 'use strict';
 
 /* =========================================================
-   WalkNav - app.js (OpenWeather対応・安定版 / 差分禁止・全行)
+   WalkNav - app.js（常時パネル表示・Geocoderブラウザ側対応）
    ========================================================= */
 
 /* -----------------------------
@@ -24,6 +24,7 @@ const LOCATION_OPTIONS = {
 ----------------------------- */
 const appState = {
   map: null,
+  geocoder: null,
   userMarker: null,
   currentPos: null,
   pointSearchMode: false,
@@ -65,7 +66,7 @@ async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
 }
 
 /* -----------------------------
-   API呼び出し（Worker経由）
+   API呼び出し（Worker経由：Places）
 ----------------------------- */
 async function placesTextSearch(payload, fieldMask) {
   const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
@@ -111,6 +112,8 @@ function initMap(center) {
     clickableIcons: true,
     disableDefaultUI: true
   });
+
+  appState.geocoder = new google.maps.Geocoder();
 
   appState.map.addListener('click', (e) => {
     if (!appState.pointSearchMode) return;
@@ -330,7 +333,7 @@ function startLocationWatcher() {
     console.log(`[Location] Watch update: ${latitude}, ${longitude}`);
 
     setUserMarker(latitude, longitude);
-    fetchLocationNameGoogle(latitude, longitude);
+    fetchLocationNameGeocoder(latitude, longitude);
 
     if (appState.isNavigating && !appState.isPaused) {
       appState.map.panTo({ lat: latitude, lng: longitude });
@@ -390,8 +393,8 @@ async function startNavigation(destination) {
   appState.isNavigating = true;
   appState.isPaused = false;
 
-  // ▼ 仕様変更：searchPanel は常時表示を維持（非表示にしない）
-  // document.getElementById('searchPanel').style.display = 'none';
+  // ★ パネルは常時表示ポリシーのため、表示制御は行わない
+  // document.getElementById('searchPanel').style.display = 'none'; // ←撤去
   document.getElementById('fabStack').style.display = 'flex';
   document.getElementById('appBody').classList.remove('panel-open');
   stopCompassListener();
@@ -426,8 +429,7 @@ async function startNavigation(destination) {
       document.getElementById('routeDistance').textContent = distanceText;
       document.getElementById('routeTime').textContent = `徒歩 ${durationText}`;
       document.getElementById('routePanel').style.display = 'block';
-      // ▼ 仕様変更：searchPanel を隠さない
-      // document.getElementById('searchPanel').style.display = 'none';
+      // document.getElementById('searchPanel').style.display = 'none'; // ←撤去
       document.getElementById('results').style.display = 'none';
       document.getElementById('btnDestination').style.display = 'flex';
 
@@ -455,11 +457,26 @@ async function startNavigation(destination) {
       };
 
       const incidentPanel = document.getElementById('incidentPanel');
-      if (r0.warnings && r0.warnings.length > 0) {
-        incidentPanel.innerHTML = '⚠️ ' + r0.warnings.map(w => w.replace(/<[^>]+>/g, ' ')).join('<br>⚠️ ');
-        incidentPanel.style.display = 'block';
-      } else {
-        incidentPanel.style.display = 'none';
+      const incidentList = document.getElementById('incidentList');
+      if (incidentPanel && incidentList) {
+        incidentList.innerHTML = '';
+        if (r0.warnings && r0.warnings.length > 0) {
+          // Directionsのwarningsのみ表示（自動取得はしない）
+          r0.warnings.forEach(w => {
+            const div = document.createElement('div');
+            div.className = 'incident-item other';
+            div.innerHTML = `
+              <div class="incident-type"><span class="incident-icon">⚠️</span><span>案内警告</span></div>
+              <div class="incident-description">${w.replace(/<[^>]+>/g, ' ')}</div>
+            `;
+            incidentList.appendChild(div);
+          });
+          incidentPanel.classList.add('has-incidents');
+          incidentPanel.style.display = 'block';
+        } else {
+          incidentPanel.classList.remove('has-incidents');
+          incidentPanel.style.display = 'none';
+        }
       }
 
       // 天気（OpenWeather via Worker）
@@ -467,7 +484,7 @@ async function startNavigation(destination) {
 
       if (appState.isSimulation) {
         setUserMarker(originLat, originLng);
-        fetchLocationNameGoogle(originLat, originLng);
+        fetchLocationNameGeocoder(originLat, originLng);
         if (appState.currentDestination && google.maps.geometry) {
           const currentLatLng = new google.maps.LatLng(originLat, originLng);
           const destLatLng = new google.maps.LatLng(appState.currentDestination.lat, appState.currentDestination.lng);
@@ -533,18 +550,27 @@ function stopNavigation() {
   document.getElementById('routePanel').style.display = 'none';
   document.getElementById('navPanel').style.display = 'block';
   document.getElementById('navPanelInstructions').innerHTML = '';
-  document.getElementById('incidentPanel').style.display = 'none';
-  document.getElementById('incidentPanel').innerHTML = '';
-  // 常時表示方針：明示的に block を維持
-  document.getElementById('searchPanel').style.display = 'block';
+
+  // Directionsのwarningsだけ消す
+  const incidentPanel = document.getElementById('incidentPanel');
+  const incidentList = document.getElementById('incidentList');
+  if (incidentPanel && incidentList) {
+    incidentList.innerHTML = '';
+    incidentPanel.classList.remove('has-incidents');
+    incidentPanel.style.display = 'none';
+  }
+
+  // ★ searchPanel は常時表示のため、表示制御しない
   document.getElementById('btnDestination').style.display = 'none';
   document.getElementById('q').value = '';
   document.getElementById('results').style.display = 'none';
   document.getElementById('results').innerHTML = '';
 
-  document.getElementById('weather1h').textContent = '--';
-  document.getElementById('weather2h').textContent = '--';
-  document.getElementById('weather3h').textContent = '--';
+  // 天気表示を初期化（1/2/3H）
+  ['weather1h', 'weather2h', 'weather3h'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '--';
+  });
 
   document.getElementById('fabStack').style.display = 'none';
   document.getElementById('btnSearch').style.display = 'flex';
@@ -838,7 +864,7 @@ function acquireLocation() {
     }
     appState.map.setCenter({ lat: latitude, lng: longitude });
     setUserMarker(latitude, longitude);
-    fetchLocationNameGoogle(latitude, longitude);
+    fetchLocationNameGeocoder(latitude, longitude);
     fetchWeather(latitude, longitude); // ★起動直後の天気
     console.log('現在地を取得しました');
   };
@@ -865,80 +891,60 @@ function acquireLocation() {
 }
 
 /* -----------------------------
-   逆ジオコーディング（現在地）
+   逆ジオコーディング（現在地／ポイント）★ブラウザ側
 ----------------------------- */
-async function fetchLocationNameGoogle(lat, lng) {
-  const addressElement = document.getElementById('locAddress');
+function setCoordsLabel(lat, lng) {
   const coordsElement = document.getElementById('locCoords');
-
-  if (!addressElement || !coordsElement) {
-    console.error('[DEBUG] Elements not found!');
-    return;
+  if (coordsElement) {
+    coordsElement.textContent = `現在地：緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
   }
-  const coordsText = `現在地：緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
-  coordsElement.textContent = coordsText;
+}
+
+async function fetchLocationNameGeocoder(lat, lng) {
+  const addressElement = document.getElementById('locAddress');
+  setCoordsLabel(lat, lng);
+  if (!addressElement || !appState.geocoder) return;
 
   try {
-    console.log('[Geocode] Fetching address from Cloudflare...');
-    const params = new URLSearchParams({ lat, lng, language: 'ja' });
-    const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode?${params.toString()}`);
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
-    }
-    const data = await response.json();
-    const results = Array.isArray(data?.results) ? data.results : [];
-    if (data.status === 'OK' && results[0]) {
-      const address = results[0].formatted_address || '';
+    const res = await appState.geocoder.geocode({ location: { lat, lng } });
+    const result = (res && res.results && res.results[0]) ? res.results[0] : null;
+    if (result) {
+      const address = result.formatted_address || '';
       const cleanAddress = address.replace(/^日本、\s*/, '');
       addressElement.textContent = `${cleanAddress} 付近`;
     } else {
       addressElement.textContent = '住所情報なし';
-      if (data.status && data.status !== 'ZERO_RESULTS') {
-        console.error(`住所取得エラー: ${data.status}`);
-      }
     }
-  } catch (error) {
-    console.error('[Geocode] Fetch error:', error);
+  } catch (err) {
+    console.error('[Geocoder] Error:', err);
     addressElement.textContent = '住所取得エラー';
   }
 }
 
-/* -----------------------------
-   逆ジオコーディング（ポイント）
------------------------------ */
 async function fetchPointAddress(lat, lng) {
   const addressBlock = document.getElementById('pointAddressBlock');
   const addressElement = document.getElementById('pointAddress');
   const coordsElement = document.getElementById('pointCoords');
 
-  if (!addressElement || !coordsElement || !addressBlock) {
-    console.error('[DEBUG] Point Elements not found!');
-    return;
-  }
+  if (!addressElement || !coordsElement) return;
 
   addressElement.textContent = 'ポイント：住所取得中...';
   coordsElement.textContent = `(緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)})`;
-  addressBlock.style.display = 'flex';
+  if (addressBlock) addressBlock.style.display = 'flex';
 
+  if (!appState.geocoder) return;
   try {
-    const params = new URLSearchParams({ lat, lng, language: 'ja' });
-    const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode?${params.toString()}`);
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
-    }
-    const data = await response.json();
-    const results = Array.isArray(data?.results) ? data.results : [];
-    if (data.status === 'OK' && results[0]) {
-      const address = results[0].formatted_address || '';
-      const cleanAddress = address.replace(/^日本、\s*/, '');
-      addressElement.textContent = `ポイント：${cleanAddress} 付近`;
+    const res = await appState.geocoder.geocode({ location: { lat, lng } });
+    const result = (res && res.results && res.results[0]) ? res.results[0] : null;
+    if (result) {
+      const address = result.formatted_address || '';
+      const clean = address.replace(/^日本、\s*/, '');
+      addressElement.textContent = `ポイント：${clean} 付近`;
     } else {
       addressElement.textContent = 'ポイント：住所情報なし';
     }
-  } catch (error) {
-    console.error('[Geocode] Fetch error for Point:', error);
+  } catch (err) {
+    console.error('[Geocoder] Error(Point):', err);
     addressElement.textContent = 'ポイント：住所取得エラー';
   }
 }
@@ -964,10 +970,8 @@ async function fetchWeather(lat, lng) {
     const data = await response.json();
     console.log('[Weather] Worker Response:', data);
 
-    // OpenWeatherの形式に厳密対応
     const list = Array.isArray(data?.list) ? data.list : [];
 
-    // まずクリア
     ['weather1h', 'weather2h', 'weather3h'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.textContent = '--';
@@ -976,8 +980,6 @@ async function fetchWeather(lat, lng) {
     if (list.length === 0) return;
 
     const now = Date.now();
-    // できる限り「現在時刻に近い 1/2/3時間後」に近いエントリを選ぶ
-    // OpenWeatherのlistは3時間刻みなので、±1.5h以内を「近い」とみなす
     const targets = [1, 2, 3];
     targets.forEach(targetHour => {
       const targetMs = now + targetHour * 3600 * 1000;
@@ -1279,22 +1281,23 @@ function bindKeyboardWatch() {
   searchInput.addEventListener('focus', () => {
     console.log('[Keyboard] Input focused');
     appBody.classList.add('keyboard-open');
-    navPanel.style.display = 'none';
+    // 入力中も navPanel を維持（非表示にしない）
+    // navPanel.style.display = 'none'; ←削除
     setTimeout(() => {
-      const inputTopInPanel = searchInput.offsetTop;
-      searchPanel.scrollTop = inputTopInPanel - 20;
-      console.log(`[Keyboard] Scrolled panel to ${searchPanel.scrollTop}`);
+      if (searchPanel) {
+        const inputTopInPanel = searchInput.offsetTop;
+        searchPanel.scrollTop = inputTopInPanel - 20;
+        console.log(`[Keyboard] Scrolled panel to ${searchPanel.scrollTop}`);
+      }
     }, 350);
   });
 
   searchInput.addEventListener('blur', () => {
     console.log('[Keyboard] Input blurred');
     appBody.classList.remove('keyboard-open');
-    searchPanel.scrollTop = 0;
-    const resultsVisible = document.getElementById('results').style.display === 'block';
-    if (!resultsVisible && !appState.pointSearchMode) {
-      navPanel.style.display = 'block';
-    }
+    if (searchPanel) searchPanel.scrollTop = 0;
+    // フォーカスが外れても navPanel は維持
+    // if (!resultsVisible && !appState.pointSearchMode) navPanel.style.display = 'block';
   });
 }
 
@@ -1336,15 +1339,14 @@ function bindSearchPanelEvents() {
       btnPointSearch.style.color = '#0a2818';
       btnPointSearch.style.borderColor = 'transparent';
       console.log('地図をタップして検索地点を選択');
-      navPanel.style.display = 'none';
+      // navPanel は消さない
+      // navPanel.style.display = 'none';
     } else {
       btnPointSearch.textContent = '📍 ポイント選択';
       btnPointSearch.style.background = 'rgba(255,255,255,.08)';
       btnPointSearch.style.color = 'var(--text)';
       btnPointSearch.style.borderColor = 'var(--stroke)';
-      if (document.getElementById('results').style.display === 'none') {
-        navPanel.style.display = 'block';
-      }
+      // if (document.getElementById('results').style.display === 'none') navPanel.style.display = 'block';
     }
   };
 }
@@ -1380,15 +1382,16 @@ function bindSearchEvents() {
     const addressBlock = document.getElementById('pointAddressBlock');
     const addressElement = document.getElementById('pointAddress');
     const coordsElement = document.getElementById('pointCoords');
-    addressBlock.style.display = 'none';
-    addressElement.textContent = '';
-    coordsElement.textContent = '';
+    if (addressBlock) addressBlock.style.display = 'none';
+    if (addressElement) addressElement.textContent = '';
+    if (coordsElement) coordsElement.textContent = '';
     appState.pointSearchMode = false;
     const btnPointSearch = document.getElementById('btnPointSearch');
     btnPointSearch.textContent = '📍 ポイント選択';
     btnPointSearch.style.background = 'rgba(255,255,255,.08)';
     btnPointSearch.style.color = 'var(--text)';
     btnPointSearch.style.borderColor = 'var(--stroke)';
+    // パネルは常時表示なので navPanel を明示表示
     document.getElementById('navPanel').style.display = 'block';
     document.getElementById('r10').classList.add('active');
     document.getElementById('r20').classList.remove('active');
@@ -1402,22 +1405,23 @@ function bindSearchEvents() {
 
 function bindFABEvents() {
   document.getElementById('btnSearch').onclick = () => {
-    // 常時表示方針：明示的に block を維持
-    document.getElementById('searchPanel').style.display = 'block';
+    // ★ 常時表示のため display をいじらない
+    // document.getElementById('searchPanel').style.display = 'block';
     document.getElementById('fabStack').style.display = 'none';
     document.getElementById('appBody').classList.add('panel-open');
     if (document.getElementById('results').style.display === 'none' && !appState.pointSearchMode) {
       document.getElementById('navPanel').style.display = 'block';
     }
     document.getElementById('navPanelInstructions').innerHTML = '';
-    document.getElementById('incidentPanel').style.display = 'none';
+    const incidentPanel = document.getElementById('incidentPanel');
+    if (incidentPanel) incidentPanel.style.display = 'none';
   };
   document.getElementById('btnClosePanel').onclick = () => {
-    // 常時表示方針：searchPanel を隠さない（機能は最小限：FAB表示やパネル状態のみ調整）
+    // ★ 閉じる操作でも searchPanel を隠さない（常時表示ポリシー）
     // document.getElementById('searchPanel').style.display = 'none';
     if (!appState.isNavigating) {
       document.getElementById('fabStack').style.display = 'none';
-      document.getElementById('navPanel').style.display = 'none';
+      // document.getElementById('navPanel').style.display = 'none'; // ←残す
     } else {
       document.getElementById('fabStack').style.display = 'flex';
     }
@@ -1463,12 +1467,18 @@ function bindUI() {
 function startApp() {
   console.log('[WalkNav] Starting app...');
   document.documentElement.lang = 'ja';
-  // 常時表示方針：起動時から block
-  document.getElementById('searchPanel').style.display = 'block';
+  // ★ 常時表示ポリシー：起動直後から常に block
+  const sp = document.getElementById('searchPanel');
+  if (sp) sp.style.display = 'block';
+
   document.getElementById('fabStack').style.display = 'none';
   document.getElementById('btnSearch').style.display = 'flex';
   document.getElementById('appBody').classList.add('panel-open');
-  document.getElementById('navPanel').style.display = 'block';
+
+  // navPanel も確実に表示
+  const np = document.getElementById('navPanel');
+  if (np) np.style.display = 'block';
+
   bindUI();
   acquireLocation();
   initSpeechRecognition();
