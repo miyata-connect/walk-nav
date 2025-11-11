@@ -10,84 +10,43 @@
 
   <link rel="stylesheet" href="app.css?v=3" />
   <style>
-    /* ============ 統合パネル（常時表示） ============ */
-    .unified-panel {
-      position: fixed !important;
-      bottom: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      background: rgba(0, 0, 0, 0.85) !important;
-      backdrop-filter: blur(10px);
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      z-index: 1000 !important;
-      max-height: 60vh;
-      display: flex !important;        /* ← 常時表示（外部スクリプトに隠されない） */
-      flex-direction: column;
-      width: 100% !important;
+    /* ===== 統合パネル（常時表示・外部のdisplay変更を無効化） ===== */
+    .unified-panel{
+      position:fixed!important;bottom:0!important;left:0!important;right:0!important;
+      background:rgba(0,0,0,.85)!important;backdrop-filter:blur(10px);
+      border-top:1px solid rgba(255,255,255,.1);z-index:1000!important;
+      max-height:60vh;display:flex!important;flex-direction:column;width:100%!important;
     }
-    .panel-tabs {
-      display: flex;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(0, 0, 0, 0.3);
-      flex-shrink: 0;
-    }
-    .panel-tab {
-      flex: 1;
-      padding: 12px 16px;
-      background: transparent;
-      border: none;
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      border-bottom: 2px solid transparent;
-    }
-    .panel-tab.active {
-      color: #fff;
-      border-bottom-color: #62b5ff;
-      background: rgba(255, 255, 255, 0.05);
-    }
-    .panel-tab:hover { color:#fff; background: rgba(255,255,255,0.05); }
-    .panel-content {
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding: 16px;
-      min-height: 0;
-    }
-    .panel-page { display: none; }
-    .panel-page.active { display: block; }
+    .panel-tabs{display:flex;border-bottom:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.3);flex-shrink:0}
+    .panel-tab{flex:1;padding:12px 16px;background:transparent;border:none;color:rgba(255,255,255,.6);font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;border-bottom:2px solid transparent}
+    .panel-tab.active{color:#fff;border-bottom-color:#62b5ff;background:rgba(255,255,255,.05)}
+    .panel-tab:hover{color:#fff;background:rgba(255,255,255,.05)}
+    .panel-content{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px;min-height:0}
+    .panel-page{display:none}
+    .panel-page.active{display:block}
 
-    /* 旧searchPanelは app.js 互換用のダミー。UIでは常に非表示扱い */
-    section.panel#searchPanel { display: none !important; } /* ← UIはunified-panelで行う */
+    /* app.js互換の searchPanel はダミー。UIでは使わない */
+    section.panel#searchPanel{display:none!important}
 
-    /* 旧nav-panelを含むUI要素（app.js互換のため保持） */
-    .nav-panel.hidden { display: none !important; }
-    .unified-panel .nav-panel { display: block !important; }
+    /* 旧nav-panel（案内内容置き場）。外部でhidden付与されてもCSSで覆す */
+    .nav-panel{display:block!important}
+    .nav-panel.hidden{display:block!important} /* ← hiddenを付けられても可視 */
 
-    /* インシデント表示の箱（自動取得は撤去。warningsのみ表示に使用） */
-    .nav-incident {
-      margin-top: 12px;
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      border-top: 2px solid #ef4444;
-      display: none;
-    }
-    .nav-incident.has-incidents { display:block; }
-    .incident-header { font-size:13px; font-weight:600; margin-bottom:8px; color:#fff; display:flex; align-items:center; gap:6px; }
-    .incident-list { display:flex; flex-direction:column; gap:6px; max-height:150px; overflow-y:auto; }
+    /* インシデント（自動取得なし、warnings用の箱のみ残置） */
+    .nav-incident{margin-top:12px;padding:12px;background:rgba(255,255,255,.1);border-radius:8px;border-top:2px solid #ef4444;display:none}
+    .nav-incident.has-incidents{display:block}
+    .incident-header{font-size:13px;font-weight:600;margin-bottom:8px;color:#fff;display:flex;align-items:center;gap:6px}
+    .incident-list{display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto}
 
-    /* マップは常に背面。入力時の誤タップ防止は app.css の .keyboard-open で対応 */
-    #map { position:absolute; inset:0; }
+    /* マップ */
+    #map{position:absolute;inset:0}
   </style>
 </head>
 <body id="appBody">
   <div class="app">
     <div id="map" aria-label="地図"></div>
 
-    <!-- ====== 統合パネル（常時表示） ====== -->
+    <!-- 統合パネル -->
     <div class="unified-panel" id="unifiedPanel">
       <div class="panel-tabs">
         <button class="panel-tab active" id="tabNav" data-page="nav">📍 案内</button>
@@ -96,7 +55,6 @@
       <div class="panel-content">
         <!-- 案内ページ -->
         <div class="panel-page active" id="pageNav">
-          <!-- app.js 互換の旧 nav-panel 構造（表示はここに集約） -->
           <div class="nav-panel" id="navPanel" style="display:block;">
             <div class="nav-location">
               <div id="locCoords">現在地：取得中...</div>
@@ -109,7 +67,6 @@
               <div class="weather-item"><span>3H</span><span id="weather3h">--</span></div>
             </div>
 
-            <!-- ルートAPI warnings 表示（自動取得は無し） -->
             <div class="nav-incident" id="incidentPanel">
               <div class="incident-header"><span>⚠️</span><span>インシデント情報</span></div>
               <div class="incident-list" id="incidentList"></div>
@@ -121,8 +78,8 @@
 
         <!-- 検索ページ -->
         <div class="panel-page" id="pageSearch">
-          <div style="margin-bottom: 12px;">
-            <h2 style="margin:0 0 12px 0; font-size:16px;">近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
+          <div style="margin-bottom:12px;">
+            <h2 style="margin:0 0 12px 0;font-size:16px;">近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
           </div>
           <div class="row" style="margin-bottom:8px;justify-content:center;flex-wrap:wrap;">
             <button class="chip active" id="r10">10km</button>
@@ -130,8 +87,8 @@
             <button class="chip" id="r30">30km</button>
             <button class="chip" id="btnPointSearch" style="flex-grow:1;min-width:120px;">📍 ポイント選択</button>
           </div>
-          <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px; display:none; background:rgba(0,0,0,0.2); padding:8px; border-radius:8px;" id="pointAddressBlock">
-            <div id="pointAddress" style="line-height:1.5; color: var(--warning);">ポイント：取得中...</div>
+          <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px;display:none;background:rgba(0,0,0,.2);padding:8px;border-radius:8px;" id="pointAddressBlock">
+            <div id="pointAddress" style="line-height:1.5;color:var(--warning);">ポイント：取得中...</div>
             <div id="pointCoords" style="line-height:1.5;"></div>
           </div>
           <div class="row" style="margin-bottom:8px">
@@ -153,22 +110,22 @@
               </span>
               <span class="icon icon-mic" id="btnVoiceIcon">
                 <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;">
-                  <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c1.66 1.66 3 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"></path>
+                  <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c1.66 1.66 3 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-6.72h-1.7z"></path>
                 </svg>
               </span>
             </div>
           </div>
           <div id="results" class="results" style="display:none"></div>
-          <div class="row" style="margin-top:12px; gap:8px;">
+          <div class="row" style="margin-top:12px;gap:8px;">
             <button id="btnReset" class="btn danger" style="flex:1">リセット</button>
-            <button id="btnLocatePanel" class="btn" style="flex:1;background:rgba(98,181,255,0.2); color: var(--primary);">現在地</button>
-            <button id="btnClosePanel" class="btn" style="flex:1;background:rgba(255,255,255,0.1)">閉じる</button>
+            <button id="btnLocatePanel" class="btn" style="flex:1;background:rgba(98,181,255,.2);color:var(--primary);">現在地</button>
+            <button id="btnClosePanel" class="btn" style="flex:1;background:rgba(255,255,255,.1)">閉じる</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ルート情報パネル（既存） -->
+    <!-- ルート情報パネル -->
     <div class="route-panel" id="routePanel">
       <div class="route-info"><span id="destinationName">目的地</span>へのルート</div>
       <div>
@@ -176,12 +133,12 @@
         <span class="route-time" id="routeTime">徒歩 --分</span>
       </div>
       <div class="route-actions">
-        <button id="btnExportText" class="btn" style="width:100%;background:rgba(255,255,255,0.1)">道順をコピー</button>
+        <button id="btnExportText" class="btn" style="width:100%;background:rgba(255,255,255,.1)">道順をコピー</button>
         <button id="btnStopRoute" class="btn danger" style="width:100%">ルート終了</button>
       </div>
     </div>
 
-    <!-- FAB群（既存） -->
+    <!-- FAB -->
     <div class="fab-stack" id="fabStack">
       <div class="fab" id="btnSearch">検索パネル</div>
       <div class="fab" id="btnLocate">現在地</div>
@@ -190,7 +147,7 @@
       <div class="fab" id="btnReroute">リルート</div>
     </div>
 
-    <!-- ローディング（既存） -->
+    <!-- ローディング -->
     <div class="loading" id="loading">
       <div style="text-align:center">
         <div style="font-size:24px;margin-bottom:16px">📍 現在地取得中</div>
@@ -201,132 +158,108 @@
 
   <script src="app.js" defer></script>
 
-  <!-- ========= 互換用：searchPanel ダミー作成（UIは常に unifiedPanel で表示） ========= -->
+  <!-- 互換用: searchPanel ダミー生成（UIはunifiedPanelで運用） -->
   <script>
-    (function() {
-      function ensureSearchPanel() {
-        if (document.getElementById('searchPanel')) return;
-
-        const sp = document.createElement('section');
-        sp.id = 'searchPanel';
-        sp.className = 'panel';
-        sp.style.display = 'none';
+    (function(){
+      function ensureSearchPanel(){
+        if(document.getElementById('searchPanel')) return;
+        const sp=document.createElement('section');
+        sp.id='searchPanel';sp.className='panel';sp.style.display='none';
         document.body.appendChild(sp);
 
-        // searchPanel の display 変更を監視し、タブだけ同期。unifiedPanel は常時表示のまま。
-        const unifiedPanel = document.getElementById('unifiedPanel');
-        const tabNav = document.getElementById('tabNav');
-        const tabSearch = document.getElementById('tabSearch');
-        const pageNav = document.getElementById('pageNav');
-        const pageSearch = document.getElementById('pageSearch');
+        const unified=document.getElementById('unifiedPanel');
+        const tabNav=document.getElementById('tabNav');
+        const tabSearch=document.getElementById('tabSearch');
+        const pageNav=document.getElementById('pageNav');
+        const pageSearch=document.getElementById('pageSearch');
+        const navPanel=document.getElementById('navPanel');
 
-        function switchTab(mode) {
-          if (!tabNav || !tabSearch || !pageNav || !pageSearch) return;
-          tabNav.classList.remove('active'); tabSearch.classList.remove('active');
-          pageNav.classList.remove('active'); pageSearch.classList.remove('active');
-          if (mode === 'search') {
-            tabSearch.classList.add('active'); pageSearch.classList.add('active');
-          } else {
-            tabNav.classList.add('active'); pageNav.classList.add('active');
-          }
+        function forceShowNav(){
+          unified.style.display='flex';
+          pageNav.classList.add('active');pageSearch.classList.remove('active');
+          tabNav.classList.add('active');tabSearch.classList.remove('active');
+          navPanel.classList.remove('hidden');
+          navPanel.style.display='block';
+        }
+        function forceShowSearch(){
+          unified.style.display='flex';
+          pageSearch.classList.add('active');pageNav.classList.remove('active');
+          tabSearch.classList.add('active');tabNav.classList.remove('active');
         }
 
-        // MutationObserver で display 変更を捕捉
-        const obs = new MutationObserver(() => {
-          const disp = sp.style.display;
-          // unifiedPanel は常に見せる
-          unifiedPanel.style.display = 'flex'; // 保険
-          if (disp === 'block') {
-            switchTab('search');
-          } else {
-            switchTab('nav');
-          }
-        });
-        obs.observe(sp, { attributes:true, attributeFilter:['style'] });
+        /* searchPanel の display 変化はタブ同期のみ。unifiedPanelは常時表示 */
+        new MutationObserver(()=>{ (sp.style.display==='block')?forceShowSearch():forceShowNav(); })
+          .observe(sp,{attributes:true,attributeFilter:['style']});
 
-        // 初期タブ：searchPanel が block なら検索、そうでなければ案内
-        requestAnimationFrame(() => {
-          const initial = sp.style.display === 'block' ? 'search' : 'nav';
-          switchTab(initial);
-          unifiedPanel.style.display = 'flex';
-        });
+        /* 初期表示は案内を優先（必要なら localStorage を見ても良い） */
+        requestAnimationFrame(()=>{ forceShowNav(); });
       }
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', ensureSearchPanel);
-      } else {
+      (document.readyState==='loading')?
+        document.addEventListener('DOMContentLoaded',ensureSearchPanel):
         ensureSearchPanel();
-      }
     })();
   </script>
 
-  <!-- ========= 要素存在 & 現在地ログ（通信なしデバッグは残す） ========= -->
+  <!-- navPanel を外部変更から守る（hiddenやdisplay:noneが付与されたら即復元） -->
   <script>
-    (function() {
-      function checkElements() {
-        const locCoords = document.getElementById('locCoords');
-        const locAddress = document.getElementById('locAddress');
-        const navPanel = document.getElementById('navPanel');
-        const map = document.getElementById('map');
-        console.log('要素の存在確認:', { locCoords: !!locCoords, locAddress: !!locAddress, navPanel: !!navPanel, map: !!map });
-        return !!(locCoords && locAddress && map);
+    (function(){
+      const unified=document.getElementById('unifiedPanel');
+      const navPanel=document.getElementById('navPanel');
+      const pageNav=document.getElementById('pageNav');
+      const tabNav=document.getElementById('tabNav');
+      const pageSearch=document.getElementById('pageSearch');
+      const tabSearch=document.getElementById('tabSearch');
+
+      function showNav(){
+        unified.style.display='flex';
+        pageNav.classList.add('active');pageSearch.classList.remove('active');
+        tabNav.classList.add('active');tabSearch.classList.remove('active');
+        navPanel.classList.remove('hidden');
+        navPanel.style.display='block';
       }
-      function startLocationCheck() {
-        const locCoords = document.getElementById('locCoords');
-        if (!locCoords) return;
-        let n = 0;
-        const h = setInterval(() => {
-          n++;
-          const t = locCoords.textContent;
-          console.log(`現在地チェック ${n}回目:`, t);
-          if (n >= 30) { console.warn('app.jsが現在地を更新していない可能性（30秒）', { t }); clearInterval(h); }
-          if (t && !t.includes('取得中') && /\d+\.\d+/.test(t)) { console.log('現在地が更新されました！', t); clearInterval(h); }
-        }, 1000);
+      function showSearch(){
+        unified.style.display='flex';
+        pageSearch.classList.add('active');pageNav.classList.remove('active');
+        tabSearch.classList.add('active');tabNav.classList.remove('active');
       }
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => { checkElements(); setTimeout(startLocationCheck, 2000); });
-      } else {
-        checkElements(); setTimeout(startLocationCheck, 2000);
-      }
+
+      tabNav && tabNav.addEventListener('click',()=>{ showNav(); const sp=document.getElementById('searchPanel'); if(sp) sp.style.display='none'; });
+      tabSearch && tabSearch.addEventListener('click',()=>{ showSearch(); const sp=document.getElementById('searchPanel'); if(sp) sp.style.display='block'; });
+
+      /* navPanel に hidden / display:none が入っても即復元 */
+      new MutationObserver(()=>{
+        if(navPanel.classList.contains('hidden')) navPanel.classList.remove('hidden');
+        const style=window.getComputedStyle(navPanel).display;
+        if(style==='none'){ navPanel.style.display='block'; }
+        if(window.getComputedStyle(unified).display==='none'){ unified.style.display='flex'; }
+      }).observe(navPanel,{attributes:true,attributeFilter:['class','style']});
+
+      /* unifiedPanel が外部で隠されても復元 */
+      new MutationObserver(()=>{
+        if(window.getComputedStyle(unified).display==='none'){ unified.style.display='flex'; }
+      }).observe(unified,{attributes:true,attributeFilter:['style','class']});
+
+      /* 初期は案内表示 */
+      showNav();
+      console.log('タブ/パネルの強制可視化ガード適用');
     })();
   </script>
 
-  <!-- ========= タブ切り替え（常時可視の unifiedPanel を操作） ========= -->
+  <!-- 要素チェック（通信なしデバッグ） -->
   <script>
-    (function() {
-      const tabNav = document.getElementById('tabNav');
-      const tabSearch = document.getElementById('tabSearch');
-      const pageNav = document.getElementById('pageNav');
-      const pageSearch = document.getElementById('pageSearch');
-
-      function switchTab(target) {
-        if (!tabNav || !tabSearch || !pageNav || !pageSearch) return;
-        tabNav.classList.remove('active'); tabSearch.classList.remove('active');
-        pageNav.classList.remove('active'); pageSearch.classList.remove('active');
-        if (target === 'search') {
-          tabSearch.classList.add('active'); pageSearch.classList.add('active');
-          // 互換のため searchPanel を "block" にしておく（UIは隠したまま）
-          const sp = document.getElementById('searchPanel'); if (sp) sp.style.display = 'block';
-        } else {
-          tabNav.classList.add('active'); pageNav.classList.add('active');
-          const sp = document.getElementById('searchPanel'); if (sp) sp.style.display = 'none';
-        }
-        localStorage.setItem('activeTab', target);
+    (function(){
+      function check(){
+        const locCoords=document.getElementById('locCoords');
+        const locAddress=document.getElementById('locAddress');
+        const navPanel=document.getElementById('navPanel');
+        const map=document.getElementById('map');
+        console.log('要素確認',{locCoords:!!locCoords,locAddress:!!locAddress,navPanel:!!navPanel,map:!!map});
       }
-
-      tabNav && tabNav.addEventListener('click', () => switchTab('nav'));
-      tabSearch && tabSearch.addEventListener('click', () => switchTab('search'));
-
-      const saved = localStorage.getItem('activeTab');
-      switchTab(saved === 'search' ? 'search' : 'nav');
-
-      console.log('統合パネルのタブ切り替え 初期化OK');
+      (document.readyState==='loading')?document.addEventListener('DOMContentLoaded',check):check();
     })();
   </script>
 
-  <!-- Google Maps JS -->
-  <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry"
-    async defer></script>
+  <!-- Maps JS -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry" async defer></script>
 </body>
 </html>
