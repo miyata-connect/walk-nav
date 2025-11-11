@@ -404,7 +404,6 @@ async function startNavigation(destination) {
       language: 'ja'
     });
 
-    // リトライ内蔵
     const response = await fetchWithRetry(`${WORKER_ORIGIN}/directions?${params.toString()}`, {}, 3);
     if (!response.ok) {
       const errorText = await response.text();
@@ -460,7 +459,6 @@ async function startNavigation(destination) {
         incidentPanel.style.display = 'none';
       }
 
-      // 天気（OpenWeather via Worker）
       await fetchWeather(originLat, originLng);
 
       if (appState.isSimulation) {
@@ -836,7 +834,7 @@ function acquireLocation() {
     appState.map.setCenter({ lat: latitude, lng: longitude });
     setUserMarker(latitude, longitude);
     fetchLocationNameGoogle(latitude, longitude);
-    fetchWeather(latitude, longitude); // ★起動直後の天気
+    fetchWeather(latitude, longitude);
     console.log('現在地を取得しました');
   };
 
@@ -844,7 +842,7 @@ function acquireLocation() {
     console.log('[WalkNav] geolocation error', error?.message || error);
     document.getElementById('loading')?.remove();
     if (!appState.map) {
-      initMap({ lat: 35.0, lng: 135.0 }); // フォールバック
+      initMap({ lat: 35.0, lng: 135.0 });
     }
     const addressElement = document.getElementById('locAddress');
     const coordsElement = document.getElementById('locCoords');
@@ -961,10 +959,8 @@ async function fetchWeather(lat, lng) {
     const data = await response.json();
     console.log('[Weather] Worker Response:', data);
 
-    // OpenWeatherの形式に厳密対応
     const list = Array.isArray(data?.list) ? data.list : [];
 
-    // まずクリア
     ['weather1h', 'weather2h', 'weather3h'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.textContent = '--';
@@ -973,8 +969,6 @@ async function fetchWeather(lat, lng) {
     if (list.length === 0) return;
 
     const now = Date.now();
-    // できる限り「現在時刻に近い 1/2/3時間後」に近いエントリを選ぶ
-    // OpenWeatherのlistは3時間刻みなので、±1.5h以内を「近い」とみなす
     const targets = [1, 2, 3];
     targets.forEach(targetHour => {
       const targetMs = now + targetHour * 3600 * 1000;
