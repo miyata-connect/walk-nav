@@ -5,86 +5,26 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>WalkNav</title>
 
-  <meta name="x-issue" content="idx202511050540-unified" />
+  <!-- 発行番号 / ISSUE -->
+  <meta name="x-issue" content="idx202511120515" />
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 
-  <link rel="stylesheet" href="app.css?v=3" />
-  <style>
-    /* 統合パネルは常時表示・常時固定（JSから隠されない）*/
-    .unified-panel {
-      position: fixed !important;
-      bottom: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      background: rgba(0, 0, 0, 0.85) !important;
-      backdrop-filter: blur(10px);
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      z-index: 2500 !important;
-      max-height: 60vh;
-      display: flex !important;
-      flex-direction: column;
-      width: 100% !important;
-    }
-    /* 旧searchPanelを使ったCSSは無効化（互換のため残っていても表示に影響しない）*/
-    section.panel#searchPanel { display: none !important; }
-
-    .panel-tabs {
-      display: flex;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(0, 0, 0, 0.3);
-      flex-shrink: 0;
-    }
-    .panel-tab {
-      flex: 1;
-      padding: 12px 16px;
-      background: transparent;
-      border: none;
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      border-bottom: 2px solid transparent;
-    }
-    .panel-tab.active {
-      color: #fff;
-      border-bottom-color: #62b5ff;
-      background: rgba(255, 255, 255, 0.05);
-    }
-    .panel-tab:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
-
-    .panel-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px; min-height: 0; }
-    .panel-page { display: none; }
-    .panel-page.active { display: block; }
-
-    /* インシデントのUIコンテナ（自動取得ロジックは撤去済み。ルート警告だけ表示） */
-    .nav-incident { margin-top: 12px; padding: 12px; background: rgba(255, 255, 255, 0.1);
-      border-radius: 8px; border-top: 2px solid #ef4444; display: none; }
-    .nav-incident.has-incidents { display: block; }
-    .incident-header { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #fff; display: flex; align-items: center; gap: 6px; }
-    .incident-list { display: flex; flex-direction: column; gap: 6px; max-height: 150px; overflow-y: auto; }
-    .incident-item { padding: 8px; border-radius: 6px; border-left: 3px solid; background: rgba(255,255,255,.95); font-size: 11px; line-height: 1.4; margin-bottom: 6px; }
-    .incident-item.other { border-left-color: #6b7280; background: #f3f4f6; }
-    .incident-type { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
-    .incident-description { color: #374151; margin-bottom: 3px; font-size: 11px; }
-    .incident-time { font-size: 10px; color: #6b7280; margin-top: 2px; }
-    .incident-icon { display: inline-block; width: 16px; height: 16px; margin-right: 4px; }
-  </style>
+  <link rel="stylesheet" href="app.css?v=202511120515" />
 </head>
 <body id="appBody">
   <div class="app">
     <div id="map" aria-label="地図"></div>
 
-    <!-- 統合パネル（常時表示） -->
-    <div class="unified-panel" id="unifiedPanel">
+    <!-- Unified Panel（案内/検索タブ切替） -->
+    <div class="unified-panel" id="unifiedPanel" style="display:none">
       <div class="panel-tabs">
         <button class="panel-tab active" id="tabNav" data-page="nav">📍 案内</button>
         <button class="panel-tab" id="tabSearch" data-page="search">🔍 検索</button>
       </div>
       <div class="panel-content">
-        <!-- 案内 -->
+        <!-- 案内ページ -->
         <div class="panel-page active" id="pageNav">
-          <div class="nav-panel" id="navPanel" style="display:block;">
+          <div class="nav-panel" id="navPanel" style="display:block">
             <div class="nav-location">
               <div id="locCoords">現在地：取得中...</div>
               <div id="locAddress"></div>
@@ -96,8 +36,8 @@
               <div class="weather-item"><span>3H</span><span id="weather3h">--</span></div>
             </div>
 
-            <!-- ルート警告のみ表示 -->
-            <div class="nav-incident" id="incidentPanel">
+            <!-- ルートAPIのwarningsを表示（自動取得は無し、ナビ時のみ反映） -->
+            <div class="nav-incident" id="incidentPanel" style="display:none">
               <div class="incident-header"><span>⚠️</span><span>インシデント情報</span></div>
               <div class="incident-list" id="incidentList"></div>
             </div>
@@ -106,7 +46,7 @@
           </div>
         </div>
 
-        <!-- 検索 -->
+        <!-- 検索ページ -->
         <div class="panel-page" id="pageSearch">
           <div style="margin-bottom: 12px;">
             <h2 style="margin: 0 0 12px 0; font-size: 16px;">近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
@@ -117,9 +57,9 @@
             <button class="chip" id="r30">30km</button>
             <button class="chip" id="btnPointSearch" style="flex-grow: 1; min-width: 120px;">📍 ポイント選択</button>
           </div>
-          <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px; display: none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;" id="pointAddressBlock">
+          <div class="row" id="pointAddressBlock" style="font-size:13px;color:var(--muted);margin-bottom:8px; display:none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;">
             <div id="pointAddress" style="line-height:1.5; color: var(--warning);">ポイント：取得中...</div>
-            <div id="pointCoords" style="line-height:1.5;"></div>
+            <div id="pointCoords" style="line-height:1.5; margin-left: 8px;"></div>
           </div>
           <div class="row" style="margin-bottom:8px">
             <button class="btn" id="btnSaveLocation" style="flex:1">現在地登録</button>
@@ -149,12 +89,13 @@
           <div class="row" style="margin-top:12px; gap: 8px;">
             <button id="btnReset" class="btn danger" style="flex:1">リセット</button>
             <button id="btnLocatePanel" class="btn" style="flex:1;background:rgba(98, 181, 255, 0.2); color: var(--primary);">現在地</button>
+            <button id="btnClosePanel" class="btn" style="flex:1;background:rgba(255,255,255,0.1)">閉じる</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ルート情報カード（別枠） -->
+    <!-- ルートダイジェスト -->
     <div class="route-panel" id="routePanel">
       <div class="route-info"><span id="destinationName">目的地</span>へのルート</div>
       <div>
@@ -168,13 +109,15 @@
     </div>
 
     <!-- FAB -->
-    <div class="fab-stack" id="fabStack">
+    <div class="fab-stack" id="fabStack" style="display:none">
+      <div class="fab" id="btnSearch">検索パネル</div>
       <div class="fab" id="btnLocate">現在地</div>
       <div class="fab" id="btnDestination" style="display:none">目的地</div>
       <div class="fab" id="btnPause">一時停止</div>
       <div class="fab" id="btnReroute">リルート</div>
     </div>
 
+    <!-- 起動中オーバーレイ -->
     <div class="loading" id="loading">
       <div style="text-align:center">
         <div style="font-size:24px;margin-bottom:16px">📍 現在地取得中</div>
@@ -183,35 +126,11 @@
     </div>
   </div>
 
-  <script src="app.js" defer></script>
+  <script src="app.js?v=202511120515" defer></script>
 
-  <!-- 統合パネル：タブ切り替え（親パネルは隠さない） -->
-  <script>
-    (function() {
-      const tabNav = document.getElementById('tabNav');
-      const tabSearch = document.getElementById('tabSearch');
-      const pageNav = document.getElementById('pageNav');
-      const pageSearch = document.getElementById('pageSearch');
-
-      function switchTab(which) {
-        tabNav.classList.toggle('active', which === 'nav');
-        tabSearch.classList.toggle('active', which === 'search');
-        pageNav.classList.toggle('active', which === 'nav');
-        pageSearch.classList.toggle('active', which === 'search');
-        localStorage.setItem('activeTab', which);
-      }
-
-      tabNav.addEventListener('click', () => switchTab('nav'));
-      tabSearch.addEventListener('click', () => switchTab('search'));
-
-      const saved = localStorage.getItem('activeTab');
-      switchTab(saved === 'search' ? 'search' : 'nav');
-    })();
-  </script>
-
-  <!-- Maps JS -->
+  <!-- Maps JS（ブラウザ鍵：Maps JavaScript API のみ許可） -->
   <script
-    src="https://maps.googleapis.com/maps/api/js?key=__YOUR_GOOGLE_MAPS_JS_BROWSER_KEY__&v=weekly&libraries=marker,geometry"
+    src="https://maps.googleapis.com/maps/api/js?key=__REPLACE_WITH_GOOGLE_MAPS_JS_BROWSER_KEY__&v=weekly&libraries=marker,geometry"
     async defer></script>
 </body>
 </html>
