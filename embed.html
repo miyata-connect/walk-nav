@@ -1,119 +1,127 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>WalkNav Embed</title>
-  <meta name="x-issue" content="idx202511120515" />
-  <link rel="stylesheet" href="app.css?v=202511120515" />
-</head>
-<body id="appBody">
-  <div class="app">
-    <div id="map" aria-label="地図"></div>
+<!DOCTYPE html> <!-- L001 -->
+<html lang="ja"> <!-- L002 -->
+<head> <!-- L003 -->
+  <meta charset="utf-8" /> <!-- L004 -->
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" /> <!-- L005 -->
+  <title>WalkNav</title> <!-- L006 -->
 
-    <div class="unified-panel" id="unifiedPanel" style="display:none">
-      <div class="panel-tabs">
-        <button class="panel-tab active" id="tabNav" data-page="nav">📍 案内</button>
-        <button class="panel-tab" id="tabSearch" data-page="search">🔍 検索</button>
-      </div>
-      <div class="panel-content">
-        <div class="panel-page active" id="pageNav">
-          <div class="nav-panel" id="navPanel" style="display:block">
-            <div class="nav-location">
-              <div id="locCoords">現在地：取得中...</div>
-              <div id="locAddress"></div>
-            </div>
-            <div class="nav-weather" id="navWeather">
-              <div class="weather-item"><span>1H</span><span id="weather1h">--</span></div>
-              <div class="weather-item"><span>2H</span><span id="weather2h">--</span></div>
-              <div class="weather-item"><span>3H</span><span id="weather3h">--</span></div>
-            </div>
-            <div class="nav-incident" id="incidentPanel" style="display:none">
-              <div class="incident-header"><span>⚠️</span><span>インシデント情報</span></div>
-              <div class="incident-list" id="incidentList"></div>
-            </div>
-            <div class="nav-instructions-list" id="navPanelInstructions"></div>
-          </div>
-        </div>
-        <div class="panel-page" id="pageSearch">
-          <div style="margin-bottom: 12px;">
-            <h2 style="margin: 0 0 12px 0; font-size: 16px;">近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
-          </div>
-          <div class="row" style="margin-bottom:8px;justify-content:center;flex-wrap:wrap;">
-            <button class="chip active" id="r10">10km</button>
-            <button class="chip" id="r20">20km</button>
-            <button class="chip" id="r30">30km</button>
-            <button class="chip" id="btnPointSearch" style="flex-grow: 1; min-width: 120px;">📍 ポイント選択</button>
-          </div>
-          <div class="row" id="pointAddressBlock" style="font-size:13px;color:var(--muted);margin-bottom:8px; display:none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;">
-            <div id="pointAddress" style="line-height:1.5; color: var(--warning);">ポイント：取得中...</div>
-            <div id="pointCoords" style="line-height:1.5; margin-left: 8px;"></div>
-          </div>
-          <div class="row" style="margin-bottom:8px">
-            <button class="btn" id="btnSaveLocation" style="flex:1">現在地登録</button>
-            <button class="btn" id="btnEditLocation" style="flex:1">登録地修正</button>
-          </div>
-          <div class="row" style="margin-bottom:8px">
-            <div class="input-wrapper">
-              <span class="icon icon-g">
-                <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor;">
-                  <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5.03,16.21 5.03,12.39C5.03,8.57 8.36,5.5 12.19,5.5C14.73,5.5 16.29,6.5 17.2,7.38L19.31,5.26C17.38,3.53 15.05,2.5 12.19,2.5C6.92,2.5 2.73,6.63 2.73,12.39C2.73,18.15 6.92,22.28 12.19,22.28C17.63,22.28 21.64,18.5 21.64,12.61C21.64,12 21.52,11.55 21.35,11.1Z"></path>
-                </svg>
-              </span>
-              <input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" style="flex:1" autocomplete="off" />
-              <span class="icon icon-search" id="btnSearchIcon">
-                <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;">
-                  <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
-                </svg>
-              </span>
-              <span class="icon icon-mic" id="btnVoiceIcon">
-                <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;">
-                  <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c1.66 1.66 3 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"></path>
-                </svg>
-              </span>
-            </div>
-          </div>
-          <div id="results" class="results" style="display:none"></div>
-          <div class="row" style="margin-top:12px; gap: 8px;">
-            <button id="btnReset" class="btn danger" style="flex:1">リセット</button>
-            <button id="btnLocatePanel" class="btn" style="flex:1;background:rgba(98, 181, 255, 0.2); color: var(--primary);">現在地</button>
-            <button id="btnClosePanel" class="btn" style="flex:1;background:rgba(255,255,255,0.1)">閉じる</button>
-          </div>
-        </div>
-      </div>
-    </div>
+  <meta name="x-issue" content="idx202511050540-split" /> <!-- L007 -->
+  <meta name="description" content="WalkNav - 近くを検索 & ルート案内" /> <!-- L008 -->
 
-    <div class="route-panel" id="routePanel">
-      <div class="route-info"><span id="destinationName">目的地</span>へのルート</div>
-      <div>
-        <span class="route-distance" id="routeDistance">--</span>
-        <span class="route-time" id="routeTime">徒歩 --分</span>
-      </div>
-      <div class="route-actions">
-        <button id="btnExportText" class="btn" style="width:100%;background:rgba(255,255,255,0.1)">道順をコピー</button>
-        <button id="btnStopRoute" class="btn danger" style="width:100%">ルート終了</button>
-      </div>
-    </div>
+  <link rel="stylesheet" href="app.css?v=3" /> <!-- L009 -->
+</head> <!-- L010 -->
+<body id="appBody"> <!-- L011 -->
+  <div class="app"> <!-- L012 -->
+    <div id="map" aria-label="地図"></div> <!-- L013 -->
 
-    <div class="fab-stack" id="fabStack" style="display:none">
-      <div class="fab" id="btnSearch">検索パネル</div>
-      <div class="fab" id="btnLocate">現在地</div>
-      <div class="fab" id="btnDestination" style="display:none">目的地</div>
-      <div class="fab" id="btnPause">一時停止</div>
-      <div class="fab" id="btnReroute">リルート</div>
-    </div>
+    <section class="panel" id="searchPanel" aria-label="検索パネル"> <!-- L014 -->
+      <h2>近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2> <!-- L015 -->
+      
+      <div class="row" style="margin-bottom:8px;justify-content:center;flex-wrap:wrap;"> <!-- L016 -->
+        <button class="chip active" id="r10">10km</button> <!-- L017 -->
+        <button class="chip" id="r20">20km</button> <!-- L018 -->
+        <button class="chip" id="r30">30km</button> <!-- L019 -->
+        <button class="chip" id="btnPointSearch" style="flex-grow: 1; min-width: 120px;">📍 ポイント選択</button> <!-- L020 -->
+      </div> <!-- L021 -->
+      
+      <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px; display: none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;" id="pointAddressBlock"> <!-- L022 -->
+        <div id="pointAddress" style="line-height:1.5; color: var(--warning);">ポイント：取得中...</div> <!-- L023 -->
+        <div id="pointCoords" style="line-height:1.5;"></div> <!-- L024 -->
+      </div> <!-- L025 -->
+      
+      <div class="row" style="margin-bottom:8px"> <!-- L026 -->
+        <button class="btn" id="btnSaveLocation" style="flex:1">現在地登録</button> <!-- L027 -->
+        <button class="btn" id="btnEditLocation" style="flex:1">登録地修正</button> <!-- L028 -->
+      </div> <!-- L029 -->
+      
+      <div class="row" style="margin-bottom:8px"> <!-- L030 -->
+        <div class="input-wrapper"> <!-- L031 -->
+          <span class="icon icon-g"> <!-- L032 -->
+            <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor;"> <!-- L033 -->
+              <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5.03,16.21 5.03,12.39C5.03,8.57 8.36,5.5 12.19,5.5C14.73,5.5 16.29,6.5 17.2,7.38L19.31,5.26C17.38,3.53 15.05,2.5 12.19,2.5C6.92,2.5 2.73,6.63 2.73,12.39C2.73,18.15 6.92,22.28 12.19,22.28C17.63,22.28 21.64,18.5 21.64,12.61C21.64,12 21.52,11.55 21.35,11.1Z"></path> <!-- L034 -->
+            </svg> <!-- L035 -->
+          </span> <!-- L036 -->
+          <input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" style="flex:1" autocomplete="off" /> <!-- L037 -->
+          <span class="icon icon-search" id="btnSearchIcon"> <!-- L038 -->
+            <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;"> <!-- L039 -->
+              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path> <!-- L040 -->
+            </svg> <!-- L041 -->
+          </span> <!-- L042 -->
+          <span class="icon icon-mic" id="btnVoiceIcon"> <!-- L043 -->
+            <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;"> <!-- L044 -->
+              <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c1.66 1.66 3 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"></path> <!-- L045 -->
+            </svg> <!-- L046 -->
+          </span> <!-- L047 -->
+        </div> <!-- L048 -->
+      </div> <!-- L049 -->
+      
+      <div id="results" class="results" style="display:none"></div> <!-- L050 -->
+      
+      <div class="row" style="margin-top:12px; gap: 8px;"> <!-- L051 -->
+        <button id="btnReset" class="btn danger" style="flex:1">リセット</button> <!-- L052 -->
+        <button id="btnLocatePanel" class="btn" style="flex:1;background:rgba(98, 181, 255, 0.2); color: var(--primary);">現在地</button> <!-- L053 -->
+        <button id="btnClosePanel" class="btn" style="flex:1;background:rgba(255,255,255,0.1)">閉じる</button> <!-- L054 -->
+      </div> <!-- L055 -->
+      </section> <!-- L056 -->
 
-    <div class="loading" id="loading">
-      <div style="text-align:center">
-        <div style="font-size:24px;margin-bottom:16px">📍 現在地取得中</div>
-        <div style="font-size:16px;opacity:0.8">しばらくお待ちください...</div>
-      </div>
-    </div>
-  </div>
+    <div class="nav-panel" id="navPanel"> <!-- L057 -->
+      <div class="nav-location"> <!-- L058 -->
+        <div id="locCoords">現在地：取得中...</div> <!-- L059 -->
+        <div id="locAddress"></div> <!-- L060 -->
+      </div> <!-- L061 -->
+      <div class="nav-weather" id="navWeather"> <!-- L062 -->
+        <div class="weather-item"> <!-- L063 -->
+          <span>3H</span> <!-- L064 -->
+          <span id="weather3h">--</span> <!-- L065 -->
+        </div> <!-- L066 -->
+        <div class="weather-item"> <!-- L067 -->
+          <span>6H</span> <!-- L068 -->
+          <span id="weather6h">--</span> <!-- L069 -->
+        </div> <!-- L070 -->
+        <div class="weather-item"> <!-- L071 -->
+          <span>9H</span> <!-- L072 -->
+          <span id="weather9h">--</span> <!-- L073 -->
+        </div> <!-- L074 -->
+      </div> <!-- L075 -->
+      <div class="nav-instructions-list" id="navPanelInstructions"></div> <!-- L076 -->
+    </div> <!-- L077 -->
+    
+    <div class="incident-panel" id="incidentPanel"></div> <!-- L078 -->
 
-  <script src="app.js?v=202511120515" defer></script>
+    <div class="route-panel" id="routePanel"> <!-- L079 -->
+      <div class="route-info"> <!-- L080 -->
+        <span id="destinationName">目的地</span>へのルート <!-- L081 -->
+      </div> <!-- L082 -->
+      <div> <!-- L083 -->
+        <span class="route-distance" id="routeDistance">--</span> <!-- L084 -->
+        <span class="route-time" id="routeTime">徒歩 --分</span> <!-- L085 -->
+      </div> <!-- L086 -->
+      <div class="route-actions"> <!-- L087 -->
+        <button id="btnExportText" class="btn" style="width:100%;background:rgba(255,255,255,0.1)">道順をコピー</button> <!-- L088 -->
+        <button id="btnStopRoute" class="btn danger" style="width:100%">ルート終了</button> <!-- L089 -->
+      </div> <!-- L090 -->
+    </div> <!-- L091 -->
+
+    <div class="fab-stack" id="fabStack"> <!-- L092 -->
+      <div class="fab" id="btnSearch">検索パネル</div> <!-- L093 -->
+      <div class="fab" id="btnLocate">現在地</div> <!-- L094 -->
+      <div class="fab" id="btnDestination" style="display:none">目的地</div> <!-- L095 -->
+      <div class="fab" id="btnPause">一時停止</div> <!-- L096 -->
+      <div class="fab" id="btnReroute">リルート</div> <!-- L097 -->
+    </div> <!-- L098 -->
+
+    <div class="loading" id="loading"> <!-- L099 -->
+      <div style="text-align:center"> <!-- L100 -->
+        <div style="font-size:24px;margin-bottom:16px">📍 現在地取得中</div> <!-- L101 -->
+        <div style="font-size:16px;opacity:0.8">しばらくお待ちください...</div> <!-- L102 -->
+      </div> <!-- L103 -->
+    </div> <!-- L104 -->
+
+  </div> <!-- L105 -->
+
+  <script src="app.js" defer></script> <!-- L106 -->
   <script
-    src="https://maps.googleapis.com/maps/api/js?key=__REPLACE_WITH_GOOGLE_MAPS_JS_BROWSER_KEY__&v=weekly&libraries=marker,geometry"
-    async defer></script>
-</body>
-</html>
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=marker,geometry"
+    async defer></script> <!-- L107 -->
+</body> <!-- L108 -->
+</html> <!-- L109 -->
