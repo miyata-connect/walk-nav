@@ -6,7 +6,6 @@
 const ISSUE_ID = 'idx202511050540'; // 更新：パネル表示ロジック、ボタン配置
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0'; // Maps表示用のみ
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
-const GEOCODE_ENDPOINT = 'https://maps.googleapis.com/maps/api/geocode/json';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
 const RETRY_DELAY = 1000;
@@ -895,7 +894,7 @@ function acquireLocation() {
 }
 
 // ==========================================
-// 地名取得(逆ジオコーディング) - Google Geocoding API 直叩き
+// 地名取得(逆ジオコーディング)- Cloudflare経由
 // ==========================================
 async function fetchLocationNameGoogle(lat, lng) {
   const addressElement = document.getElementById('locAddress');
@@ -909,26 +908,30 @@ async function fetchLocationNameGoogle(lat, lng) {
   coordsElement.textContent = coordsText;
 
   try {
-    console.log('[Geocode] Fetching address from Google Geocoding API...');
+    console.log('[Geocode] Fetching address from Cloudflare...');
 
-    const latlngParam = encodeURIComponent(`${lat},${lng}`);
-    const url = `${GEOCODE_ENDPOINT}?latlng=${latlngParam}&language=ja&key=${API_KEY}`;
-
-    const response = await fetchWithRetry(url, { method: 'GET' });
+    const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        latlng: { lat: lat, lng: lng },
+        language: 'ja'
+      })
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Geocode API Error ${response.status}: ${errorText}`);
+      throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
     }
     const data = await response.json();
-    if (data.status === 'OK' && data.results && data.results[0]) {
+    if (data.status === 'OK' && data.results[0]) {
       const address = data.results[0].formatted_address;
       const cleanAddress = address.replace(/^日本、\s*/, '');
       const formattedAddress = cleanAddress + ' 付近';
       addressElement.textContent = formattedAddress;
     } else {
       addressElement.textContent = '住所情報なし';
-      if (data.status && data.status !== 'ZERO_RESULTS') {
+      if (data.status !== 'ZERO_RESULTS') {
         console.error(`住所取得エラー: ${data.status}`);
       }
     }
@@ -939,7 +942,7 @@ async function fetchLocationNameGoogle(lat, lng) {
 }
 
 // ==========================================
-// ポイント選択時の地名取得 - Google Geocoding API 直叩き
+// ポイント選択時の地名取得
 // ==========================================
 async function fetchPointAddress(lat, lng) {
   const addressBlock = document.getElementById('pointAddressBlock');
@@ -956,28 +959,27 @@ async function fetchPointAddress(lat, lng) {
   addressBlock.style.display = 'flex';
 
   try {
-    console.log('[Geocode] Fetching point address from Google Geocoding API...');
-
-    const latlngParam = encodeURIComponent(`${lat},${lng}`);
-    const url = `${GEOCODE_ENDPOINT}?latlng=${latlngParam}&language=ja&key=${API_KEY}`;
-
-    const response = await fetchWithRetry(url, { method: 'GET' });
+    const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        latlng: { lat: lat, lng: lng },
+        language: 'ja'
+      })
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Geocode API Error ${response.status}: ${errorText}`);
+      throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
     }
     const data = await response.json();
-    if (data.status === 'OK' && data.results && data.results[0]) {
+    if (data.status === 'OK' && data.results[0]) {
       const address = data.results[0].formatted_address;
       const cleanAddress = address.replace(/^日本、\s*/, '');
       const formattedAddress = 'ポイント：' + cleanAddress + ' 付近';
       addressElement.textContent = formattedAddress;
     } else {
       addressElement.textContent = 'ポイント：住所情報なし';
-      if (data.status && data.status !== 'ZERO_RESULTS') {
-        console.error(`ポイント住所取得エラー: ${data.status}`);
-      }
     }
   } catch (error) {
     console.error('[Geocode] Fetch error for Point:', error);
@@ -1507,3 +1509,5 @@ function initializeWhenReady() {
 
 // [修正] DOMContentLoaded リスナーを復活（既存設計準拠）
 window.addEventListener('DOMContentLoaded', initializeWhenReady);
+
+// [注記] window.initMap は embed.html からは呼ばれないため未定義（元仕様踏襲）
