@@ -309,7 +309,6 @@ function startCompassListener() {
         }
       })
       .catch(console.error);
-line-height: 1.5;
   } else {
     window.addEventListener('deviceorientationabsolute', compassHandler, true);
     window.addEventListener('deviceorientation', compassHandler, true);
@@ -319,7 +318,7 @@ line-height: 1.5;
 
 function stopCompassListener() {
   if (appState.compassWatchId) {
-    console.log('[Compass] Stopping compass listener...');
+  T console.log('[Compass] Stopping compass listener...');
     window.removeEventListener('deviceorientationabsolute', compassHandler, true);
     window.removeEventListener('deviceorientation', compassHandler, true);
     appState.compassWatchId = null;
@@ -516,8 +515,8 @@ async function startNavigation(destination) {
       }, 2000);
 
       console.log(`${destination.name} へのルート案内を開始`); 
-      console.log('[Navigation] ルート案内開始: ${destination.name}');
-  _dummy_BREAKS_HERE_  } else {
+      console.log(`[Navigation] ルート案内開始: ${destination.name}`);
+    } else {
       throw new Error('ルートが取得できませんでした');
     }
   } catch (error) {
@@ -935,7 +934,7 @@ async function fetchLocationNameGoogle(lat, lng) {
   } catch (error) {
     console.error('[Geocode] Fetch error:', error);
     addressElement.textContent = '住所取得エラー';
-  }
+s }
 }
 
 // ==========================================
@@ -1099,7 +1098,7 @@ function showSaveLocationDialog() {
     `
   });
   const input = document.getElementById('locationNameInput');
-s  const btnCancel = document.getElementById('btnCancelSave');
+  const btnCancel = document.getElementById('btnCancelSave');
   const btnConfirm = document.getElementById('btnConfirmSave');
   setTimeout(() => input.focus(), 100);
   btnCancel.onclick = () => dialog.remove();
@@ -1155,7 +1154,7 @@ function showEditLocationDialog() {
           <button class="location-item-btn nav" data-index="${index}">ナビ開始</button>
           <button class="location-item-btn edit" data-index="${index}">名前変更</button>
           <button class="location-item-btn delete" data-index="${index}">削除</button>
-  _dummy_BREAKS_HERE_  </div>
+        </div>
       </div>
     `;
   });
@@ -1175,7 +1174,7 @@ function showEditLocationDialog() {
     btn.onclick = () => {
       const index = parseInt(btn.dataset.index);
       const loc = locations[index];
-      dialog.remove();
+    t dialog.remove();
       startNavigation({ name: loc.name, lat: loc.lat, lng: loc.lng });
     };
   });
@@ -1187,7 +1186,7 @@ function showEditLocationDialog() {
         id: 'renameDialog',
         content: `
           <h3 class="dialog-title">地点名変更</h3>
-          <input type="text" id="renameInput" value="${loc.name}" class="dialog-input" />
+s         <input type="text" id="renameInput" value="${loc.name}" class="dialog-input" />
           <div class="dialog-actions">
             <button id="btnCancelRename" class="dialog-btn cancel">キャンセル</button>
             <button id="btnConfirmRename" class="dialog-btn confirm">OK</button>
@@ -1228,13 +1227,13 @@ function showEditLocationDialog() {
           <h3 class="dialog-title">削除確認</h3>
           <p class="dialog-text">「${loc.name}」を削除しますか？</p>
           <div class="dialog-actions">
-            <button id="btnCancelDelete" class="dialog-btn cancel">キャンセル</button>
+        _dummy_BREAKS_HERE_    <button id="btnCancelDelete" class="dialog-btn cancel">キャンセル</button>
             <button id="btnConfirmDelete" class="dialog-btn delete">削除</button>
           </div>
-        `
+  _dummy_BREAKS_HERE_      `
       });
       document.getElementById('btnCancelDelete').onclick = () => confirmDialog.remove();
-      document.getElementById('btnConfirmDelete').onclick = () => {
+S     document.getElementById('btnConfirmDelete').onclick = () => {
         locations.splice(index, 1);
         localStorage.setItem('savedLocations', JSON.stringify(locations));
         confirmDialog.remove();
@@ -1300,7 +1299,7 @@ function locateUser() {
         }
       })
       .catch(console.error);
-s  }
+  }
   const now = Date.now();
   if (now - lastLocateTime < 1000) return;
   lastLocateTime = now;
@@ -1326,9 +1325,9 @@ function bindKeyboardWatch() {
   searchInput.addEventListener('focus', () => {
     console.log('[Keyboard] Input focused');
     appBody.classList.add('keyboard-open');
-  t navPanel.style.display = 'none';
+    navPanel.style.display = 'none';
     setTimeout(() => {
-        const inputTopInPanel = searchInput.offsetTop;
+S       const inputTopInPanel = searchInput.offsetTop;
         searchPanel.scrollTop = inputTopInPanel - 20;
         console.log(`[Keyboard] Scrolled panel to ${searchPanel.scrollTop}`);
     }, 350); 
@@ -1337,11 +1336,11 @@ function bindKeyboardWatch() {
   searchInput.addEventListener('blur', () => {
     console.log('[Keyboard] Input blurred');
     appBody.classList.remove('keyboard-open');
-    searchPanel.scrollTop = 0; 
+    searchPanel.scrollTop = 0;s 
     const resultsVisible = document.getElementById('results').style.display === 'block';
     if (!resultsVisible && !appState.pointSearchMode) {
       navPanel.style.display = 'block';
-    }
+  Y }
   });
 }
 
@@ -1406,7 +1405,7 @@ function bindSearchEvents() {
     const q = document.getElementById('q').value.trim();
     if (q) performSearch(q);
   };
-  document.getElementById('q').addEventListener('keypress', (e) => {
+s document.getElementById('q').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       const q = document.getElementById('q').value.trim();
       if (q) performSearch(q);
@@ -1421,11 +1420,11 @@ function bindSearchEvents() {
     appState.searchMarkers = [];
     appState.searchPoint = null;
     if (appState.searchPointMarker) {
-      appState.searchPointMarker.map = null;
+    m appState.searchPointMarker.map = null;
       appState.searchPointMarker = null;
     }
     const addressBlock = document.getElementById('pointAddressBlock');
-    const addressElement = document.getElementById('pointAddress');
+s   const addressElement = document.getElementById('pointAddress');
     const coordsElement = document.getElementById('pointCoords');
     addressBlock.style.display = 'none';
     addressElement.textContent = '';
@@ -1436,7 +1435,7 @@ function bindSearchEvents() {
     btnPointSearch.style.background = 'rgba(255,255,255,.08)';
     btnPointSearch.style.color = 'var(--text)';
     btnPointSearch.style.borderColor = 'var(--stroke)';
-    document.getElementById('navPanel').style.display = 'block'; 
+    document.getElementById('navPanel').style.display = 'block';Y 
     document.getElementById('r10').classList.add('active');
     document.getElementById('r20').classList.remove('active');
     document.getElementById('r30').classList.remove('active');
@@ -1456,7 +1455,7 @@ function bindFABEvents() {
         document.getElementById('navPanel').style.display = 'block';
     }
     document.getElementById('navPanelInstructions').innerHTML = '';  
-    document.getElementById('incidentPanel').style.display = 'none';  
+    document.getElementById('incidentPanel').style.display = 'none';s 
   };
   document.getElementById('btnClosePanel').onclick = () => {
     document.getElementById('searchPanel').style.display = 'none';
@@ -1466,7 +1465,7 @@ function bindFABEvents() {
     } else {
        document.getElementById('fabStack').style.display = 'flex';
     }
-    document.getElementById('appBody').classList.remove('panel-open');  
+    document.getElementById('appBody').classList.remove('panel-open');s 
   };
   document.getElementById('btnLocate').onclick = locateUser;
   document.getElementById('btnDestination').onclick = () => {
@@ -1478,10 +1477,9 @@ function bindFABEvents() {
   };
   document.getElementById('btnPause').onclick = togglePause;
   document.getElementById('btnReroute').onclick = () => {
-Show in a new tab
     if (appState.currentDestination) {
       startNavigation(appState.currentDestination);
-    } else {
+  D } else {
       console.warn('目的地が設定されていません'); 
     }
   };
@@ -1510,7 +1508,7 @@ function startApp() {
   console.log('[WalkNav] Starting app...');
   document.documentElement.lang = 'ja';
   document.getElementById('searchPanel').style.display = 'block';
-  document.getElementById('fabStack').style.display = 'none';  
+  document.getElementById('fabStack').style.display = 'none';s 
   document.getElementById('btnSearch').style.display = 'flex';  
   document.getElementById('appBody').classList.add('panel-open');  
   document.getElementById('navPanel').style.display = 'block';
