@@ -926,7 +926,9 @@ async function fetchLocationNameGoogle(lat, lng) {
     const data = await response.json();
     if (data.status === 'OK' && data.results[0]) {
       const address = data.results[0].formatted_address;
-      const cleanAddress = address.replace(/^日本、\s*/, '');
+      const cleanAddress = address
+        .replace(/^日本、\s*/, '')
+        .replace(/^〒\d{3}-\d{4}\s*/, '');
       const formattedAddress = cleanAddress + ' 付近';
       addressElement.textContent = formattedAddress;
     } else {
@@ -975,7 +977,9 @@ async function fetchPointAddress(lat, lng) {
     const data = await response.json();
     if (data.status === 'OK' && data.results[0]) {
       const address = data.results[0].formatted_address;
-      const cleanAddress = address.replace(/^日本、\s*/, '');
+      const cleanAddress = address
+        .replace(/^日本、\s*/, '')
+        .replace(/^〒\d{3}-\d{4}\s*/, '');
       const formattedAddress = 'ポイント：' + cleanAddress + ' 付近';
       addressElement.textContent = formattedAddress;
     } else {
