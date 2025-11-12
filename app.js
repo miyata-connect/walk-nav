@@ -414,14 +414,19 @@ async function startNavigation(destination) {
   
   try {
     console.log('ルートを取得中...'); 
-    const params = new URLSearchParams({
-      origin: `${originLat},${originLng}`,
-      destination: `${destination.lat},${destination.lng}`,
-      mode: 'walking',
-      language: 'ja'
+    
+    // ★修正: POST メソッドに変更
+    const response = await fetchWithRetry(`${WORKER_ORIGIN}/directions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        origin: `${originLat},${originLng}`,
+        destination: `${destination.lat},${destination.lng}`,
+        mode: 'walking',
+        language: 'ja'
+      })
     });
 
-    const response = await fetchWithRetry(`${WORKER_ORIGIN}/directions?${params.toString()}`);
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Directions API Error: ${response.status} - ${errorText}`);
@@ -884,7 +889,7 @@ function acquireLocation() {
 }
 
 // ==========================================
-// 地名取得（逆ジオコーディング）- Cloudflare経由
+// 地名取得(逆ジオコーディング)- Cloudflare経由
 // ==========================================
 async function fetchLocationNameGoogle(lat, lng) {
   const addressElement = document.getElementById('locAddress');
@@ -898,16 +903,21 @@ async function fetchLocationNameGoogle(lat, lng) {
   coordsElement.textContent = coordsText;
 
   try {
-    console.log('[Geocode] Fetching address directly from Google...');
-    const params = new URLSearchParams({ 
-      latlng: `${lat},${lng}`,
-      language: 'ja',
-      key: API_KEY
+    console.log('[Geocode] Fetching address from Cloudflare...');
+    
+    // ★修正: POST メソッドに変更
+    const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        latlng: { lat: lat, lng: lng },
+        language: 'ja'
+      })
     });
-    const response = await fetchWithRetry(`https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`);
+
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Google Geocode Error ${response.status}: ${errorText}`);
+      throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
     }
     const data = await response.json();
     if (data.status === 'OK' && data.results[0]) {
@@ -915,7 +925,6 @@ async function fetchLocationNameGoogle(lat, lng) {
       const cleanAddress = address.replace(/^日本、\s*/, '');
       const formattedAddress = cleanAddress + ' 付近';
       addressElement.textContent = formattedAddress;
-      console.log('[Geocode] Address fetched successfully:', formattedAddress);
     } else {
       addressElement.textContent = '住所情報なし';
       if (data.status !== 'ZERO_RESULTS') {
@@ -946,16 +955,19 @@ async function fetchPointAddress(lat, lng) {
   addressBlock.style.display = 'flex';
 
   try {
-    console.log('[Geocode] Fetching point address directly from Google...');
-    const params = new URLSearchParams({ 
-      latlng: `${lat},${lng}`,
-      language: 'ja',
-      key: API_KEY
+    // ★修正: POST メソッドに変更
+    const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        latlng: { lat: lat, lng: lng },
+        language: 'ja'
+      })
     });
-    const response = await fetchWithRetry(`https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`);
+
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Google Geocode Error ${response.status}: ${errorText}`);
+      throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
     }
     const data = await response.json();
     if (data.status === 'OK' && data.results[0]) {
@@ -963,7 +975,6 @@ async function fetchPointAddress(lat, lng) {
       const cleanAddress = address.replace(/^日本、\s*/, '');
       const formattedAddress = 'ポイント：' + cleanAddress + ' 付近';
       addressElement.textContent = formattedAddress;
-      console.log('[Geocode] Point address fetched successfully:', formattedAddress);
     } else {
       addressElement.textContent = 'ポイント：住所情報なし';
     }
