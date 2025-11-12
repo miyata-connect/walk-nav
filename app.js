@@ -851,6 +851,29 @@ function startVoiceSearch() {
 }
 
 // ==========================================
+// Geocoding ヘルパー（番地優先）
+// ==========================================
+function pickBestGeocodeResult(results) {
+  if (!Array.isArray(results) || results.length === 0) return null;
+
+  const priorityTypes = [
+    'street_address',
+    'premise',
+    'subpremise',
+    'route',
+    'plus_code'
+  ];
+
+  for (const t of priorityTypes) {
+    const candidate = results.find(r => Array.isArray(r.types) && r.types.includes(t));
+    if (candidate && candidate.formatted_address) {
+      return candidate;
+    }
+  }
+  return results[0];
+}
+
+// ==========================================
 // 現在地取得 (初回1回のみ)
 // ==========================================
 function acquireLocation() {
@@ -924,13 +947,20 @@ async function fetchLocationNameGoogle(lat, lng) {
       throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
     }
     const data = await response.json();
-    if (data.status === 'OK' && data.results[0]) {
-      const address = data.results[0].formatted_address;
-      const cleanAddress = address
-        .replace(/^日本、\s*/, '')
-        .replace(/^〒\d{3}-\d{4}\s*/, '');
-      const formattedAddress = cleanAddress + ' 付近';
-      addressElement.textContent = formattedAddress;
+    console.log('[Geocode] Raw results:', data.results);
+
+    if (data.status === 'OK' && Array.isArray(data.results) && data.results.length > 0) {
+      const best = pickBestGeocodeResult(data.results);
+      if (best && best.formatted_address) {
+        const address = best.formatted_address;
+        const cleanAddress = address.replace(/^日本、\s*/, '');
+        const formattedAddress = cleanAddress + ' 付近';
+        addressElement.textContent = formattedAddress;
+        console.log('[Geocode] Selected address:', address, '=>', formattedAddress);
+      } else {
+        addressElement.textContent = '住所情報なし';
+        console.warn('[Geocode] No formatted_address in best result');
+      }
     } else {
       addressElement.textContent = '住所情報なし';
       if (data.status !== 'ZERO_RESULTS') {
@@ -975,13 +1005,20 @@ async function fetchPointAddress(lat, lng) {
       throw new Error(`Geocode Worker Error ${response.status}: ${errorText}`);
     }
     const data = await response.json();
-    if (data.status === 'OK' && data.results[0]) {
-      const address = data.results[0].formatted_address;
-      const cleanAddress = address
-        .replace(/^日本、\s*/, '')
-        .replace(/^〒\d{3}-\d{4}\s*/, '');
-      const formattedAddress = 'ポイント：' + cleanAddress + ' 付近';
-      addressElement.textContent = formattedAddress;
+    console.log('[Geocode][Point] Raw results:', data.results);
+
+    if (data.status === 'OK' && Array.isArray(data.results) && data.results.length > 0) {
+      const best = pickBestGeocodeResult(data.results);
+      if (best && best.formatted_address) {
+        const address = best.formatted_address;
+        const cleanAddress = address.replace(/^日本、\s*/, '');
+        const formattedAddress = 'ポイント：' + cleanAddress + ' 付近';
+        addressElement.textContent = formattedAddress;
+        console.log('[Geocode][Point] Selected address:', address, '=>', formattedAddress);
+      } else {
+        addressElement.textContent = 'ポイント：住所情報なし';
+        console.warn('[Geocode][Point] No formatted_address in best result');
+      }
     } else {
       addressElement.textContent = 'ポイント：住所情報なし';
     }
