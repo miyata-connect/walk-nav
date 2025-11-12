@@ -222,7 +222,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 // ==========================================
-// レスポンスから距離/時間をを取得
+// レスポンスから距離/時間を取得
 // ==========================================
 function readLegDistanceText(leg) {
   if (leg?.distance?.text) return leg.distance.text;
@@ -1228,7 +1228,7 @@ function showEditLocationDialog() {
           <p class="dialog-text">「${loc.name}」を削除しますか？</p>
           <div class="dialog-actions">
             <button id="btnCancelDelete" class="dialog-btn cancel">キャンセル</button>
-s           <button id="btnConfirmDelete" class="dialog-btn delete">削除</button>
+            <button id="btnConfirmDelete" class="dialog-btn delete">削除</button>
           </div>
         `
       });
@@ -1336,11 +1336,11 @@ function bindKeyboardWatch() {
   searchInput.addEventListener('blur', () => {
     console.log('[Keyboard] Input blurred');
     appBody.classList.remove('keyboard-open');
-    searchPanel.scrollTop = 0;A 
+    searchPanel.scrollTop = 0;
     const resultsVisible = document.getElementById('results').style.display === 'block';
     if (!resultsVisible && !appState.pointSearchMode) {
       navPanel.style.display = 'block';
-  s }
+    }
   });
 }
 
@@ -1380,10 +1380,10 @@ function bindSearchPanelEvents() {
       btnPointSearch.textContent = '📍 ポイント選択中...';
       btnPointSearch.style.background = '#25d07a';
       btnPointSearch.style.color = '#0a2818';
-m     btnPointSearch.style.borderColor = 'transparent';
+      btnPointSearch.style.borderColor = 'transparent';
       console.log('地図をタップして検索地点を選択'); 
       navPanel.style.display = 'none'; 
-  S } else {
+    } else {
       btnPointSearch.textContent = '📍 ポイント選択';
       btnPointSearch.style.background = 'rgba(255,255,255,.08)';
       btnPointSearch.style.color = 'var(--text)';
@@ -1408,7 +1408,7 @@ function bindSearchEvents() {
   document.getElementById('q').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       const q = document.getElementById('q').value.trim();
-A     if (q) performSearch(q);
+      if (q) performSearch(q);
     }
   });
   document.getElementById('btnVoiceIcon').onclick = startVoiceSearch;
@@ -1424,7 +1424,7 @@ A     if (q) performSearch(q);
       appState.searchPointMarker = null;
     }
     const addressBlock = document.getElementById('pointAddressBlock');
-s   const addressElement = document.getElementById('pointAddress');
+    const addressElement = document.getElementById('pointAddress');
     const coordsElement = document.getElementById('pointCoords');
     addressBlock.style.display = 'none';
     addressElement.textContent = '';
@@ -1465,7 +1465,7 @@ function bindFABEvents() {
     } else {
        document.getElementById('fabStack').style.display = 'flex';
     }
-    document.getElementById('appBody').classList.remove('panel-open');s 
+    document.getElementById('appBody').classList.remove('panel-open');
   };
   document.getElementById('btnLocate').onclick = locateUser;
   document.getElementById('btnDestination').onclick = () => {
@@ -1477,7 +1477,7 @@ function bindFABEvents() {
   };
   document.getElementById('btnPause').onclick = togglePause;
   document.getElementById('btnReroute').onclick = () => {
-a   if (appState.currentDestination) {
+    if (appState.currentDestination) {
       startNavigation(appState.currentDestination);
     } else {
       console.warn('目的地が設定されていません'); 
@@ -1498,14 +1498,14 @@ function bindUI() {
   bindFABEvents();
   bindRoutePanelEvents();  
   bindKeyboardWatch(); 
-We console.log('[WalkNav] UI binding complete');
+  console.log('[WalkNav] UI binding complete');
 }
 
 // ==========================================
 // アプリケーション起動
 // ==========================================
 function startApp() {
-S console.log('[WalkNav] Starting app...');
+  console.log('[WalkNav] Starting app...');
   document.documentElement.lang = 'ja';
   document.getElementById('searchPanel').style.display = 'block';
   document.getElementById('fabStack').style.display = 'none';  
@@ -1523,7 +1523,7 @@ S console.log('[WalkNav] Starting app...');
 
 // [追加] Google Maps API コールバック (新しいエントリーポイント)
 window.initMap = function() {
-s console.log('[WalkNav] Google Maps API loaded. Initializing map...');
+  console.log('[WalkNav] Google Maps API loaded. Initializing map...');
   
   // 1. まず地図を（仮の座標で）作成する
   //    acquireLocation の onError でも setupMap が呼ばれる可能性があるため、
