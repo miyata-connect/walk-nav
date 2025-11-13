@@ -3,7 +3,7 @@
 // ==========================================
 // 定数定義
 // ==========================================
-const ISSUE_ID = 'idx202511050540'; // 更新：パネル表示ロジック、ボタン配置
+const ISSUE_ID = 'idx202511050540'; // 更新:パネル表示ロジック、ボタン配置
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0'; // Maps表示用のみ
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -40,19 +40,22 @@ const appState = {
 };
 
 // ==========================================
-// タブ切り替えヘルパー（操作 / 案内）
+// タブ切り替えヘルパー（操作 / 案内 / 設定）
 // ==========================================
 function switchPanelTab(mode) {
   const isNav = mode === 'nav';
+  const isSettings = mode === 'settings';
   const paneSearch = document.getElementById('tabPaneSearch');
   const paneNav = document.getElementById('tabPaneNav');
+  const paneSettings = document.getElementById('tabPaneSettings');
 
-  if (paneSearch && paneNav) {
-    paneSearch.classList.toggle('active', !isNav);
+  if (paneSearch && paneNav && paneSettings) {
+    paneSearch.classList.toggle('active', !isNav && !isSettings);
     paneNav.classList.toggle('active', isNav);
+    paneSettings.classList.toggle('active', isSettings);
   }
 
-  const target = isNav ? 'nav' : 'search';
+  const target = isSettings ? 'settings' : (isNav ? 'nav' : 'search');
   document.querySelectorAll('[data-panel-tab]').forEach(btn => {
     const active = btn.dataset.panelTab === target;
     btn.classList.toggle('active', active);
@@ -357,7 +360,7 @@ function updateMarkerRotation() {
 }
 
 // ==========================================
-// リアルタイム位置情報監視（ナビ中）
+// リアルタイム位置情報監視(ナビ中)
 // ==========================================
 function startLocationWatcher() {
   if (appState.locationWatchId) {
@@ -882,7 +885,7 @@ function startVoiceSearch() {
 }
 
 // ==========================================
-// Geocoding ヘルパー（番地優先）
+// Geocoding ヘルパー(番地優先)
 // ==========================================
 function pickBestGeocodeResult(results) {
   if (!Array.isArray(results) || results.length === 0) return null;
@@ -935,7 +938,7 @@ function acquireLocation() {
     const addressElement = document.getElementById('locAddress');
     const coordsElement = document.getElementById('locCoords');
     if (addressElement) addressElement.textContent = '位置情報を確認できません';
-    if (coordsElement) coordsElement.textContent = '現在地：取得失敗';
+    if (coordsElement) coordsElement.textContent = '現在地:取得失敗';
     console.error('現在地の取得に失敗しました');
   };
 
@@ -958,7 +961,7 @@ async function fetchLocationNameGoogle(lat, lng) {
     console.error('[DEBUG] Elements not found!');
     return;
   }
-  const coordsText = `現在地：緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
+  const coordsText = `現在地:緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
   coordsElement.textContent = coordsText;
 
   try {
@@ -1017,7 +1020,7 @@ async function fetchPointAddress(lat, lng) {
     return;
   }
 
-  addressElement.textContent = 'ポイント：住所取得中...';
+  addressElement.textContent = 'ポイント:住所取得中...';
   coordsElement.textContent = `(緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)})`;
   addressBlock.style.display = 'flex';
 
@@ -1043,24 +1046,24 @@ async function fetchPointAddress(lat, lng) {
       if (best && best.formatted_address) {
         const address = best.formatted_address;
         const cleanAddress = address.replace(/^日本、\s*/, '');
-        const formattedAddress = 'ポイント：' + cleanAddress + ' 付近';
+        const formattedAddress = 'ポイント:' + cleanAddress + ' 付近';
         addressElement.textContent = formattedAddress;
         console.log('[Geocode][Point] Selected address:', address, '=>', formattedAddress);
       } else {
-        addressElement.textContent = 'ポイント：住所情報なし';
+        addressElement.textContent = 'ポイント:住所情報なし';
         console.warn('[Geocode][Point] No formatted_address in best result');
       }
     } else {
-      addressElement.textContent = 'ポイント：住所情報なし';
+      addressElement.textContent = 'ポイント:住所情報なし';
     }
   } catch (error) {
     console.error('[Geocode] Fetch error for Point:', error);
-    addressElement.textContent = 'ポイント：住所取得エラー';
+    addressElement.textContent = 'ポイント:住所取得エラー';
   }
 }
 
 // ==========================================
-// 天気予報取得（OpenWeather API に修正）※既存仕様維持
+// 天気予報取得(OpenWeather API に修正)※既存仕様維持
 // ==========================================
 function iconFromWeatherType(type) {
   const t = (type || '').toUpperCase();
@@ -1276,7 +1279,7 @@ function showEditLocationDialog() {
         id: 'confirmDeleteDialog',
         content: `
           <h3 class="dialog-title">削除確認</h3>
-          <p class="dialog-text">「${loc.name}」を削除しますか？</p>
+          <p class="dialog-text">「${loc.name}」を削除しますか?</p>
           <div class="dialog-actions">
             <button id="btnCancelDelete" class="dialog-btn cancel">キャンセル</button>
             <button id="btnConfirmDelete" class="dialog-btn delete">削除</button>
@@ -1577,7 +1580,7 @@ function startApp() {
   console.log('[WalkNav] ISSUE', ISSUE_ID, 'boot');
 }
 
-// [修正] DOMContentLoaded を待って起動する（既存方式維持）
+// [修正] DOMContentLoaded を待って起動する(既存方式維持)
 function initializeWhenReady() {
   if (typeof google !== 'undefined' && google.maps && google.maps.Map && google.maps.geometry) {
     startApp();
@@ -1586,7 +1589,7 @@ function initializeWhenReady() {
   }
 }
 
-// [修正] DOMContentLoaded リスナーを復活（既存設計準拠）
+// [修正] DOMContentLoaded リスナーを復活(既存設計準拠)
 window.addEventListener('DOMContentLoaded', initializeWhenReady);
 
-// [注記] window.initMap は embed.html からは呼ばれないため未定義（元仕様踏襲）
+// [注記] window.initMap は embed.html からは呼ばれないため未定義(元仕様踏襲)
