@@ -44,7 +44,7 @@
     .btn,.alink{display:inline-flex;align-items:center;justify-content:center;padding:7px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;color:#111;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.08);font-size:12px;text-decoration:none;} /* L038 */
     .muted{color:#6b7280;font-size:12px;margin-top:8px;text-align:center;grid-column:1/-1;} /* L039 */
     .tabmap{position:absolute;inset:0;border:0;background:#e5e7eb;display:none;width:100%;height:100%;z-index:2;} /* L040 */
-    .tabmap.active{display:block;} /* L041 -->
+    .tabmap.active{display:block;} /* L041 */
 
     #app.pos-bottom .topbar{inset:auto 0 0 0;height:var(--bar);box-shadow:0 -8px 24px rgba(0,0,0,.08);} /* L042 */
     #app.pos-bottom .view{top:0;bottom:var(--bar);} /* L043 */
@@ -174,15 +174,15 @@
     }catch(_){ /* L157 */
       try{ /* L158 */
         el.scrollIntoView({block:'nearest',inline:'end'}); /* L159 */
-      }catch(_){/*noop*/} /* L160 */
+      }catch(_){} /* L160 */
     }  /* L161 */
   } /* L162 */
 
   function enforceOrder(doc){ /* L163 */
     try{ /* L164 */
       const all = Array.from(doc.querySelectorAll('div,li,p,span')); /* L165 */
-      const addr = all.find(n => /〒\s*\d{3}-?\d{4}/.test(n.textContent||'')); /* L166 */
-      const coord= all.find(n => /(緯度|経度)/.test(n.textContent||'')); /* L167 */
+      const addr = all.find(function(n){ return /〒\s*\d{3}-?\d{4}/.test(n.textContent||''); }); /* L166 */
+      const coord= all.find(function(n){ return /(緯度|経度)/.test(n.textContent||''); }); /* L167 */
       if(!addr || !coord) return; /* L168 */
 
       const t = (coord.textContent||'').trim(); /* L169 */
@@ -194,24 +194,24 @@
       } else { /* L174 */
         coord.parentNode.insertBefore(addr, coord); /* L175 */
       } /* L176 */
-    }catch(_){/*noop*/} /* L177 */
+    }catch(_){} /* L177 */
   } /* L178 */
 
   function hookEmbed(doc){ /* L179 */
     if(!doc) return; /* L180 */
     let timer=null; /* L181 */
-    const debounced=()=>{ clearTimeout(timer); timer=setTimeout(()=>enforceOrder(doc), 50); }; /* L182 */
+    const debounced=function(){ clearTimeout(timer); timer=setTimeout(function(){ enforceOrder(doc); }, 50); }; /* L182 */
     debounced(); /* L183 */
     try{ /* L184 */
       const mo=new MutationObserver(debounced); /* L185 */
       mo.observe(doc.body||doc,{childList:true,subtree:true,characterData:true}); /* L186 */
-    }catch(_){/*noop*/} /* L187 */
+    }catch(_){} /* L187 */
   } /* L188 */
 
   function attachHookToIframe(ifr){ /* L189 */
     if(!ifr) return; /* L190 */
-    const cb=()=>{ try{ hookEmbed(ifr.contentWindow.document); }catch(_){ } }; /* L191 */
-    if(ifr.contentWindow && (ifr.contentDocument?.readyState==='complete' || ifr.contentDocument?.readyState==='interactive')){ /* L192 */
+    const cb=function(){ try{ hookEmbed(ifr.contentWindow.document); }catch(_){} }; /* L191 */
+    if(ifr.contentWindow && (ifr.contentDocument && (ifr.contentDocument.readyState==='complete' || ifr.contentDocument.readyState==='interactive'))){ /* L192 */
       cb(); /* L193 */
     }else{ /* L194 */
       ifr.addEventListener('load', cb, {once:false}); /* L195 */
@@ -219,110 +219,110 @@
   } /* L197 */
 
   attachHookToIframe(document.getElementById('mapFrame')); /* L198 */
-  attachHookToIframe(document.getElementById('view-browser-map')); /* L199 -->
+  attachHookToIframe(document.getElementById('view-browser-map')); /* L199 */
 
-  function activateTab(btn, doPush=true){ /* L200 */
+  function activateTab(btn, doPush){ /* L200 */
     if(!btn) return; /* L201 */
-    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); /* L202 */
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); /* L203 */
+    document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); }); /* L202 */
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); }); /* L203 */
     btn.classList.add('active'); /* L204 */
     const vid=btn.dataset.view; if(vid){ const v=document.getElementById(vid); if(v) v.classList.add('active'); } /* L205 */
-    requestAnimationFrame(()=>{ /* L206 */
+    requestAnimationFrame(function(){ /* L206 */
       snapIntoView(btn); /* L207 */
     }); /* L208 */
   } /* L209 */
 
   function nextLabel(){ /* L210 */
-    const list=[...document.querySelectorAll('.tab')].filter(n=>!n.classList.contains('add') && !['tab-map','tab-browser'].includes(n.id)); /* L211 */
+    const list=Array.from(document.querySelectorAll('.tab')).filter(function(n){ return !n.classList.contains('add') && !['tab-map','tab-browser'].includes(n.id); }); /* L211 */
     return 'Ai('+(list.length+1)+')'; /* L212 */
   } /* L213 */
 
   function startContentHTML(viewId){ /* L214 */
-    return ` /* L215 */
-      <div class="start" aria-label="リンク集"> /* L216 */
-        <div class="card"> /* L217 */
-          <div style="font-size:24px">🗺️</div> /* L218 */
-          <div class="title">このタブで地図を表示</div> /* L219 */
-          <div class="row"><button class="btn" data-action="open-map-here" data-view="${viewId}" type="button">地図を表示</button></div> /* L220 */
-        </div> /* L221 */
-        <div class="card"> /* L222 */
-          <div style="font-size:24px">🧠</div> /* L223 */
-          <div class="title">Gemini</div> /* L224 */
-          <div class="row"><a class="alink" href="https://gemini.google.com/" target="_blank" rel="noopener noreferrer">Gemini を開く</a></div> /* L225 */
-          <div class="url">https://gemini.google.com/</div> /* L226 */
-        </div> /* L227 */
-        <div class="card"> /* L228 */
-          <div style="font-size:24px">💬</div> /* L229 */
-          <div class="title">ChatGPT</div> /* L230 */
-          <div class="row"><a class="alink" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">ChatGPT を開く</a></div> /* L231 */
-          <div class="url">https://chatgpt.com/</div> /* L232 */
-        </div> /* L233 */
-        <div class="muted">※ リンクは新しいブラウザタブで開きます。本アプリは残ります。</div> /* L234 */
-      </div> /* L235 */
-      <iframe class="tabmap" id="${viewId}-map" title="タブ内地図" src="./embed.html" allow="geolocation *; microphone *" referrerpolicy="no-referrer-when-downgrade"></iframe> /* L236 */
-    `; /* L237 */
-  } /* L238 */
+    return '<div class="start" aria-label="リンク集">' + /* L215 */
+      '<div class="card">' + /* L216 */
+        '<div style="font-size:24px">🗺️</div>' + /* L217 */
+        '<div class="title">このタブで地図を表示</div>' + /* L218 */
+        '<div class="row"><button class="btn" data-action="open-map-here" data-view="' + viewId + '" type="button">地図を表示</button></div>' + /* L219 */
+      '</div>' + /* L220 */
+      '<div class="card">' + /* L221 */
+        '<div style="font-size:24px">🧠</div>' + /* L222 */
+        '<div class="title">Gemini</div>' + /* L223 */
+        '<div class="row"><a class="alink" href="https://gemini.google.com/" target="_blank" rel="noopener noreferrer">Gemini を開く</a></div>' + /* L224 */
+        '<div class="url">https://gemini.google.com/</div>' + /* L225 */
+      '</div>' + /* L226 */
+      '<div class="card">' + /* L227 */
+        '<div style="font-size:24px">💬</div>' + /* L228 */
+        '<div class="title">ChatGPT</div>' + /* L229 */
+        '<div class="row"><a class="alink" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">ChatGPT を開く</a></div>' + /* L230 */
+        '<div class="url">https://chatgpt.com/</div>' + /* L231 */
+      '</div>' + /* L232 */
+      '<div class="muted">※ リンクは新しいブラウザタブで開きます。本アプリは残ります。</div>' + /* L233 */
+    '</div>' + /* L234 */
+    '<iframe class="tabmap" id="' + viewId + '-map" title="タブ内地図" src="./embed.html" allow="geolocation *; microphone *" referrerpolicy="no-referrer-when-downgrade"></iframe>'; /* L235 */
+  } /* L236 */
 
-  let tabCounter=0; /* L239 */
-  function makeIds(){ /* L240 */
-    tabCounter++; /* L241 */
-    const id=`user-${Date.now()}-${tabCounter}`; /* L242 */
-    return {tabId:`tab-${id}`, viewId:`view-${id}`}; /* L243 */
-  } /* L244 */
+  let tabCounter=0; /* L237 */
+  function makeIds(){ /* L238 */
+    tabCounter++; /* L239 */
+    const id='user-'+Date.now()+'-'+tabCounter; /* L240 */
+    return {tabId:'tab-'+id, viewId:'view-'+id}; /* L241 */
+  } /* L242 */
 
-  function persistTabs(){ /* L245 */
-    const nodes=[...document.querySelectorAll('.tab')].filter(n=>!n.classList.contains('add') && !['tab-map','tab-browser'].includes(n.id)); /* L246 */
-    const data=nodes.map(n=>{ /* L247 */
-      const viewId=n.dataset.view; /* L248 */
-      const mapEl=document.getElementById(viewId+'-map'); /* L249 */
-      const mapOpened=!!(mapEl && mapEl.classList.contains('active') && mapEl.src.includes('embed.html')); /* L250 */
-      const label=n.querySelector('.label')?.textContent || n.textContent; /* L251 */
-      return {tabId:n.id, viewId, label, mapOpened}; /* L252 */
-    }); /* L253 */
-    const aiMap=document.getElementById('view-browser-map'); /* L254 */
-    const aiOpened=!!(aiMap && aiMap.classList.contains('active') && aiMap.src.includes('embed.html')); /* L255 */
-    try{ sessionStorage.setItem(SKEY_TABS, JSON.stringify({tabs:data, aiOpened})); }catch(_){/*noop*/} /* L256 */
-  } /* L257 */
+  function persistTabs(){ /* L243 */
+    const nodes=Array.from(document.querySelectorAll('.tab')).filter(function(n){ return !n.classList.contains('add') && !['tab-map','tab-browser'].includes(n.id); }); /* L244 */
+    const data=nodes.map(function(n){ /* L245 */
+      const viewId=n.dataset.view; /* L246 */
+      const mapEl=document.getElementById(viewId+'-map'); /* L247 */
+      const mapOpened=!!(mapEl && mapEl.classList.contains('active') && mapEl.src.includes('embed.html')); /* L248 */
+      const label=(n.querySelector('.label') && n.querySelector('.label').textContent) || n.textContent; /* L249 */
+      return {tabId:n.id, viewId:viewId, label:label, mapOpened:mapOpened}; /* L250 */
+    }); /* L251 */
+    const aiMap=document.getElementById('view-browser-map'); /* L252 */
+    const aiOpened=!!(aiMap && aiMap.classList.contains('active') && aiMap.src.includes('embed.html')); /* L253 */
+    try{ sessionStorage.setItem(SKEY_TABS, JSON.stringify({tabs:data, aiOpened:aiOpened})); }catch(_){} /* L254 */
+  } /* L255 */
 
-  function addTabFromState(state){ /* L258 */
-    const addBtn=document.getElementById('tab-add'); /* L259 */
-    const tab=document.createElement('div'); /* L260 */
-    tab.className='tab'; tab.id=state.tabId; tab.dataset.view=state.viewId; /* L261 */
-    tab.innerHTML=`<span class="label"><svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="#25d07a"/><circle cx="9" cy="10" r="1.5" fill="#fff"/><circle cx="15" cy="10" r="1.5" fill="#fff"/><path d="M8 14c0 2.2 1.8 4 4 4s4-1.8 4-4" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>${state.label}</span><span class="close" data-close="${state.viewId}" aria-label="閉じる">×</span>`; /* L262 */
-    addBtn.parentNode.insertBefore(tab, addBtn); /* L263 */
+  function addTabFromState(state){ /* L256 */
+    const addBtn=document.getElementById('tab-add'); /* L257 */
+    const tab=document.createElement('div'); /* L258 */
+    tab.className='tab'; tab.id=state.tabId; tab.dataset.view=state.viewId; /* L259 */
+    tab.innerHTML='<span class="label"><svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="#25d07a"/><circle cx="9" cy="10" r="1.5" fill="#fff"/><circle cx="15" cy="10" r="1.5" fill="#fff"/><path d="M8 14c0 2.2 1.8 4 4 4s4-1.8 4-4" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>'+state.label+'</span><span class="close" data-close="'+state.viewId+'" aria-label="閉じる">×</span>'; /* L260 */
+    addBtn.parentNode.insertBefore(tab, addBtn); /* L261 */
 
-    const view=document.createElement('div'); /* L264 */
-    view.className='view'; view.id=state.viewId; view.innerHTML=startContentHTML(state.viewId); /* L265 */
-    document.getElementById('app').appendChild(view); /* L266 */
+    const view=document.createElement('div'); /* L262 */
+    view.className='view'; view.id=state.viewId; view.innerHTML=startContentHTML(state.viewId); /* L263 */
+    document.getElementById('app').appendChild(view); /* L264 */
 
-    const m=document.getElementById(state.viewId+'-map'); attachHookToIframe(m); /* L267 */
-    if(state.mapOpened){ /* L268 */
-      if(m){ m.classList.add('active'); } /* L269 */
-      const s=view.querySelector('.start'); if(s) s.style.display='none'; /* L270 */
-    } /* L271 */
-  } /* L272 */
+    const m=document.getElementById(state.viewId+'-map'); attachHookToIframe(m); /* L265 */
+    if(state.mapOpened){ /* L266 */
+      if(m){ m.classList.add('active'); } /* L267 */
+      const s=view.querySelector('.start'); if(s) s.style.display='none'; /* L268 */
+    } /* L269 */
+  } /* L270 */
 
-  function restoreTabs(){ /* L273 */
-    try{ /* L274 */
-      const saved=JSON.parse(sessionStorage.getItem(SKEY_TABS)||'{"tabs":[]}'); /* L275 */
-      (saved.tabs||[]).forEach(addTabFromState); /* L276 */
-      if(saved.aiOpened){ /* L277 */
-        const ai=document.getElementById('view-browser-map'); /* L278 */
-        const s=document.querySelector('#view-browser .start'); /* L279 */
-        if(ai){ ai.classList.add('active'); } /* L280 */
-        if(s) s.style.display='none'; /* L281 */
-      } /* L282 */
-    }catch(_){/*noop*/} /* L283 */
-  } /* L284 */
+  function restoreTabs(){ /* L271 */
+    try{ /* L272 */
+      const saved=JSON.parse(sessionStorage.getItem(SKEY_TABS)||'{"tabs":[]}'); /* L273 */
+      (saved.tabs||[]).forEach(addTabFromState); /* L274 */
+      if(saved.aiOpened){ /* L275 */
+        const ai=document.getElementById('view-browser-map'); /* L276 */
+        const s=document.querySelector('#view-browser .start'); /* L277 */
+        if(ai){ ai.classList.add('active'); } /* L278 */
+        if(s) s.style.display='none'; /* L279 */
+      } /* L280 */
+    }catch(_){} /* L281 */
+  } /* L282 */
 
-  function addTab(label){ /* L285 */
-    const {tabId,viewId}=makeIds(); /* L286 */
+  function addTab(label){ /* L283 */
+    const ids=makeIds(); /* L284 */
+    const tabId=ids.tabId; /* L285 */
+    const viewId=ids.viewId; /* L286 */
     const addBtn=document.getElementById('tab-add'); /* L287 */
     const tab=document.createElement('div'); /* L288 */
     tab.className='tab'; tab.id=tabId; tab.dataset.view=viewId; /* L289 */
-    tab.innerHTML=`<span class="label"><svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="#25d07a"/><circle cx="9" cy="10" r="1.5" fill="#fff"/><circle cx="15" cy="10" r="1.5" fill="#fff"/><path d="M8 14c0 2.2 1.8 4 4 4s4-1.8 4-4" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>${label}</span><span class="close" data-close="${viewId}" aria-label="閉じる">×</span>`; /* L290 */
+    tab.innerHTML='<span class="label"><svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="#25d07a"/><circle cx="9" cy="10" r="1.5" fill="#fff"/><circle cx="15" cy="10" r="1.5" fill="#fff"/><path d="M8 14c0 2.2 1.8 4 4 4s4-1.8 4-4" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>'+label+'</span><span class="close" data-close="'+viewId+'" aria-label="閉じる">×</span>'; /* L290 */
     addBtn.parentNode.insertBefore(tab, addBtn); /* L291 */
-    tab.classList.add('flash'); setTimeout(()=>tab.classList.remove('flash'),200); /* L292 */
+    tab.classList.add('flash'); setTimeout(function(){ tab.classList.remove('flash'); },200); /* L292 */
 
     const view=document.createElement('div'); /* L293 */
     view.className='view'; view.id=viewId; view.innerHTML=startContentHTML(viewId); /* L294 */
@@ -331,13 +331,13 @@
 
     activateTab(tab);  /* L297 */
     persistTabs();  /* L298 */
-    requestAnimationFrame(()=>{ /* L299 */
+    requestAnimationFrame(function(){ /* L299 */
       snapIntoView(addBtn); /* L300 */
     }); /* L301 */
   } /* L302 */
 
   function closeTab(viewId){ /* L303 */
-    const tab=[...document.querySelectorAll('.tab')].find(t=>t.dataset.view===viewId); /* L304 */
+    const tab=Array.from(document.querySelectorAll('.tab')).find(function(t){ return t.dataset.view===viewId; }); /* L304 */
     const view=document.getElementById(viewId); /* L305 */
     if(!tab||!view) return; /* L306 */
     const isActive=tab.classList.contains('active'); /* L307 */
@@ -345,7 +345,7 @@
     if(isActive){ const mapTab=document.getElementById('tab-map'); if(mapTab) activateTab(mapTab); } /* L309 */
   } /* L310 */
 
-  tabsContainer.addEventListener('click',(e)=>{ /* L311 */
+  tabsContainer.addEventListener('click',function(e){ /* L311 */
     const btn=e.target.closest('.tab'); if(!btn) return; /* L312 */
     const close=e.target.closest('.close'); /* L313 */
     if(close){  /* L314 */
@@ -357,7 +357,7 @@
     if(btn.dataset.view){ activateTab(btn); } /* L320 */
   }); /* L321 */
 
-  document.addEventListener('click',(e)=>{ /* L322 */
+  document.addEventListener('click',function(e){ /* L322 */
     const b=e.target.closest('.btn'); if(!b) return; /* L323 */
     if(b.dataset.action==='open-map-here'){  /* L324 */
       const vid=b.dataset.view;  /* L325 */
@@ -376,8 +376,8 @@
     const p=(pos==='bottom'||pos==='left'||pos==='right')?pos:'top'; /* L337 */
     appEl.classList.remove('pos-top','pos-bottom','pos-left','pos-right'); /* L338 */
     appEl.classList.add('pos-'+p); /* L339 */
-    try{ localStorage.setItem(SKEY_POS,p); }catch(_){/*noop*/} /* L340 */
-    requestAnimationFrame(()=>{ /* L341 */
+    try{ localStorage.setItem(SKEY_POS,p); }catch(_){} /* L340 */
+    requestAnimationFrame(function(){ /* L341 */
       snapIntoView(document.getElementById('tab-add')); /* L342 */
     }); /* L343 */
   } /* L344 */
@@ -390,37 +390,36 @@
     return 'left'; /* L350 */
   } /* L351 */
 
-  // postMessage受信：embed.htmlからのタブ位置変更リクエスト /* L352 */
-  window.addEventListener('message', function(e){ /* L353 */
-    if(e.data && e.data.type === 'WN_SET_TAB_POS'){ /* L354 */
-      setTabPosition(e.data.position); /* L355 */
-    } /* L356 */
-    if(e.data && e.data.type === 'WN_REQUEST_TAB_POS'){ /* L357 */
-      const currentPos = getCurrentTabPosition(); /* L358 */
-      const frames = document.querySelectorAll('iframe'); /* L359 */
-      frames.forEach(f => { /* L360 */
-        try{ /* L361 */
-          f.contentWindow.postMessage({type:'WN_CURRENT_TAB_POS', position:currentPos}, '*'); /* L362 */
-        }catch(_){/*noop*/} /* L363 */
-      }); /* L364 */
-    } /* L365 */
-  }); /* L366 */
+  window.addEventListener('message', function(e){ /* L352 */
+    if(e.data && e.data.type === 'WN_SET_TAB_POS'){ /* L353 */
+      setTabPosition(e.data.position); /* L354 */
+    } /* L355 */
+    if(e.data && e.data.type === 'WN_REQUEST_TAB_POS'){ /* L356 */
+      const currentPos = getCurrentTabPosition(); /* L357 */
+      const frames = document.querySelectorAll('iframe'); /* L358 */
+      frames.forEach(function(f){ /* L359 */
+        try{ /* L360 */
+          f.contentWindow.postMessage({type:'WN_CURRENT_TAB_POS', position:currentPos}, '*'); /* L361 */
+        }catch(_){} /* L362 */
+      }); /* L363 */
+    } /* L364 */
+  }); /* L365 */
 
-  (function initPositionUI(){ /* L367 */
-    let saved='left'; try{ saved=localStorage.getItem(SKEY_POS)||saved; }catch(_){/*noop*/} /* L368 */
-    setTabPosition(saved); /* L369 */
-  })(); /* L370 */
+  (function initPositionUI(){ /* L366 */
+    let saved='left'; try{ saved=localStorage.getItem(SKEY_POS)||saved; }catch(_){} /* L367 */
+    setTabPosition(saved); /* L368 */
+  })(); /* L369 */
 
-  (function init(){ /* L371 */
-    restoreTabs(); /* L372 */
-    const mf=document.getElementById('mapFrame'); attachHookToIframe(mf); /* L373 */
-    const initial=document.querySelector('.tab.active')||document.getElementById('tab-map'); /* L374 */
-    activateTab(initial,false); /* L375 */
-    requestAnimationFrame(()=>{ /* L376 */
-      snapIntoView(document.getElementById('tab-add')); /* L377 */
-    }); /* L378 */
-  })(); /* L379 */
-})(); /* L380 */
-</script> <!-- L381 -->
-</body> <!-- L382 -->
-</html> <!-- L383 -->
+  (function init(){ /* L370 */
+    restoreTabs(); /* L371 */
+    const mf=document.getElementById('mapFrame'); attachHookToIframe(mf); /* L372 */
+    const initial=document.querySelector('.tab.active')||document.getElementById('tab-map'); /* L373 */
+    activateTab(initial,false); /* L374 */
+    requestAnimationFrame(function(){ /* L375 */
+      snapIntoView(document.getElementById('tab-add')); /* L376 */
+    }); /* L377 */
+  })(); /* L378 */
+})(); /* L379 */
+</script> <!-- L380 -->
+</body> <!-- L381 -->
+</html> <!-- L382 -->
