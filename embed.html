@@ -27,8 +27,8 @@
     <!-- 下側パネル（操作／案内をタブで切り替え） --> <!-- L023 -->
     <section class="panel" id="searchPanel" aria-label="検索／案内パネル"> <!-- L024 -->
       <div class="panel-tabs-header" id="panelTabHeader"> <!-- L025 -->
-        <button type="button" class="tab-btn active" data-panel-tab="search">操作</button> <!-- L026 -->
-        <button type="button" class="tab-btn" data-panel-tab="nav">案内</button> <!-- L027 -->
+        <div class="tab-btn active" data-panel-tab="search" tabindex="0">操作</div> <!-- L026 -->
+        <div class="tab-btn" data-panel-tab="nav" tabindex="0">案内</div> <!-- L027 -->
       </div> <!-- L028 -->
 
       <div class="panel-tabs-body"> <!-- L029 -->
@@ -83,7 +83,7 @@
           </div> <!-- L072 -->
         </div> <!-- L073 -->
 
-        <!-- 案内タブ：上側だった案内＋ルートを下パネル内に配置 --> <!-- L074 -->
+        <!-- 案内タブ：案内＋ルートを下パネル内に配置 --> <!-- L074 -->
         <div class="tab-pane" id="tabPaneNav"> <!-- L075 -->
           <div class="nav-panel" id="navPanel"> <!-- L076 -->
             <div class="nav-location"> <!-- L077 -->
@@ -152,7 +152,7 @@
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry&loading=async"
     async defer></script> <!-- L132 -->
 
-  <!-- 操作／案内タブ切り替え：パネル本体は消さず中身だけ入れ替え --> <!-- L133 -->
+  <!-- 操作／案内タブ切り替え：パネル本体は消さず中身だけ入れ替え＋他のクリック処理を止める --> <!-- L133 -->
   <script> /* L134 */
     (function(){ /* L135 */
       const tabButtons = document.querySelectorAll('[data-panel-tab]'); /* L136 */
@@ -173,15 +173,27 @@
         }); /* L148 */
       } /* L149 */
 
-      tabButtons.forEach(btn => { /* L150 */
-        btn.addEventListener('click', function(){ /* L151 */
-          const mode = this.dataset.panelTab === 'nav' ? 'nav' : 'search'; /* L152 */
-          setMode(mode); /* L153 */
-        }); /* L154 */
-      }); /* L155 */
+      function handleTabClick(e, mode){ /* L150 */
+        e.preventDefault(); /* L151 */
+        e.stopPropagation(); /* L152 */
+        setMode(mode); /* L153 */
+      } /* L154 */
 
-      setMode('search'); /* L156 */
-    })(); /* L157 */
-  </script> <!-- L158 -->
-</body> <!-- L159 -->
-</html> <!-- L160 -->
+      tabButtons.forEach(btn => { /* L155 */
+        btn.addEventListener('click', function(e){ /* L156 */
+          const mode = this.dataset.panelTab === 'nav' ? 'nav' : 'search'; /* L157 */
+          handleTabClick(e, mode); /* L158 */
+        }); /* L159 */
+        btn.addEventListener('keydown', function(e){ /* L160 */
+          if(e.key === 'Enter' || e.key === ' '){ /* L161 */
+            const mode = this.dataset.panelTab === 'nav' ? 'nav' : 'search'; /* L162 */
+            handleTabClick(e, mode); /* L163 */
+          } /* L164 */
+        }); /* L165 */
+      }); /* L166 */
+
+      setMode('search'); /* L167 */
+    })(); /* L168 */
+  </script> <!-- L169 -->
+</body> <!-- L170 -->
+</html> <!-- L171 -->
