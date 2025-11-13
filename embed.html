@@ -10,6 +10,127 @@
 
   <link rel="stylesheet" href="app.css?v=3" /> <!-- L009 -->
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" /> <!-- L010 -->
+  <style>
+    /* 統合パネル用スタイル */
+    .unified-panel {
+      position: absolute;
+      left: 28px;
+      right: 28px;
+      bottom: 16px;
+      top: auto;
+      background: var(--glass-strong);
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 0;
+      backdrop-filter: blur(10px);
+      z-index: 2500;
+      max-height: calc(100vh - 32px);
+      overflow: hidden;
+      display: none;
+    }
+
+    /* タブボタン領域 */
+    .panel-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--stroke);
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    /* タブボタン */
+    .panel-tab {
+      flex: 1;
+      padding: 12px 16px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .panel-tab:first-child {
+      border-radius: var(--radius) 0 0 0;
+    }
+
+    .panel-tab:last-child {
+      border-radius: 0 var(--radius) 0 0;
+    }
+
+    .panel-tab.active {
+      background: var(--glass-strong);
+      color: var(--primary);
+    }
+
+    .panel-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--primary);
+    }
+
+    /* タブコンテンツ */
+    .tab-content {
+      display: none;
+      padding: 14px 14px 12px;
+      max-height: calc(100vh - 32px - 48px);
+      overflow-y: auto;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .tab-content h2 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+    }
+
+    /* 案内タブ内のルートパネル */
+    .route-panel-inline {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--stroke);
+      display: none;
+    }
+
+    .route-panel-inline .route-info {
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .route-panel-inline .route-distance {
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    .route-panel-inline .route-time {
+      font-size: 16px;
+      color: var(--muted);
+      margin-left: 12px;
+    }
+
+    .route-panel-inline .route-actions {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+  </style>
 </head> <!-- L011 -->
 <body id="appBody"> <!-- L012 -->
   <div class="app"> <!-- L013 -->
@@ -95,24 +216,24 @@
           </div> <!-- L084 -->
         </div> <!-- L085 -->
         <div class="nav-instructions-list" id="navPanelInstructions"></div> <!-- L086 -->
-        
-        <div class="route-panel-inline" id="routePanelInline"> <!-- L087 -->
-          <div class="route-info"> <!-- L088 -->
-            <span id="destinationName">目的地</span>へのルート <!-- L089 -->
-          </div> <!-- L090 -->
-          <div> <!-- L091 -->
-            <span class="route-distance" id="routeDistance">--</span> <!-- L092 -->
-            <span class="route-time" id="routeTime">徒歩 --分</span> <!-- L093 -->
-          </div> <!-- L094 -->
-          <div class="route-actions"> <!-- L095 -->
-            <button id="btnExportText" class="btn" style="width:100%;background:rgba(255,255,255,0.1)">道順をコピー</button> <!-- L096 -->
-            <button id="btnStopRoute" class="btn danger" style="width:100%">ルート終了</button> <!-- L097 -->
-          </div> <!-- L098 -->
-        </div> <!-- L099 -->
-      </div> <!-- L100 -->
-    </section> <!-- L101 -->
+      </div> <!-- L087 -->
+    </section> <!-- L088 -->
     
-    <div class="incident-panel" id="incidentPanel"></div> <!-- L102 -->
+    <div class="incident-panel" id="incidentPanel"></div> <!-- L089 -->
+
+    <div class="route-panel" id="routePanel"> <!-- L090 -->
+      <div class="route-info"> <!-- L091 -->
+        <span id="destinationName">目的地</span>へのルート <!-- L092 -->
+      </div> <!-- L093 -->
+      <div> <!-- L094 -->
+        <span class="route-distance" id="routeDistance">--</span> <!-- L095 -->
+        <span class="route-time" id="routeTime">徒歩 --分</span> <!-- L096 -->
+      </div> <!-- L097 -->
+      <div class="route-actions"> <!-- L098 -->
+        <button id="btnExportText" class="btn" style="width:100%;background:rgba(255,255,255,0.1)">道順をコピー</button> <!-- L099 -->
+        <button id="btnStopRoute" class="btn danger" style="width:100%">ルート終了</button> <!-- L100 -->
+      </div> <!-- L101 -->
+    </div> <!-- L102 -->
 
     <div class="fab-stack" id="fabStack"> <!-- L103 -->
       <div class="fab" id="btnSearch">検索パネル</div> <!-- L104 -->
@@ -139,15 +260,17 @@
   <!-- タブ切り替えロジック --> <!-- L119 -->
   <script> /* L120 */
     (function(){
+      const unifiedPanel = document.getElementById('unifiedPanel');
       const panelTabs = document.querySelectorAll('.panel-tab');
       const tabContents = document.querySelectorAll('.tab-content');
+      const btnSearch = document.getElementById('btnSearch');
+      const btnClosePanel = document.getElementById('btnClosePanel');
 
+      // タブ切り替え関数
       function switchTab(tabName){
-        // すべてのタブとコンテンツから active を削除
         panelTabs.forEach(tab => tab.classList.remove('active'));
         tabContents.forEach(content => content.classList.remove('active'));
 
-        // 指定されたタブとコンテンツに active を追加
         const activeTab = document.querySelector(`.panel-tab[data-tab="${tabName}"]`);
         const activeContent = document.getElementById(tabName + 'Content');
         
@@ -155,6 +278,22 @@
         if(activeContent) activeContent.classList.add('active');
       }
 
+      // パネル表示関数
+      function showPanel(tabName = 'operation'){
+        if(unifiedPanel){
+          unifiedPanel.style.display = 'block';
+          switchTab(tabName);
+        }
+      }
+
+      // パネル非表示関数
+      function hidePanel(){
+        if(unifiedPanel){
+          unifiedPanel.style.display = 'none';
+        }
+      }
+
+      // タブボタンのクリックイベント
       panelTabs.forEach(tab => {
         tab.addEventListener('click', function(){
           const tabName = this.dataset.tab;
@@ -162,8 +301,29 @@
         });
       });
 
-      // デフォルトは操作タブを表示
-      switchTab('operation');
+      // 検索パネルボタン（FAB）
+      if(btnSearch){
+        btnSearch.addEventListener('click', function(){
+          showPanel('operation');
+        });
+      }
+
+      // 閉じるボタン
+      if(btnClosePanel){
+        btnClosePanel.addEventListener('click', function(){
+          hidePanel();
+        });
+      }
+
+      // グローバルに公開（app.jsから呼び出し可能にする）
+      window.WalkNavPanel = {
+        show: showPanel,
+        hide: hidePanel,
+        switchTab: switchTab
+      };
+
+      // デフォルトは非表示
+      hidePanel();
     })();
   </script> <!-- L121 -->
 </body> <!-- L122 -->
