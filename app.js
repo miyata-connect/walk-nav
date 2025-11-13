@@ -40,6 +40,26 @@ const appState = {
 };
 
 // ==========================================
+// タブ切り替えヘルパー（操作 / 案内）
+// ==========================================
+function switchPanelTab(mode) {
+  const isNav = mode === 'nav';
+  const paneSearch = document.getElementById('tabPaneSearch');
+  const paneNav = document.getElementById('tabPaneNav');
+
+  if (paneSearch && paneNav) {
+    paneSearch.classList.toggle('active', !isNav);
+    paneNav.classList.toggle('active', isNav);
+  }
+
+  const target = isNav ? 'nav' : 'search';
+  document.querySelectorAll('[data-panel-tab]').forEach(btn => {
+    const active = btn.dataset.panelTab === target;
+    btn.classList.toggle('active', active);
+  });
+}
+
+// ==========================================
 // リトライ機能付きfetch
 // ==========================================
 async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
@@ -411,9 +431,16 @@ async function startNavigation(destination) {
   appState.isNavigating = true;
   appState.isPaused = false;
 
-  document.getElementById('searchPanel').style.display = 'none';
-  document.getElementById('fabStack').style.display = 'flex';
-  document.getElementById('appBody').classList.remove('panel-open');
+  const searchPanelEl = document.getElementById('searchPanel');
+  const fabStackEl = document.getElementById('fabStack');
+  const appBodyEl = document.getElementById('appBody');
+
+  if (searchPanelEl) searchPanelEl.style.display = 'block';
+  if (fabStackEl) fabStackEl.style.display = 'flex';
+  if (appBodyEl) appBodyEl.classList.add('panel-open');
+
+  // タブを案内側に切り替え
+  switchPanelTab('nav');
   stopCompassListener();
 
   try {
@@ -449,7 +476,7 @@ async function startNavigation(destination) {
       document.getElementById('routeDistance').textContent = distanceText;
       document.getElementById('routeTime').textContent = `徒歩 ${durationText}`;
       document.getElementById('routePanel').style.display = 'block';
-      document.getElementById('searchPanel').style.display = 'none';
+      document.getElementById('searchPanel').style.display = 'block';
       document.getElementById('results').style.display = 'none';
       document.getElementById('btnDestination').style.display = 'flex';
 
@@ -581,6 +608,10 @@ function stopNavigation() {
   }
   updateMarkerRotation();
   document.getElementById('appBody').classList.add('panel-open');
+
+  // 停止後は操作タブに戻す
+  switchPanelTab('search');
+
   console.log('ルート案内を終了しました');
   console.log('[Navigation] ルート案内終了');
 }
@@ -1476,6 +1507,9 @@ function bindFABEvents() {
     }
     document.getElementById('navPanelInstructions').innerHTML = '';
     document.getElementById('incidentPanel').style.display = 'none';
+
+    // FABから戻ったら操作タブへ
+    switchPanelTab('search');
   };
   document.getElementById('btnClosePanel').onclick = () => {
     document.getElementById('searchPanel').style.display = 'none';
@@ -1532,6 +1566,10 @@ function startApp() {
   document.getElementById('btnSearch').style.display = 'flex';
   document.getElementById('appBody').classList.add('panel-open');
   document.getElementById('navPanel').style.display = 'block';
+
+  // 初期は操作タブ
+  switchPanelTab('search');
+
   bindUI();
   acquireLocation();
   initSpeechRecognition();
