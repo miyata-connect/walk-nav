@@ -1,507 +1,532 @@
-:root{  
-  --bg:#0b1220;  
-  --glass: rgba(20,28,44,.78);  
-  --glass-strong: rgba(16,22,36,.9);  
-  --stroke: rgba(255,255,255,.12);  
-  --text:#eaf2ff;  
-  --muted:#a7b8ce;  
-  --primary:#62b5ff;  
-  --ok:#25d07a;  
-  --danger:#ff6565;  
-  --warning:#ffb84d;  
-  --shadow:0 10px 35px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);  
-  --radius:18px;  
-}  
-html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans JP",Segoe UI,Roboto,Helvetica,Arial,sans-serif}  
-*{box-sizing:border-box}  
-  
-.app{position:relative;height:100dvh;overflow:hidden}  
-#map{position:absolute;inset:0}  
+:root{  /* L001 */
+  --bg:#0b1220;  /* L002 */
+  --glass: rgba(20,28,44,.78);  /* L003 */
+  --glass-strong: rgba(16,22,36,.9);  /* L004 */
+  --stroke: rgba(255,255,255,.12);  /* L005 */
+  --text:#eaf2ff;  /* L006 */
+  --muted:#a7b8ce;  /* L007 */
+  --primary:#62b5ff;  /* L008 */
+  --ok:#25d07a;  /* L009 */
+  --danger:#ff6565;  /* L010 */
+  --warning:#ffb84d;  /* L011 */
+  --shadow:0 10px 35px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);  /* L012 */
+  --radius:18px;  /* L013 */
+}  /* L014 */
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans JP",Segoe UI,Roboto,Helvetica,Arial,sans-serif}  /* L015 */
+*{box-sizing:border-box}  /* L016 */
 
-/* ★ 追加: 入力中は地図のヒットテストを無効化（見た目はそのまま） */
-.keyboard-open #map { pointer-events: none; }
+.app{position:relative;height:100dvh;overflow:hidden}  /* L017 */
+#map{position:absolute;inset:0}  /* L018 */
 
-.fab-stack{  
-  position:fixed;  
-  right:16px;  
-  bottom: 16px;   
-  display:flex;  
-  flex-direction:column;  
-  gap:12px;  
-  z-index:2550;    
-  display:none;    
-}  
-.panel{  
-  position:absolute;  
-  left:28px;  
-  right:28px;  
-  bottom:16px;  
-  top:auto;  
-  background:var(--glass-strong);border:1px solid var(--stroke);  
-  border-radius:var(--radius);box-shadow:var(--shadow);  
-  padding:14px 14px 12px;backdrop-filter:blur(10px);  
-  z-index:2500;  
-  max-height:calc(100vh - 32px);  
-  overflow-y:auto;  
-  transition: top 0.3s ease-out, bottom 0.3s ease-out;   
-}  
-.panel h2{  
-  margin:0 0 10px;  
-  font-size:17px;  
-  letter-spacing:.3px;  
-  white-space:nowrap;  
-  overflow:hidden;  
-  text-overflow:ellipsis;  
-  text-align:center;  
-}  
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}  
-.chip{padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--stroke);color:var(--text);font-size:14px;cursor:pointer;user-select:none}  
-.chip.active{background:var(--primary);color:#05233a;border-color:transparent}  
-  
-/* 汎用inputスタイル（paddingを削除して競合を回避） */  
-.input{  
-  flex:1;min-width:220px;  
-  border-radius:12px;border:1px solid var(--stroke);  
-  background:rgba(255,255,255,.06);color:var(--text);outline:none;
-  position:relative; z-index:2; /* ★ 入力域を常に最前面に */
-}  
-  
-/* 検索窓ラッパー */  
-.input-wrapper {  
-  position: relative;  
-  display: flex;  
-  align-items: center;  
-  width: 100%;  
-  height: 48px; /* ラッパー自体に高さを指定 */  
-}  
-/* input-wrapper内のinputに、アイコン余白を含めたpaddingと高さを指定 */  
-.input-wrapper .input {  
-  padding: 10px 80px 10px 40px;  
-  height: 48px; /* 高さを固定してアイコンが隠れないようにする */  
-}  
-/* モバイルフォーカス時の拡大防止 */  
-.input-wrapper .input:focus {  
-  font-size: 16px;  
-}  
-.input-wrapper .icon {  
-  position: absolute;  
-  display: flex;  
-  align-items: center;  
-  justify-content: center;  
-  top: 50%;  
-  transform: translateY(-50%);  
-  opacity: 0.7;  
-  pointer-events: auto;
-  z-index: 3; /* ★ アイコンは前面だが、入力域は z-index:2 でキャレット優先 */
-}  
-  
-/* Gアイコンの色 */  
-.input-wrapper .icon-g {  
-  left: 12px;  
-  pointer-events: none; /* 装飾のみ */
-  color: #4285F4; 
-}  
-  
-/* 虫眼鏡（クリック可） */  
-.input-wrapper .icon-search {  
-  right: 50px;  
-  cursor: pointer;  
-  z-index: 3;  
-  color: var(--primary);  
-  opacity: 0.8;  
-}  
-.input-wrapper .icon-search:hover {  
-  opacity: 1;  
-  transform: scale(1.1);  
-}  
-  
-/* マイク（クリック可。録音中だけ背景を付与） */  
-.input-wrapper .icon-mic {  
-  right: 12px;  
-  cursor: pointer;  
-  z-index: 3;  
-  width: 36px;   
-  height: 36px;  
-  padding: 7px;   
-  border-radius: 50%;  
-  box-sizing: border-box;   
-  transition: background-color 0.2s;  
-  color: var(--text);  
-  opacity: 0.7;  
-}  
-.input-wrapper .icon-mic.recording {  
-  background-color: var(--danger);  
-  color: var(--text);  
-  opacity: 1;   
-}  
-.input-wrapper .icon-mic:hover:not(.recording) {  
-  background-color: rgba(255, 255, 255, 0.1);  
-  opacity: 1;  
-}  
-  
-/* ポイント住所 */  
-#pointAddressBlock {  
-  flex-wrap: wrap;  
-  align-items: baseline;  
-}  
-#pointCoords {  
-  font-size: 12px;  
-  color: var(--muted);  
-  margin-left: 8px;  
-}  
-  
-.btn{  
-  padding:10px 14px;border-radius:12px;border:1px solid var(--stroke);  
-  background:rgba(255,255,255,.06);color:var(--text);  
-  cursor:pointer;user-select:none;border:none;  
-}  
-.btn.primary{background:var(--primary);color:#051a2a;border-color:transparent}  
-.btn.danger{background:var(--danger);color:#240808;border-color:transparent}  
-.btn:disabled{opacity:.5;pointer-events:none}  
-  
-.fab{  
-  min-width:112px; height:56px; display:flex;align-items:center;justify-content:center;  
-  background:var(--glass-strong); border:1px solid var(--stroke); border-radius:18px;  
-  color:var(--text); box-shadow:var(--shadow); cursor:pointer; user-select:none;  
-  font-size:14px;  
-}  
-.fab:active{transform:translateY(1px)}  
-.fab.paused{background:var(--warning);color:#2a1d05;border-color:transparent}  
-  
-.loading{  
-  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;  
-  background:#000; color:#fff; font-size:20px; z-index:3000  
-}  
-  
-.results{  
-  margin-top:12px;  
-  background:rgba(0,0,0,.3);  
-  border-radius:12px;  
-  padding:8px;  
-}  
-.result-item{  
-  padding:10px;  
-  margin-bottom:6px;  
-  background:rgba(255,255,255,.05);  
-  border-radius:8px;  
-  cursor:pointer;  
-  transition:background .2s;  
-}  
-.result-item:hover{  
-  background:rgba(255,255,255,.1);  
-}  
-.result-name{  
-  font-weight:600;  
-  margin-bottom:4px;  
-  font-size:16px;  
-}  
-.result-address{  
-  font-size:12px;  
-  color:var(--muted);  
-}  
-  
-.route-panel{  
-  position:absolute;  
-  left:28px;  
-  bottom:16px;  
-  top:auto;  
-  right: 144px;    
-  background:var(--glass-strong);  
-  border:1px solid var(--stroke);  
-  border-radius:var(--radius);  
-  box-shadow:var(--shadow);  
-  padding:14px;  
-  backdrop-filter:blur(10px);  
-  z-index:2500;  
-  display:none;  
-  min-height: 142px;    
-}  
-  
-.route-info{  
-  font-size:14px;  
-  margin-bottom:8px;  
-}  
-.route-distance{  
-  font-size:24px;  
-  font-weight:bold;  
-  color:var(--primary);  
-}  
-.route-time{  
-  font-size:16px;  
-  color:var(--muted);  
-  margin-left:12px;  
-}  
-.route-actions {  
-  margin-top: 10px;  
-  display: flex;  
-  flex-direction: column;  
-  gap: 8px;  
-}  
-  
-/* 道順案内パネル（現在地パネル） */  
-.nav-panel{  
-  position:absolute;  
-  left: 28px;  
-  right: 28px;    
-  top: 16px;      
-  bottom: auto;    
-  background:var(--glass-strong);  
-  border:1px solid var(--stroke);  
-  border-radius:var(--radius);  
-  box-shadow:var(--shadow);  
-  padding:14px;  
-  backdrop-filter:blur(10px);  
-  z-index:2500;  
-  display:none;  
-  max-height: 45vh;    
-  overflow-y: auto;    
-}  
-  
-.nav-location{  
-  font-size:13px;  
-  color:var(--muted);  
-  margin-bottom:12px;  
-  flex-direction:column;  
-  align-items:flex-start;  
-  gap: 4px;  
-  border-bottom: 1px solid var(--stroke);  
-  padding-bottom: 10px;  
-}  
-#locCoords {  
-  font-size: 14px;  
-  color: var(--muted);  
-  font-weight: 500;  
-}  
-#locAddress {  
-  font-size: 14px;  
-  color: var(--text);  
-  font-weight: 600;  
-  line-height: 1.5;  
-}  
-  
-.nav-weather{  
-  display: flex;  
-  gap: 12px;  
-  justify-content: space-around;  
-  padding-bottom: 12px;  
-  margin-bottom: 12px;  
-  border-bottom: 1px solid var(--stroke);  
-}  
-.weather-item{  
-  display: flex;  
-  flex-direction: column;  
-  align-items: center;  
-  font-size: 11px;  
-  color: var(--muted);  
-}  
-.weather-item span:first-child{  
-  font-weight: 600;  
-}  
-.weather-item span:last-child{  
-  font-size: 18px;  
-  margin-top: 4px;  
-}  
-  
-.nav-instructions-list{  
-  display:flex;  
-  flex-direction:column;  
-  gap: 10px;  
-}  
-.nav-instruction-item{  
-  font-size: 14px;  
-  line-height: 1.6;  
-  color: var(--text);  
-  padding-bottom: 10px;  
-  border-bottom: 1px solid rgba(255,255,255,0.08);  
-}  
-.nav-instruction-item:last-child{  
-  border-bottom: none;  
-  padding-bottom: 0;  
-}  
-.nav-instruction-item:first-child {  
-  background: rgba(98, 181, 255, 0.2);    
-  padding: 10px;  
-  border-radius: 12px;  
-  border-bottom: none;  
-  margin: -4px;  
-}  
-.nav-instruction-item:first-child + .nav-instruction-item {  
-  margin-top: 10px;  
-}  
-  
-/* インシデントパネル */  
-.incident-panel{  
-  position:absolute;  
-  left:28px;  
-  right: 144px;  
-  bottom: calc(16px + 142px + 10px);  
-  top:auto;  
-  background: rgba(255, 184, 77, 0.15);  
-  border:1px solid var(--warning);  
-  border-radius:12px;  
-  box-shadow:var(--shadow);  
-  padding:10px 14px;  
-  backdrop-filter:blur(10px);  
-  z-index:2500;  
-  display:none;  
-  font-size: 13px;  
-  color: var(--warning);  
-  max-height: 50px;  
-  overflow-y: auto;  
-}  
-  
-/* ダイアログ */  
-.dialog-overlay{  
-  position:fixed;  
-  inset:0;  
-  background:rgba(0,0,0,0.7);  
-  display:flex;  
-  align-items:center;  
-  justify-content:center;  
-  z-index:9999;  
-  backdrop-filter:blur(4px);  
-}  
-.dialog-overlay.scroll{  
-  overflow:auto;  
-}  
-.dialog-box{  
-  background:var(--glass-strong);  
-  border:1px solid var(--stroke);  
-  border-radius:var(--radius);  
-  padding:24px;  
-  max-width:400px;  
-  width:90%;  
-  box-shadow:var(--shadow);  
-}  
-.dialog-box.wide{  
-  max-width:500px;  
-  max-height:80vh;  
-  overflow-y:auto;  
-  margin:20px;  
-}  
-.dialog-title{  
-  margin:0 0 16px;  
-  font-size:18px;  
-  color:var(--text);  
-  font-weight:600;  
-}  
-.dialog-text{  
-  margin:0 0 16px;  
-  font-size:14px;  
-  color:var(--text);  
-}  
-.dialog-muted{  
-  margin:0 0 16px;  
-  font-size:12px;  
-  color:var(--muted);  
-}  
-.dialog-input{  
-  width:100%;  
-  padding:10px;  
-  border-radius:8px;  
-  border:1px solid var(--stroke);  
-  background:rgba(255,255,255,0.1);  
-  color:var(--text);  
-  font-size:16px;  
-  outline:none;  
-  margin-bottom:16px;  
-}  
-.dialog-actions{  
-  display:flex;  
-  gap:10px;  
-  justify-content:flex-end;  
-}  
-.dialog-btn{  
-  padding:10px 20px;  
-  border-radius:8px;  
-  border:none;  
-  cursor:pointer;  
-  font-size:14px;  
-}  
-.dialog-btn.cancel{  
-  background:rgba(255,255,255,0.1);  
-  color:var(--text);  
-}  
-.dialog-btn.confirm{  
-  background:var(--primary);  
-  color:#051a2a;  
-}  
-.dialog-btn.delete{  
-  background:var(--danger);  
-  color:#240808;  
-}  
-.dialog-btn.full{  
-  width:100%;  
-  margin-top:0;  
-}  
-  
-/* 登録地点リスト */  
-.location-list{  
-  display:flex;  
-  flex-direction:column;  
-  gap:8px;  
-}  
-.location-item{  
-  background:rgba(255,255,255,0.05);  
-  border-radius:8px;  
-  padding:12px;  
-}  
-.location-item-name{  
-  font-size:16px;  
-  font-weight:600;  
-  color:var(--text);  
-  margin-bottom:4px;  
-}  
-.location-item-coords{  
-  font-size:12px;  
-  color:var(--muted);  
-  margin-bottom:8px;  
-}  
-.location-item-actions{  
-  display:flex;  
-  gap:8px;  
-}  
-.location-item-btn{  
-  flex:1;  
-  padding:8px;  
-  border-radius:6px;  
-  border:none;  
-  cursor:pointer;  
-  font-size:13px;  
-}  
-.location-item-btn.nav{  
-  background:var(--primary);  
-  color:#051a2a;  
-}  
-.location-item-btn.edit{  
-  background:rgba(255,255,255,0.1);  
-  color:var(--text);  
-}  
-.location-item-btn.delete{  
-  background:var(--danger);  
-  color:#240808;  
-}  
-  
-/* 現在地ラベル */  
-#locLabel{  
-  display:block;  
-  white-space:pre-line;  
-  line-height:1.6;  
-  word-break:break-word;  
-  max-width:100%;  
-}  
-  
-.error-banner{display:none !important}  
-  
-/* ★ 重要: 入力中レイアウトを非破壊化（要素を消さない） */
-.keyboard-open .panel#searchPanel {
-  max-height: calc(100vh - 32px);
-  overflow-y: auto;
-}
-/* 以前の「.keyboard-open .panel#searchPanel .row { display:none }」は廃止 */
+/* ★ 入力中は地図のヒットテストを無効化（見た目はそのまま） */  /* L019 */
+.keyboard-open #map { pointer-events: none; }  /* L020 */
+
+.fab-stack{  /* L021 */
+  position:fixed;  /* L022 */
+  right:16px;  /* L023 */
+  bottom: 16px;   /* L024 */
+  display:flex;  /* L025 */
+  flex-direction:column;  /* L026 */
+  gap:12px;  /* L027 */
+  z-index:2550;    /* L028 */
+  display:none;    /* L029 */
+}  /* L030 */
+.panel{  /* L031 */
+  position:absolute;  /* L032 */
+  left:28px;  /* L033 */
+  right:28px;  /* L034 */
+  bottom:16px;  /* L035 */
+  top:auto;  /* L036 */
+  background:var(--glass-strong);border:1px solid var(--stroke);  /* L037 */
+  border-radius:var(--radius);box-shadow:var(--shadow);  /* L038 */
+  padding:14px 14px 12px;backdrop-filter:blur(10px);  /* L039 */
+  z-index:2500;  /* L040 */
+  max-height:calc(100vh - 32px);  /* L041 */
+  overflow-y:auto;  /* L042 */
+  transition: top 0.3s ease-out, bottom 0.3s ease-out;   /* L043 */
+}  /* L044 */
+.panel h2{  /* L045 */
+  margin:0 0 10px;  /* L046 */
+  font-size:17px;  /* L047 */
+  letter-spacing:.3px;  /* L048 */
+  white-space:nowrap;  /* L049 */
+  overflow:hidden;  /* L050 */
+  text-overflow:ellipsis;  /* L051 */
+  text-align:center;  /* L052 */
+}  /* L053 */
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}  /* L054 */
+.chip{padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--stroke);color:var(--text);font-size:14px;cursor:pointer;user-select:none}  /* L055 */
+.chip.active{background:var(--primary);color:#05233a;border-color:transparent}  /* L056 */
+
+/* ★ タブヘッダ＆タブボタン（操作／案内） */  /* L057 */
+.panel-tabs-header{display:flex;gap:8px;margin-bottom:8px;justify-content:center}  /* L058 */
+.panel-tabs-header .tab-btn{  /* L059 */
+  flex:1;  /* L060 */
+  max-width:160px;  /* L061 */
+  border-radius:999px;  /* L062 */
+  border:1px solid rgba(255,255,255,0.3);  /* L063 */
+  background:rgba(0,0,0,0.15);  /* L064 */
+  color:#fff;  /* L065 */
+  font-size:13px;  /* L066 */
+  padding:6px 10px;  /* L067 */
+  cursor:pointer;  /* L068 */
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;  /* L069 */
+  text-align:center;  /* L070 */
+}  /* L071 */
+.panel-tabs-header .tab-btn.active{  /* L072 */
+  background:#fff;  /* L073 */
+  color:#111;  /* L074 */
+  border-color:#fff;  /* L075 */
+  box-shadow:0 4px 12px rgba(0,0,0,0.25);  /* L076 */
+}  /* L077 */
+.panel-tabs-body{position:relative}  /* L078 */
+.tab-pane{display:none}  /* L079 */
+.tab-pane.active{display:block}  /* L080 */
+
+ /* 汎用inputスタイル（paddingを削除して競合を回避） */  /* L081 */
+.input{  /* L082 */
+  flex:1;min-width:220px;  /* L083 */
+  border-radius:12px;border:1px solid var(--stroke);  /* L084 */
+  background:rgba(255,255,255,.06);color:var(--text);outline:none; /* L085 */
+  position:relative; z-index:2; /* 入力域を常に最前面に */  /* L086 */
+}  /* L087 */
+
+/* 検索窓ラッパー */  /* L088 */
+.input-wrapper {  /* L089 */
+  position: relative;  /* L090 */
+  display: flex;  /* L091 */
+  align-items: center;  /* L092 */
+  width: 100%;  /* L093 */
+  height: 48px; /* ラッパー自体に高さを指定 */  /* L094 */
+}  /* L095 */
+/* input-wrapper内のinputに、アイコン余白を含めたpaddingと高さを指定 */  /* L096 */
+.input-wrapper .input {  /* L097 */
+  padding: 10px 80px 10px 40px;  /* L098 */
+  height: 48px; /* 高さを固定してアイコンが隠れないようにする */  /* L099 */
+}  /* L100 */
+/* モバイルフォーカス時の拡大防止 */  /* L101 */
+.input-wrapper .input:focus {  /* L102 */
+  font-size: 16px;  /* L103 */
+}  /* L104 */
+.input-wrapper .icon {  /* L105 */
+  position: absolute;  /* L106 */
+  display: flex;  /* L107 */
+  align-items: center;  /* L108 */
+  justify-content: center;  /* L109 */
+  top: 50%;  /* L110 */
+  transform: translateY(-50%);  /* L111 */
+  opacity: 0.7;  /* L112 */
+  pointer-events: auto;  /* L113 */
+  z-index: 3; /* アイコンは前面だが、入力域は z-index:2 でキャレット優先 */  /* L114 */
+}  /* L115 */
+
+/* Gアイコンの色 */  /* L116 */
+.input-wrapper .icon-g {  /* L117 */
+  left: 12px;  /* L118 */
+  pointer-events: none; /* 装飾のみ */  /* L119 */
+  color: #4285F4;  /* L120 */
+}  /* L121 */
+
+/* 虫眼鏡（クリック可） */  /* L122 */
+.input-wrapper .icon-search {  /* L123 */
+  right: 50px;  /* L124 */
+  cursor: pointer;  /* L125 */
+  z-index: 3;  /* L126 */
+  color: var(--primary);  /* L127 */
+  opacity: 0.8;  /* L128 */
+}  /* L129 */
+.input-wrapper .icon-search:hover {  /* L130 */
+  opacity: 1;  /* L131 */
+  transform: scale(1.1);  /* L132 */
+}  /* L133 */
+
+/* マイク（クリック可。録音中だけ背景を付与） */  /* L134 */
+.input-wrapper .icon-mic {  /* L135 */
+  right: 12px;  /* L136 */
+  cursor: pointer;  /* L137 */
+  z-index: 3;  /* L138 */
+  width: 36px;   /* L139 */
+  height: 36px;  /* L140 */
+  padding: 7px;   /* L141 */
+  border-radius: 50%;  /* L142 */
+  box-sizing: border-box;   /* L143 */
+  transition: background-color 0.2s;  /* L144 */
+  color: var(--text);  /* L145 */
+  opacity: 0.7;  /* L146 */
+}  /* L147 */
+.input-wrapper .icon-mic.recording {  /* L148 */
+  background-color: var(--danger);  /* L149 */
+  color: var(--text);  /* L150 */
+  opacity: 1;   /* L151 */
+}  /* L152 */
+.input-wrapper .icon-mic:hover:not(.recording) {  /* L153 */
+  background-color: rgba(255, 255, 255, 0.1);  /* L154 */
+  opacity: 1;  /* L155 */
+}  /* L156 */
+
+/* ポイント住所 */  /* L157 */
+#pointAddressBlock {  /* L158 */
+  flex-wrap: wrap;  /* L159 */
+  align-items: baseline;  /* L160 */
+}  /* L161 */
+#pointCoords {  /* L162 */
+  font-size: 12px;  /* L163 */
+  color: var(--muted);  /* L164 */
+  margin-left: 8px;  /* L165 */
+}  /* L166 */
+
+.btn{  /* L167 */
+  padding:10px 14px;border-radius:12px;border:1px solid var(--stroke);  /* L168 */
+  background:rgba(255,255,255,.06);color:var(--text);  /* L169 */
+  cursor:pointer;user-select:none;border:none;  /* L170 */
+}  /* L171 */
+.btn.primary{background:var(--primary);color:#051a2a;border-color:transparent}  /* L172 */
+.btn.danger{background:var(--danger);color:#240808;border-color:transparent}  /* L173 */
+.btn:disabled{opacity:.5;pointer-events:none}  /* L174 */
+
+.fab{  /* L175 */
+  min-width:112px; height:56px; display:flex;align-items:center;justify-content:center;  /* L176 */
+  background:var(--glass-strong); border:1px solid var(--stroke); border-radius:18px;  /* L177 */
+  color:var(--text); box-shadow:var(--shadow); cursor:pointer; user-select:none;  /* L178 */
+  font-size:14px;  /* L179 */
+}  /* L180 */
+.fab:active{transform:translateY(1px)}  /* L181 */
+.fab.paused{background:var(--warning);color:#2a1d05;border-color:transparent}  /* L182 */
+
+.loading{  /* L183 */
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;  /* L184 */
+  background:#000; color:#fff; font-size:20px; z-index:3000  /* L185 */
+}  /* L186 */
+
+.results{  /* L187 */
+  margin-top:12px;  /* L188 */
+  background:rgba(0,0,0,.3);  /* L189 */
+  border-radius:12px;  /* L190 */
+  padding:8px;  /* L191 */
+}  /* L192 */
+.result-item{  /* L193 */
+  padding:10px;  /* L194 */
+  margin-bottom:6px;  /* L195 */
+  background:rgba(255,255,255,.05);  /* L196 */
+  border-radius:8px;  /* L197 */
+  cursor:pointer;  /* L198 */
+  transition:background .2s;  /* L199 */
+}  /* L200 */
+.result-item:hover{  /* L201 */
+  background:rgba(255,255,255,.1);  /* L202 */
+}  /* L203 */
+.result-name{  /* L204 */
+  font-weight:600;  /* L205 */
+  margin-bottom:4px;  /* L206 */
+  font-size:16px;  /* L207 */
+}  /* L208 */
+.result-address{  /* L209 */
+  font-size:12px;  /* L210 */
+  color:var(--muted);  /* L211 */
+}  /* L212 */
+
+/* ★ ルートパネル：タブ内で使うため static にし、常時表示（表示切替はタブ側が担当） */  /* L213 */
+.route-panel{  /* L214 */
+  position:static;  /* L215 */
+  left:auto;  /* L216 */
+  bottom:auto;  /* L217 */
+  top:auto;  /* L218 */
+  right:auto;  /* L219 */
+  background:var(--glass-strong);  /* L220 */
+  border:1px solid var(--stroke);  /* L221 */
+  border-radius:var(--radius);  /* L222 */
+  box-shadow:var(--shadow);  /* L223 */
+  padding:14px;  /* L224 */
+  backdrop-filter:blur(10px);  /* L225 */
+  z-index:auto;  /* L226 */
+  display:block;  /* L227 */
+  min-height: 142px;    /* L228 */
+  margin-top:12px;  /* L229 */
+}  /* L230 */
+
+.route-info{  /* L231 */
+  font-size:14px;  /* L232 */
+  margin-bottom:8px;  /* L233 */
+}  /* L234 */
+.route-distance{  /* L235 */
+  font-size:24px;  /* L236 */
+  font-weight:bold;  /* L237 */
+  color:var(--primary);  /* L238 */
+}  /* L239 */
+.route-time{  /* L240 */
+  font-size:16px;  /* L241 */
+  color:var(--muted);  /* L242 */
+  margin-left:12px;  /* L243 */
+}  /* L244 */
+.route-actions {  /* L245 */
+  margin-top: 10px;  /* L246 */
+  display: flex;  /* L247 */
+  flex-direction: column;  /* L248 */
+  gap: 8px;  /* L249 */
+}  /* L250 */
+
+/* ★ 案内パネル：タブ内で使うため static にし、常時表示（表示切替はタブ側） */  /* L251 */
+.nav-panel{  /* L252 */
+  position:static;  /* L253 */
+  left:auto;  /* L254 */
+  right:auto;    /* L255 */
+  top:auto;      /* L256 */
+  bottom:auto;    /* L257 */
+  background:var(--glass-strong);  /* L258 */
+  border:1px solid var(--stroke);  /* L259 */
+  border-radius:var(--radius);  /* L260 */
+  box-shadow:var(--shadow);  /* L261 */
+  padding:14px;  /* L262 */
+  backdrop-filter:blur(10px);  /* L263 */
+  z-index:auto;  /* L264 */
+  display:block;  /* L265 */
+  max-height:none;    /* L266 */
+  overflow-y:visible;    /* L267 */
+}  /* L268 */
+
+.nav-location{  /* L269 */
+  font-size:13px;  /* L270 */
+  color:var(--muted);  /* L271 */
+  margin-bottom:12px;  /* L272 */
+  flex-direction:column;  /* L273 */
+  align-items:flex-start;  /* L274 */
+  gap: 4px;  /* L275 */
+  border-bottom: 1px solid var(--stroke);  /* L276 */
+  padding-bottom: 10px;  /* L277 */
+}  /* L278 */
+#locCoords {  /* L279 */
+  font-size: 14px;  /* L280 */
+  color: var(--muted);  /* L281 */
+  font-weight: 500;  /* L282 */
+}  /* L283 */
+#locAddress {  /* L284 */
+  font-size: 14px;  /* L285 */
+  color: var(--text);  /* L286 */
+  font-weight: 600;  /* L287 */
+  line-height: 1.5;  /* L288 */
+}  /* L289 */
+
+.nav-weather{  /* L290 */
+  display: flex;  /* L291 */
+  gap: 12px;  /* L292 */
+  justify-content: space-around;  /* L293 */
+  padding-bottom: 12px;  /* L294 */
+  margin-bottom: 12px;  /* L295 */
+  border-bottom: 1px solid var(--stroke);  /* L296 */
+}  /* L297 */
+.weather-item{  /* L298 */
+  display: flex;  /* L299 */
+  flex-direction: column;  /* L300 */
+  align-items: center;  /* L301 */
+  font-size: 11px;  /* L302 */
+  color: var(--muted);  /* L303 */
+}  /* L304 */
+.weather-item span:first-child{  /* L305 */
+  font-weight: 600;  /* L306 */
+}  /* L307 */
+.weather-item span:last-child{  /* L308 */
+  font-size: 18px;  /* L309 */
+  margin-top: 4px;  /* L310 */
+}  /* L311 */
+
+.nav-instructions-list{  /* L312 */
+  display:flex;  /* L313 */
+  flex-direction:column;  /* L314 */
+  gap: 10px;  /* L315 */
+}  /* L316 */
+.nav-instruction-item{  /* L317 */
+  font-size: 14px;  /* L318 */
+  line-height: 1.6;  /* L319 */
+  color: var(--text);  /* L320 */
+  padding-bottom: 10px;  /* L321 */
+  border-bottom: 1px solid rgba(255,255,255,0.08);  /* L322 */
+}  /* L323 */
+.nav-instruction-item:last-child{  /* L324 */
+  border-bottom: none;  /* L325 */
+  padding-bottom: 0;  /* L326 */
+}  /* L327 */
+.nav-instruction-item:first-child {  /* L328 */
+  background: rgba(98, 181, 255, 0.2);    /* L329 */
+  padding: 10px;  /* L330 */
+  border-radius: 12px;  /* L331 */
+  border-bottom: none;  /* L332 */
+  margin: -4px;  /* L333 */
+}  /* L334 */
+.nav-instruction-item:first-child + .nav-instruction-item {  /* L335 */
+  margin-top: 10px;  /* L336 */
+}  /* L337 */
+
+/* インシデントパネル（既存位置のまま） */  /* L338 */
+.incident-panel{  /* L339 */
+  position:absolute;  /* L340 */
+  left:28px;  /* L341 */
+  right: 144px;  /* L342 */
+  bottom: calc(16px + 142px + 10px);  /* L343 */
+  top:auto;  /* L344 */
+  background: rgba(255, 184, 77, 0.15);  /* L345 */
+  border:1px solid var(--warning);  /* L346 */
+  border-radius:12px;  /* L347 */
+  box-shadow:var(--shadow);  /* L348 */
+  padding:10px 14px;  /* L349 */
+  backdrop-filter:blur(10px);  /* L350 */
+  z-index:2500;  /* L351 */
+  display:none;  /* L352 */
+  font-size: 13px;  /* L353 */
+  color: var(--warning);  /* L354 */
+  max-height: 50px;  /* L355 */
+  overflow-y: auto;  /* L356 */
+}  /* L357 */
+
+/* ダイアログ */  /* L358 */
+.dialog-overlay{  /* L359 */
+  position:fixed;  /* L360 */
+  inset:0;  /* L361 */
+  background:rgba(0,0,0,0.7);  /* L362 */
+  display:flex;  /* L363 */
+  align-items:center;  /* L364 */
+  justify-content:center;  /* L365 */
+  z-index:9999;  /* L366 */
+  backdrop-filter:blur(4px);  /* L367 */
+}  /* L368 */
+.dialog-overlay.scroll{  /* L369 */
+  overflow:auto;  /* L370 */
+}  /* L371 */
+.dialog-box{  /* L372 */
+  background:var(--glass-strong);  /* L373 */
+  border:1px solid var(--stroke);  /* L374 */
+  border-radius:var(--radius);  /* L375 */
+  padding:24px;  /* L376 */
+  max-width:400px;  /* L377 */
+  width:90%;  /* L378 */
+  box-shadow:var(--shadow);  /* L379 */
+}  /* L380 */
+.dialog-box.wide{  /* L381 */
+  max-width:500px;  /* L382 */
+  max-height:80vh;  /* L383 */
+  overflow-y:auto;  /* L384 */
+  margin:20px;  /* L385 */
+}  /* L386 */
+.dialog-title{  /* L387 */
+  margin:0 0 16px;  /* L388 */
+  font-size:18px;  /* L389 */
+  color:var(--text);  /* L390 */
+  font-weight:600;  /* L391 */
+}  /* L392 */
+.dialog-text{  /* L393 */
+  margin:0 0 16px;  /* L394 */
+  font-size:14px;  /* L395 */
+  color:var(--text);  /* L396 */
+}  /* L397 */
+.dialog-muted{  /* L398 */
+  margin:0 0 16px;  /* L399 */
+  font-size:12px;  /* L400 */
+  color:var(--muted);  /* L401 */
+}  /* L402 */
+.dialog-input{  /* L403 */
+  width:100%;  /* L404 */
+  padding:10px;  /* L405 */
+  border-radius:8px;  /* L406 */
+  border:1px solid var(--stroke);  /* L407 */
+  background:rgba(255,255,255,0.1);  /* L408 */
+  color:var(--text);  /* L409 */
+  font-size:16px;  /* L410 */
+  outline:none;  /* L411 */
+  margin-bottom:16px;  /* L412 */
+}  /* L413 */
+.dialog-actions{  /* L414 */
+  display:flex;  /* L415 */
+  gap:10px;  /* L416 */
+  justify-content:flex-end;  /* L417 */
+}  /* L418 */
+.dialog-btn{  /* L419 */
+  padding:10px 20px;  /* L420 */
+  border-radius:8px;  /* L421 */
+  border:none;  /* L422 */
+  cursor:pointer;  /* L423 */
+  font-size:14px;  /* L424 */
+}  /* L425 */
+.dialog-btn.cancel{  /* L426 */
+  background:rgba(255,255,255,0.1);  /* L427 */
+  color:var(--text);  /* L428 */
+}  /* L429 */
+.dialog-btn.confirm{  /* L430 */
+  background:var(--primary);  /* L431 */
+  color:#051a2a;  /* L432 */
+}  /* L433 */
+.dialog-btn.delete{  /* L434 */
+  background:var(--danger);  /* L435 */
+  color:#240808;  /* L436 */
+}  /* L437 */
+.dialog-btn.full{  /* L438 */
+  width:100%;  /* L439 */
+  margin-top:0;  /* L440 */
+}  /* L441 */
+
+/* 登録地点リスト */  /* L442 */
+.location-list{  /* L443 */
+  display:flex;  /* L444 */
+  flex-direction:column;  /* L445 */
+  gap:8px;  /* L446 */
+}  /* L447 */
+.location-item{  /* L448 */
+  background:rgba(255,255,255,0.05);  /* L449 */
+  border-radius:8px;  /* L450 */
+  padding:12px;  /* L451 */
+}  /* L452 */
+.location-item-name{  /* L453 */
+  font-size:16px;  /* L454 */
+  font-weight:600;  /* L455 */
+  color:var(--text);  /* L456 */
+  margin-bottom:4px;  /* L457 */
+}  /* L458 */
+.location-item-coords{  /* L459 */
+  font-size:12px;  /* L460 */
+  color:var(--muted);  /* L461 */
+  margin-bottom:8px;  /* L462 */
+}  /* L463 */
+.location-item-actions{  /* L464 */
+  display:flex;  /* L465 */
+  gap:8px;  /* L466 */
+}  /* L467 */
+.location-item-btn{  /* L468 */
+  flex:1;  /* L469 */
+  padding:8px;  /* L470 */
+  border-radius:6px;  /* L471 */
+  border:none;  /* L472 */
+  cursor:pointer;  /* L473 */
+  font-size:13px;  /* L474 */
+}  /* L475 */
+.location-item-btn.nav{  /* L476 */
+  background:var(--primary);  /* L477 */
+  color:#051a2a;  /* L478 */
+}  /* L479 */
+.location-item-btn.edit{  /* L480 */
+  background:rgba(255,255,255,0.1);  /* L481 */
+  color:var(--text);  /* L482 */
+}  /* L483 */
+.location-item-btn.delete{  /* L484 */
+  background:var(--danger);  /* L485 */
+  color:#240808;  /* L486 */
+}  /* L487 */
+
+/* 現在地ラベル */  /* L488 */
+#locLabel{  /* L489 */
+  display:block;  /* L490 */
+  white-space:pre-line;  /* L491 */
+  line-height:1.6;  /* L492 */
+  word-break:break-word;  /* L493 */
+  max-width:100%;  /* L494 */
+}  /* L495 */
+
+.error-banner{display:none !important}  /* L496 */
+
+/* ★ 入力中レイアウトを非破壊化（要素を消さない） */  /* L497 */
+.keyboard-open .panel#searchPanel {  /* L498 */
+  max-height: calc(100vh - 32px);  /* L499 */
+  overflow-y: auto;  /* L500 */
+}  /* L501 */
 .keyboard-open .panel#searchPanel h2,
 .keyboard-open .panel#searchPanel #pointAddressBlock {
   opacity: 0;
   pointer-events: none;
-}
-/* 検索入力行は常時インタラクティブ（変更なし） */
+}  /* L502 */
