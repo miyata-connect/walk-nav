@@ -186,7 +186,7 @@
           paneSettings.classList.toggle('active', isSettings); /* L161 */
         } /* L162 */
 
-        tabButtons.forEach(btn => { /* L163 */
+        tabButtons.forEach(function(btn){ /* L163 */
           const active = btn.dataset.panelTab === mode; /* L164 */
           btn.classList.toggle('active', active); /* L165 */
         }); /* L166 */
@@ -198,7 +198,7 @@
         setMode(mode); /* L171 */
       } /* L172 */
 
-      tabButtons.forEach(btn => { /* L173 */
+      tabButtons.forEach(function(btn){ /* L173 */
         btn.addEventListener('click', function(e){ /* L174 */
           const mode = this.dataset.panelTab; /* L175 */
           handleTabClick(e, mode); /* L176 */
@@ -213,12 +213,12 @@
 
       setMode('search'); /* L185 */
 
-      // 設定タブ：タブ位置変更 /* L186 */
+      /* 設定タブ：タブ位置変更 */ /* L186 */
       const posButtons = document.querySelectorAll('[data-pos]'); /* L187 */
-      posButtons.forEach(btn => { /* L188 */
+      posButtons.forEach(function(btn){ /* L188 */
         btn.addEventListener('click', function(){ /* L189 */
           const pos = this.dataset.pos; /* L190 */
-          posButtons.forEach(b => b.classList.remove('active')); /* L191 */
+          posButtons.forEach(function(b){ b.classList.remove('active'); }); /* L191 */
           this.classList.add('active'); /* L192 */
           if(window.parent !== window){ /* L193 */
             window.parent.postMessage({type:'WN_SET_TAB_POS', position:pos}, '*'); /* L194 */
@@ -226,17 +226,17 @@
         }); /* L196 */
       }); /* L197 */
 
-      // 親ウィンドウから現在のタブ位置を受信 /* L198 */
+      /* 親ウィンドウから現在のタブ位置を受信 */ /* L198 */
       window.addEventListener('message', function(e){ /* L199 */
         if(e.data && e.data.type === 'WN_CURRENT_TAB_POS'){ /* L200 */
           const pos = e.data.position || 'left'; /* L201 */
-          posButtons.forEach(b => { /* L202 */
+          posButtons.forEach(function(b){ /* L202 */
             b.classList.toggle('active', b.dataset.pos === pos); /* L203 */
           }); /* L204 */
         } /* L205 */
       }); /* L206 */
 
-      // 初期化時に親ウィンドウへ現在位置を問い合わせ /* L207 */
+      /* 初期化時に親ウィンドウへ現在位置を問い合わせ */ /* L207 */
       if(window.parent !== window){ /* L208 */
         window.parent.postMessage({type:'WN_REQUEST_TAB_POS'}, '*'); /* L209 */
       } /* L210 */
