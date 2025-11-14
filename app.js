@@ -122,7 +122,7 @@
 /* L122 */     appState.map = new google.maps.Map(document.getElementById('map'), {
 /* L123 */       center,
 /* L124 */       zoom: 17,
-/* L125 */       mapId: 'DEMO_MAP',
+/* L125 */       mapId: '9110fb2763169e9d8f2b317e',
 /* L126 */       gestureHandling: 'greedy',
 /* L127 */       clickableIcons: true,
 /* L128 */       disableDefaultUI: true
@@ -233,7 +233,7 @@
 /* L233 */     appState.currentPolyline = null;
 /* L234 */   }
 /* L235 */   const encoded = getEncodedPolylineFromRoute(route);
-/* L236 */   if (!encoded) return;
+/* L236 */   if (!encoded || !google.maps.geometry || !google.maps.geometry.encoding) return;
 /* L237 */   const path = google.maps.geometry.encoding.decodePath(encoded);
 /* L238 */   appState.currentPolyline = new google.maps.Polyline({
 /* L239 */     path,
@@ -300,7 +300,7 @@
 /* L300 */     fetchLocationNameGoogle(latitude, longitude);
 /* L301 */     if (appState.isNavigating && !appState.isPaused) {
 /* L302 */       appState.map.panTo({ lat: latitude, lng: longitude });
-/* L303 */       if (appState.currentDestination && google.maps.geometry) {
+/* L303 */       if (appState.currentDestination && google.maps.geometry && google.maps.geometry.spherical) {
 /* L304 */         const currentLatLng = new google.maps.LatLng(latitude, longitude);
 /* L305 */         const destLatLng = new google.maps.LatLng(appState.currentDestination.lat, appState.currentDestination.lng);
 /* L306 */         let headingDeg = google.maps.geometry.spherical.computeHeading(currentLatLng, destLatLng);
@@ -382,6 +382,9 @@
 /* L382 */       if (destNameEl) destNameEl.textContent = destination.name;
 /* L383 */       if (routeDistEl) routeDistEl.textContent = distanceText;
 /* L384 */       if (routeTimeEl) routeTimeEl.textContent = `徒歩 ${durationText}`;
+
+
+```javascript
 /* L385 */       if (searchPanelEl) searchPanelEl.style.display = 'block';
 /* L386 */       if (resultsEl) resultsEl.style.display = 'none';
 /* L387 */       if (btnDestEl) btnDestEl.style.display = 'flex';
@@ -418,7 +421,7 @@
 /* L418 */       if (appState.isSimulation) {
 /* L419 */         setUserMarker(originLat, originLng);
 /* L420 */         fetchLocationNameGoogle(originLat, originLng);
-/* L421 */         if (appState.currentDestination && google.maps.geometry) {
+/* L421 */         if (appState.currentDestination && google.maps.geometry && google.maps.geometry.spherical) {
 /* L422 */           const currentLatLng = new google.maps.LatLng(originLat, originLng);
 /* L423 */           const destLatLng = new google.maps.LatLng(appState.currentDestination.lat, appState.currentDestination.lng);
 /* L424 */           let headingDeg = google.maps.geometry.spherical.computeHeading(currentLatLng, destLatLng);
@@ -1271,7 +1274,7 @@
 /*L1271*/ }
 /*L1272*/ 
 /*L1273*/ function initializeWhenReady() {
-/*L1274*/   if (typeof google !== 'undefined' && google.maps && google.maps.Map && google.maps.geometry) {
+/*L1274*/   if (typeof google !== 'undefined' && google.maps && google.maps.Map) {
 /*L1275*/     startApp();
 /*L1276*/   } else {
 /*L1277*/     setTimeout(initializeWhenReady, 100);
