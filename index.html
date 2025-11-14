@@ -184,56 +184,58 @@
 <!--L184-->
 <!--L185--><script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry&loading=async" async defer></script>
 <!--L186-->
-<!--L187--><!-- パネル操作 -->
+<!--L187--><!-- パネル操作（タブ切り替えだけ） -->
 <!--L188--><script>
-<!--L189-->(function(){
-<!--L190-->  const tabButtons=document.querySelectorAll('[data-panel-tab]');
-<!--L191-->  const paneSearch=document.getElementById('tabPaneSearch');
-<!--L192-->  const paneNav=document.getElementById('tabPaneNav');
-<!--L193-->  const paneSettings=document.getElementById('tabPaneSettings');
-<!--L194-->
-<!--L195-->  function setMode(mode){
-<!--L196-->    const isNav=(mode==='nav');
-<!--L197-->    const isSettings=(mode==='settings');
-<!--L198-->    paneSearch.classList.toggle('active',!isNav&&!isSettings);
-<!--L199-->    paneNav.classList.toggle('active',isNav);
-<!--L200-->    paneSettings.classList.toggle('active',isSettings);
-<!--L201-->    tabButtons.forEach(b=>b.classList.toggle('active',b.dataset.panelTab===mode));
-<!--L202-->  }
-<!--L203-->
-<!--L204-->  tabButtons.forEach(btn=>{
-<!--L205-->    btn.addEventListener('click',e=>{setMode(btn.dataset.panelTab);});
-<!--L206-->    btn.addEventListener('keydown',e=>{
-<!--L207-->      if(e.key==='Enter'||e.key===' ') setMode(btn.dataset.panelTab);
-<!--L208-->    });
-<!--L209-->  });
-<!--L210-->
-<!--L211-->  setMode('search');
-<!--L212-->
-<!--L213-->  const posButtons=document.querySelectorAll('[data-pos]');
-<!--L214-->  posButtons.forEach(btn=>{
-<!--L215-->    btn.addEventListener('click',function(){
-<!--L216-->      posButtons.forEach(b=>b.classList.remove('active'));
-<!--L217-->      this.classList.add('active');
-<!--L218-->      if(window.parent!==window){
-<!--L219-->        window.parent.postMessage({type:'WN_SET_TAB_POS',position:this.dataset.pos},'*');
-<!--L220-->      }
-<!--L221-->    });
-<!--L222-->  });
-<!--L223-->
-<!--L224-->  window.addEventListener('message',e=>{
-<!--L225-->    if(e.data && e.data.type==='WN_CURRENT_TAB_POS'){
-<!--L226-->      const pos=e.data.position||'right';
-<!--L227-->      posButtons.forEach(b=>b.classList.toggle('active',b.dataset.pos===pos));
-<!--L228-->    }
-<!--L229-->  });
-<!--L230-->
-<!--L231-->  if(window.parent!==window){
-<!--L232-->    window.parent.postMessage({type:'WN_REQUEST_TAB_POS'},'*');
-<!--L233-->  }
-<!--L234-->
-<!--L235-->})();
-<!--L236--></script>
-<!--L237-->
-<!--L238--></body>
-<!--L239--></html>
+<!--L189-->  document.addEventListener('DOMContentLoaded', function () {
+<!--L190-->    const tabButtons = document.querySelectorAll('[data-panel-tab]');
+<!--L191-->    const posButtons = document.querySelectorAll('[data-pos]');
+<!--L192-->
+<!--L193-->    // タブ切り替え：app.js 内の switchPanelTab を呼ぶ
+<!--L194-->    tabButtons.forEach(function (btn) {
+<!--L195-->      btn.addEventListener('click', function () {
+<!--L196-->        if (typeof switchPanelTab === 'function') {
+<!--L197-->          switchPanelTab(btn.dataset.panelTab);
+<!--L198-->        }
+<!--L199-->      });
+<!--L200-->      btn.addEventListener('keydown', function (e) {
+<!--L201-->        if (e.key === 'Enter' || e.key === ' ') {
+<!--L202-->          if (typeof switchPanelTab === 'function') {
+<!--L203-->            switchPanelTab(btn.dataset.panelTab);
+<!--L204-->          }
+<!--L205-->        }
+<!--L206-->      });
+<!--L207-->    });
+<!--L208-->
+<!--L209-->    // 初期タブ
+<!--L210-->    if (typeof switchPanelTab === 'function') {
+<!--L211-->      switchPanelTab('search');
+<!--L212-->    }
+<!--L213-->
+<!--L214-->    // タブ位置設定（埋め込み用）
+<!--L215-->    posButtons.forEach(function (btn) {
+<!--L216-->      btn.addEventListener('click', function () {
+<!--L217-->        posButtons.forEach(function (b) { b.classList.remove('active'); });
+<!--L218-->        btn.classList.add('active');
+<!--L219-->        if (window.parent !== window) {
+<!--L220-->          window.parent.postMessage({ type: 'WN_SET_TAB_POS', position: btn.dataset.pos }, '*');
+<!--L221-->        }
+<!--L222-->      });
+<!--L223-->    });
+<!--L224-->
+<!--L225-->    window.addEventListener('message', function (e) {
+<!--L226-->      if (e.data && e.data.type === 'WN_CURRENT_TAB_POS') {
+<!--L227-->        const pos = e.data.position || 'right';
+<!--L228-->        posButtons.forEach(function (b) {
+<!--L229-->          b.classList.toggle('active', b.dataset.pos === pos);
+<!--L230-->        });
+<!--L231-->      }
+<!--L232-->    });
+<!--L233-->
+<!--L234-->    if (window.parent !== window) {
+<!--L235-->      window.parent.postMessage({ type: 'WN_REQUEST_TAB_POS' }, '*');
+<!--L236-->    }
+<!--L237-->  });
+<!--L238--></script>
+<!--L239-->
+<!--L240--></body>
+<!--L241--></html>
