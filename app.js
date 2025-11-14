@@ -5,11 +5,13 @@ const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
 const RETRY_DELAY = 1000;
+
 const LOCATION_OPTIONS = {
   enableHighAccuracy: true,
   timeout: 30000,
   maximumAge: 0
 };
+
 const appState = {
   map: null,
   userMarker: null,
@@ -69,59 +71,6 @@ function updateNavigationUI(isNavigating) {
   }
 }
 
-// ▼ 新規：タブボタンのイベントバインド
-function bindPanelTabs() {
-  const tabButtons = document.querySelectorAll('[data-panel-tab]');
-  if (!tabButtons || !tabButtons.length) {
-    console.warn('[Tabs] no data-panel-tab buttons found');
-    return;
-  }
-
-  tabButtons.forEach(btn => {
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-      const mode = btn.dataset.panelTab || 'search';
-      switchPanelTab(mode);
-    });
-    btn.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        const mode = btn.dataset.panelTab || 'search';
-        switchPanelTab(mode);
-      }
-    });
-  });
-}
-
-// ▼ 新規：タブ位置ボタン（data-pos）のバインド（埋め込み用）
-function bindTabPositionControls() {
-  const posButtons = document.querySelectorAll('[data-pos]');
-  if (!posButtons || !posButtons.length) return;
-
-  posButtons.forEach(btn => {
-    if (!btn) return;
-    btn.addEventListener('click', function () {
-      posButtons.forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      if (window.parent !== window) {
-        window.parent.postMessage({ type: 'WN_SET_TAB_POS', position: this.dataset.pos }, '*');
-      }
-    });
-  });
-
-  window.addEventListener('message', e => {
-    if (e.data && e.data.type === 'WN_CURRENT_TAB_POS') {
-      const pos = e.data.position || 'right';
-      posButtons.forEach(b => {
-        b.classList.toggle('active', b.dataset.pos === pos);
-      });
-    }
-  });
-
-  if (window.parent !== window) {
-    window.parent.postMessage({ type: 'WN_REQUEST_TAB_POS' }, '*');
-  }
-}
-
 async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
   for (let i = 0; i < retries; i++) {
     try {
@@ -150,6 +99,7 @@ async function placesTextSearch(payload, fieldMask) {
       },
       body: JSON.stringify(payload)
     });
+
     if (!resp.ok) {
       const text = await resp.text();
       throw new Error(`TextSearch ${resp.status}: ${text}`);
@@ -171,6 +121,7 @@ async function placesNearby(payload, fieldMask) {
       },
       body: JSON.stringify(payload)
     });
+
     if (!resp.ok) {
       const text = await resp.text();
       throw new Error(`Nearby ${resp.status}: ${text}`);
@@ -205,6 +156,7 @@ function initMap(center) {
     appState.map.setCenter(center);
     console.log('[WalkNav] Map center updated');
   }
+
   appState.mapInitialized = true;
 }
 
@@ -266,6 +218,7 @@ function setSearchPoint(lat, lng) {
 
   console.log(`[WalkNav] 検索地点設定: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
   console.log('検索地点を設定しました');
+
   fetchPointAddress(lat, lng);
 }
 
@@ -293,6 +246,7 @@ function readLegDistanceText(leg) {
 
 function readLegDurationText(leg) {
   if (leg?.duration?.text) return leg.duration.text;
+
   if (typeof leg?.duration === 'string' && leg.duration.endsWith('s')) {
     const sec = parseInt(leg.duration.replace('s', ''), 10) || 0;
     const min = Math.max(1, Math.round(sec / 60));
@@ -322,7 +276,6 @@ function drawRoutePolyline(route) {
   }
 
   const path = google.maps.geometry.encoding.decodePath(encoded);
-
   appState.currentPolyline = new google.maps.Polyline({
     path: path,
     geodesic: true,
@@ -403,6 +356,7 @@ function startLocationWatcher() {
   const onWatchSuccess = (pos) => {
     const { latitude, longitude } = pos.coords;
     console.log(`[Location] Watch update: ${latitude}, ${longitude}`);
+
     setUserMarker(latitude, longitude);
     fetchLocationNameGoogle(latitude, longitude);
 
@@ -412,7 +366,6 @@ function startLocationWatcher() {
       if (appState.currentDestination && google.maps.geometry) {
         const currentLatLng = new google.maps.LatLng(latitude, longitude);
         const destLatLng = new google.maps.LatLng(appState.currentDestination.lat, appState.currentDestination.lng);
-
         let headingDeg = google.maps.geometry.spherical.computeHeading(currentLatLng, destLatLng);
         if (headingDeg < 0) { headingDeg += 360; }
         appState.currentHeading = headingDeg;
@@ -554,6 +507,7 @@ async function startNavigation(destination) {
       if (appState.isSimulation) {
         setUserMarker(originLat, originLng);
         fetchLocationNameGoogle(originLat, originLng);
+
         if (appState.currentDestination && google.maps.geometry) {
           const currentLatLng = new google.maps.LatLng(originLat, originLng);
           const destLatLng = new google.maps.LatLng(appState.currentDestination.lat, appState.currentDestination.lng);
@@ -667,7 +621,6 @@ function stopNavigation() {
   if (appBody) appBody.classList.add('panel-open');
 
   switchPanelTab('search');
-
   console.log('ルート案内を終了しました');
   console.log('[Navigation] ルート案内終了');
 }
@@ -1118,6 +1071,7 @@ async function fetchWeather(lat, lng) {
       lon: lng,
       units: 'metric'
     };
+
     const response = await fetchWithRetry(`${WORKER_ORIGIN}/weather`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1132,16 +1086,25 @@ async function fetchWeather(lat, lng) {
     const data = await response.json();
 
     const fh = Array.isArray(data.hourly) ? data.hourly : [];
-    const icon3 = (fh[2] && fh[2].weather[0]) ? iconFromWeatherType(fh[2].weather[0].main) : null;
-    const icon6 = (fh[5] && fh[5].weather[0]) ? iconFromWeatherType(fh[5].weather[0].main) : null;
-    const icon9 = (fh[8] && fh[8].weather[0]) ? iconFromWeatherType(fh[8].weather[0].main) : null;
+
+    // ★ 1H / 2H / 3H 用にインデックスを変更（hourly[1], [2], [3]）
+    const icon1 = (fh[1] && fh[1].weather && fh[1].weather[0])
+      ? iconFromWeatherType(fh[1].weather[0].main)
+      : null;
+    const icon2 = (fh[2] && fh[2].weather && fh[2].weather[0])
+      ? iconFromWeatherType(fh[2].weather[0].main)
+      : null;
+    const icon3 = (fh[3] && fh[3].weather && fh[3].weather[0])
+      ? iconFromWeatherType(fh[3].weather[0].main)
+      : null;
 
     const weather3h = document.getElementById('weather3h');
     const weather6h = document.getElementById('weather6h');
     const weather9h = document.getElementById('weather9h');
-    if (weather3h) weather3h.textContent = icon3 || '—';
-    if (weather6h) weather6h.textContent = icon6 || '—';
-    if (weather9h) weather9h.textContent = icon9 || '—';
+
+    if (weather3h) weather3h.textContent = icon1 || '—';
+    if (weather6h) weather6h.textContent = icon2 || '—';
+    if (weather9h) weather9h.textContent = icon3 || '—';
   } catch (error) {
     console.error('[Weather] Error:', error);
     const weather3h = document.getElementById('weather3h');
@@ -1175,7 +1138,13 @@ function showSaveLocationDialog() {
 
   const dialog = createDialog({
     id: 'saveLocationDialog',
-    content: `<h3 class="dialog-title">現在地点登録画面</h3> <p class="dialog-text">登録する地点名を入力してください:</p> <input type="text" id="locationNameInput" class="dialog-input" placeholder="地点名を入力" /> <div class="dialog-actions"> <button id="btnCancelSave" class="dialog-btn cancel">キャンセル</button> <button id="btnConfirmSave" class="dialog-btn confirm">OK</button> </div>`
+    content: `<h3 class="dialog-title">現在地点登録画面</h3>
+<p class="dialog-text">登録する地点名を入力してください:</p>
+<input type="text" id="locationNameInput" class="dialog-input" placeholder="地点名を入力" />
+<div class="dialog-actions">
+  <button id="btnCancelSave" class="dialog-btn cancel">キャンセル</button>
+  <button id="btnConfirmSave" class="dialog-btn confirm">OK</button>
+</div>`
   });
 
   const input = document.getElementById('locationNameInput');
@@ -1218,7 +1187,9 @@ function showEditLocationDialog() {
   if (locations.length === 0) {
     const dialog = createDialog({
       id: 'editDialog',
-      content: `<h3 class="dialog-title">登録地点修正</h3> <p class="dialog-muted">登録された地点がありません</p> <button id="btnCloseEmpty" class="dialog-btn confirm full">閉じる</button>`
+      content: `<h3 class="dialog-title">登録地点修正</h3>
+<p class="dialog-muted">登録された地点がありません</p>
+<button id="btnCloseEmpty" class="dialog-btn confirm full">閉じる</button>`
     });
     document.getElementById('btnCloseEmpty').onclick = () => dialog.remove();
     return;
@@ -1226,15 +1197,24 @@ function showEditLocationDialog() {
 
   let listHTML = '';
   locations.forEach((loc, index) => {
-    listHTML += `<div class="location-item"> <div class="location-item-name">${loc.name}</div> <div class="location-item-coords">緯度: ${loc.lat.toFixed(6)} / 経度: ${loc.lng.toFixed(6)}</div> <div class="location-item-actions"> <button class="location-item-btn nav" data-index="${index}">ナビ開始</button> <button class="location-item-btn edit" data-index="${index}">名前変更</button> <button class="location-item-btn delete" data-index="${index}">削除</button> </div> </div>`;
+    listHTML += `<div class="location-item">
+  <div class="location-item-name">${loc.name}</div>
+  <div class="location-item-coords">緯度: ${loc.lat.toFixed(6)} / 経度: ${loc.lng.toFixed(6)}</div>
+  <div class="location-item-actions">
+    <button class="location-item-btn nav" data-index="${index}">ナビ開始</button>
+    <button class="location-item-btn edit" data-index="${index}">名前変更</button>
+    <button class="location-item-btn delete" data-index="${index}">削除</button>
+  </div>
+</div>`;
   });
-  listHTML += '';
 
   const dialog = createDialog({
     id: 'editDialog',
     wide: true,
     scroll: true,
-    content: `<h3 class="dialog-title">登録地点修正</h3> ${listHTML} <button id="btnCloseEdit" class="dialog-btn cancel full" style="margin-top:16px">閉じる</button>`
+    content: `<h3 class="dialog-title">登録地点修正</h3>
+${listHTML}
+<button id="btnCloseEdit" class="dialog-btn cancel full" style="margin-top:16px">閉じる</button>`
   });
 
   document.getElementById('btnCloseEdit').onclick = () => dialog.remove();
@@ -1252,9 +1232,15 @@ function showEditLocationDialog() {
     btn.onclick = () => {
       const index = parseInt(btn.dataset.index);
       const loc = locations[index];
+
       const renameDialog = createDialog({
         id: 'renameDialog',
-        content: `<h3 class="dialog-title">地点名変更</h3> <input type="text" id="renameInput" value="${loc.name}" class="dialog-input" /> <div class="dialog-actions"> <button id="btnCancelRename" class="dialog-btn cancel">キャンセル</button> <button id="btnConfirmRename" class="dialog-btn confirm">OK</button> </div>`
+        content: `<h3 class="dialog-title">地点名変更</h3>
+<input type="text" id="renameInput" value="${loc.name}" class="dialog-input" />
+<div class="dialog-actions">
+  <button id="btnCancelRename" class="dialog-btn cancel">キャンセル</button>
+  <button id="btnConfirmRename" class="dialog-btn confirm">OK</button>
+</div>`
       });
 
       const renameInput = document.getElementById('renameInput');
@@ -1264,7 +1250,6 @@ function showEditLocationDialog() {
       }, 100);
 
       document.getElementById('btnCancelRename').onclick = () => renameDialog.remove();
-
       document.getElementById('btnConfirmRename').onclick = () => {
         const newName = renameInput.value.trim();
         if (!newName) {
@@ -1289,9 +1274,15 @@ function showEditLocationDialog() {
     btn.onclick = () => {
       const index = parseInt(btn.dataset.index);
       const loc = locations[index];
+
       const confirmDialog = createDialog({
         id: 'confirmDeleteDialog',
-        content: `<h3 class="dialog-title">削除確認</h3> <p class="dialog-text">「${loc.name}」を削除しますか？</p> <div class="dialog-actions"> <button id="btnCancelDelete" class="dialog-btn cancel">キャンセル</button> <button id="btnConfirmDelete" class="dialog-btn delete">削除</button> </div>`
+        content: `<h3 class="dialog-title">削除確認</h3>
+<p class="dialog-text">「${loc.name}」を削除しますか？</p>
+<div class="dialog-actions">
+  <button id="btnCancelDelete" class="dialog-btn cancel">キャンセル</button>
+  <button id="btnConfirmDelete" class="dialog-btn delete">削除</button>
+</div>`
       });
 
       document.getElementById('btnCancelDelete').onclick = () => confirmDialog.remove();
@@ -1560,7 +1551,6 @@ function bindFABEvents() {
       const searchPanel = document.getElementById('searchPanel');
       const fabStack = document.getElementById('fabStack');
       const appBody = document.getElementById('appBody');
-
       if (searchPanel) searchPanel.style.display = 'none';
       if (!appState.isNavigating) {
         if (fabStack) fabStack.style.display = 'none';
@@ -1606,6 +1596,21 @@ function bindRoutePanelEvents() {
   }
 }
 
+// ★ 天気ラベル（3H / 6H / 9H）を 1H / 2H / 3H に差し替える
+function updateWeatherLabels() {
+  const navWeather = document.getElementById('navWeather');
+  if (!navWeather) return;
+
+  const labelSpans = navWeather.querySelectorAll('.weather-item span:first-child');
+  const labels = ['1H', '2H', '3H'];
+
+  labelSpans.forEach((span, idx) => {
+    if (labels[idx]) {
+      span.textContent = labels[idx];
+    }
+  });
+}
+
 function bindUI() {
   console.log('[WalkNav] Binding UI...');
   bindSearchPanelEvents();
@@ -1632,12 +1637,12 @@ function startApp() {
   if (btnSearch) btnSearch.style.display = 'flex';
   if (appBody) appBody.classList.add('panel-open');
 
-  // ▼ ここでタブ関連を初期化
-  bindPanelTabs();
-  bindTabPositionControls();
   switchPanelTab('search');
-
   bindUI();
+
+  // ★ 起動時に天気ラベルを 1H / 2H / 3H に更新
+  updateWeatherLabels();
+
   acquireLocation();
   initSpeechRecognition();
   startCompassListener();
