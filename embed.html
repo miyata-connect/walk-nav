@@ -1,12 +1,12 @@
 <!DOCTYPE html> <!-- L001 -->
 <html lang="ja"> <!-- L002 -->
 <head> <!-- L003 -->
-  <meta charset="UTF-8" /> <!-- L004 -->
+  <meta charset="utf-8" /> <!-- L004 -->
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" /> <!-- L005 -->
   <title>WalkNav</title> <!-- L006 -->
 
   <meta name="x-issue" content="idx202511050540-split" /> <!-- L007 -->
-  <meta name="description" content="WalkNav - �߂������� & ���[�g�ē�" /> <!-- L008 -->
+  <meta name="description" content="WalkNav - 近くを検索 & ルート案内" /> <!-- L008 -->
 
   <link rel="stylesheet" href="app.css?v=3" /> <!-- L009 -->
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" /> <!-- L010 -->
@@ -25,270 +25,250 @@
 </head> <!-- L022 -->
 <body id="appBody"> <!-- L023 -->
   <div class="app"> <!-- L024 -->
+    <div id="map" aria-label="地図"></div> <!-- L025 -->
 
-    <!-- �㕔�p�l���i���[�g�ē��E�C���V�f���g�\���p�j --> <!-- L025 -->
-    <section class="top-info-panel" id="topInfoPanel" style="display:none;" aria-label="���[�g�ē��p�l��"> <!-- L026 -->
-      <div class="top-info-content"> <!-- L027 -->
-        <!-- ���[�g��� --> <!-- L028 -->
-        <div class="top-route-info" id="topRouteInfo"> <!-- L029 -->
-          <div class="top-route-dest" id="topDestinationName">�ړI�n</div> <!-- L030 -->
-          <div class="top-route-details"> <!-- L031 -->
-            <span class="top-route-distance" id="topRouteDistance">--</span> <!-- L032 -->
-            <span class="top-route-time" id="topRouteTime">�k�� --��</span> <!-- L033 -->
-          </div> <!-- L034 -->
-        </div> <!-- L035 -->
-        <!-- �C���V�f���g�ʒm --> <!-- L036 -->
-        <div class="top-incident" id="topIncident" style="display:none;"> <!-- L037 -->
-          <div class="top-incident-icon">??</div> <!-- L038 -->
-          <div class="top-incident-text" id="topIncidentText"></div> <!-- L039 -->
-        </div> <!-- L040 -->
-      </div> <!-- L041 -->
-    </section> <!-- L042 -->
+    <!-- 下側パネル（操作／案内／設定をタブで切り替え） --> <!-- L026 -->
+    <section class="panel" id="searchPanel" aria-label="検索／案内パネル"> <!-- L027 -->
+      <div class="panel-tabs-header" id="panelTabHeader"> <!-- L028 -->
+        <div class="tab-btn active" data-panel-tab="search" tabindex="0">操作</div> <!-- L029 -->
+        <div class="tab-btn" data-panel-tab="nav" tabindex="0">案内</div> <!-- L030 -->
+        <div class="tab-btn" data-panel-tab="settings" tabindex="0">設定</div> <!-- L031 -->
+      </div> <!-- L032 -->
 
-    <div id="map" aria-label="�n�}"></div> <!-- L043 -->
+      <div class="panel-tabs-body"> <!-- L033 -->
+        <!-- 操作タブ：検索パネル --> <!-- L034 -->
+        <div class="tab-pane active" id="tabPaneSearch"> <!-- L035 -->
+          <h2>近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2> <!-- L036 -->
+          
+          <div class="row" style="margin-bottom:8px;justify-content:center;flex-wrap:wrap;"> <!-- L037 -->
+            <button class="chip active" id="r10">10km</button> <!-- L038 -->
+            <button class="chip" id="r20">20km</button> <!-- L039 -->
+            <button class="chip" id="r30">30km</button> <!-- L040 -->
+            <button class="chip" id="btnPointSearch" style="flex-grow: 1; min-width: 120px;">📍 ポイント選択</button> <!-- L041 -->
+          </div> <!-- L042 -->
+          
+          <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px; display: none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;" id="pointAddressBlock"> <!-- L043 -->
+            <div id="pointAddress" style="line-height:1.5; color: var(--warning);">ポイント：取得中...</div> <!-- L044 -->
+            <div id="pointCoords" style="line-height:1.5;"></div> <!-- L045 -->
+          </div> <!-- L046 -->
+          
+          <div class="row" style="margin-bottom:8px"> <!-- L047 -->
+            <button class="btn" id="btnSaveLocation" style="flex:1">現在地登録</button> <!-- L048 -->
+            <button class="btn" id="btnEditLocation" style="flex:1">登録地修正</button> <!-- L049 -->
+          </div> <!-- L050 -->
+          
+          <div class="row" style="margin-bottom:8px"> <!-- L051 -->
+            <div class="input-wrapper"> <!-- L052 -->
+              <span class="icon icon-g"> <!-- L053 -->
+                <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor;"> <!-- L054 -->
+                  <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5.03,16.21 5.03,12.39C5.03,8.57 8.36,5.5 12.19,5.5C14.73,5.5 16.29,6.5 17.2,7.38L19.31,5.26C17.38,3.53 15.05,2.5 12.19,2.5C6.92,2.5 2.73,6.63 2.73,12.39C2.73,18.15 6.92,22.28 12.19,22.28C17.63,22.28 21.64,18.5 21.64,12.61C21.64,12 21.52,11.55 21.35,11.1Z"></path> <!-- L055 -->
+                </svg> <!-- L056 -->
+              </span> <!-- L057 -->
+              <input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" style="flex:1" autocomplete="off" /> <!-- L058 -->
+              <span class="icon icon-search" id="btnSearchIcon"> <!-- L059 -->
+                <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;"> <!-- L060 -->
+                  <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path> <!-- L061 -->
+                </svg> <!-- L062 -->
+              </span> <!-- L063 -->
+              <span class="icon icon-mic" id="btnVoiceIcon"> <!-- L064 -->
+                <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;"> <!-- L065 -->
+                  <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c1.66 1.66 3 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"></path> <!-- L066 -->
+                </svg> <!-- L067 -->
+              </span> <!-- L068 -->
+            </div> <!-- L069 -->
+          </div> <!-- L070 -->
+          
+          <div id="results" class="results" style="display:none"></div> <!-- L071 -->
+          
+          <div class="row" style="margin-top:12px; gap: 8px;"> <!-- L072 -->
+            <button id="btnReset" class="btn danger" style="flex:1">リセット</button> <!-- L073 -->
+            <button id="btnLocatePanel" class="btn" style="flex:1;background:rgba(98, 181, 255, 0.2); color: var(--primary);">現在地</button> <!-- L074 -->
+            <button id="btnClosePanel" class="btn" style="flex:1;background:rgba(255,255,255,0.1)">閉じる</button> <!-- L075 -->
+          </div> <!-- L076 -->
+        </div> <!-- L077 -->
 
-    <!-- �����p�l���i����^�ē��^�ݒ���^�u�Ő؂�ւ��j --> <!-- L044 -->
-    <section class="panel" id="searchPanel" aria-label="�����^�ē��p�l��"> <!-- L045 -->
-      <div class="panel-tabs-header" id="panelTabHeader"> <!-- L046 -->
-        <div class="tab-btn active" data-panel-tab="search" tabindex="0">����</div> <!-- L047 -->
-        <div class="tab-btn" data-panel-tab="nav" tabindex="0">�ē�</div> <!-- L048 -->
-        <div class="tab-btn" data-panel-tab="settings" tabindex="0">�ݒ�</div> <!-- L049 -->
-      </div> <!-- L050 -->
+        <!-- 案内タブ：現在地・天気・道順・インシデント統合 --> <!-- L078 -->
+        <div class="tab-pane" id="tabPaneNav"> <!-- L079 -->
+          <!-- 現在地情報 --> <!-- L080 -->
+          <div class="nav-section"> <!-- L081 -->
+            <div class="nav-section-title">📍 現在地</div> <!-- L082 -->
+            <div class="nav-location"> <!-- L083 -->
+              <div id="locCoords" style="font-size:13px;color:var(--muted);">現在地：取得中...</div> <!-- L084 -->
+              <div id="locAddress" style="font-size:14px;color:var(--text);font-weight:600;margin-top:4px;"></div> <!-- L085 -->
+            </div> <!-- L086 -->
+          </div> <!-- L087 -->
 
-      <div class="panel-tabs-body"> <!-- L051 -->
-        <!-- ����^�u�F�����p�l�� --> <!-- L052 -->
-        <div class="tab-pane active" id="tabPaneSearch"> <!-- L053 -->
-          <h2>�߂������� (<span id="radiusLabel">10km</span> / 5��)</h2> <!-- L054 -->
-          
-          <div class="row" style="margin-bottom:8px;justify-content:center;flex-wrap:wrap;"> <!-- L055 -->
-            <button class="chip active" id="r10">10km</button> <!-- L056 -->
-            <button class="chip" id="r20">20km</button> <!-- L057 -->
-            <button class="chip" id="r30">30km</button> <!-- L058 -->
-            <button class="chip" id="btnPointSearch" style="flex-grow: 1; min-width: 120px;">? �|�C���g�I��</button> <!-- L059 -->
-          </div> <!-- L060 -->
-          
-          <div class="row" style="font-size:13px;color:var(--muted);margin-bottom:8px; display: none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px;" id="pointAddressBlock"> <!-- L061 -->
-            <div id="pointAddress" style="line-height:1.5; color: var(--warning);">�|�C���g�F�擾��...</div> <!-- L062 -->
-            <div id="pointCoords" style="line-height:1.5;"></div> <!-- L063 -->
-          </div> <!-- L064 -->
-          
-          <div class="row" style="margin-bottom:8px"> <!-- L065 -->
-            <button class="btn" id="btnSaveLocation" style="flex:1">���ݒn�o�^</button> <!-- L066 -->
-            <button class="btn" id="btnEditLocation" style="flex:1">�o�^�n�C��</button> <!-- L067 -->
-          </div> <!-- L068 -->
-          
-          <div class="row" style="margin-bottom:8px"> <!-- L069 -->
-            <div class="input-wrapper"> <!-- L070 -->
-              <span class="icon icon-g"> <!-- L071 -->
-                <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor;"> <!-- L072 -->
-                  <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5.03,16.21 5.03,12.39C5.03,8.57 8.36,5.5 12.19,5.5C14.73,5.5 16.29,6.5 17.2,7.38L19.31,5.26C17.38,3.53 15.05,2.5 12.19,2.5C6.92,2.5 2.73,6.63 2.73,12.39C2.73,18.15 6.92,22.28 12.19,22.28C17.63,22.28 21.64,18.5 21.64,12.61C21.64,12 21.52,11.55 21.35,11.1Z"></path> <!-- L073 -->
-                </svg> <!-- L074 -->
-              </span> <!-- L075 -->
-              <input id="q" class="input" placeholder="�X�ܖ��E�d�b�ԍ��E�Z���E���W�Ȃ�" style="flex:1" autocomplete="off" /> <!-- L076 -->
-              <span class="icon icon-search" id="btnSearchIcon"> <!-- L077 -->
-                <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;"> <!-- L078 -->
-                  <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path> <!-- L079 -->
-                </svg> <!-- L080 -->
-              </span> <!-- L081 -->
-              <span class="icon icon-mic" id="btnVoiceIcon"> <!-- L082 -->
-                <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;"> <!-- L083 -->
-                  <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c1.66 1.66 3 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"></path> <!-- L084 -->
-                </svg> <!-- L085 -->
-              </span> <!-- L086 -->
-            </div> <!-- L087 -->
-          </div> <!-- L088 -->
-          
-          <div id="results" class="results" style="display:none"></div> <!-- L089 -->
-          
-          <div class="row" style="margin-top:12px; gap: 8px;"> <!-- L090 -->
-            <button id="btnReset" class="btn danger" style="flex:1">���Z�b�g</button> <!-- L091 -->
-            <button id="btnLocatePanel" class="btn" style="flex:1;background:rgba(98, 181, 255, 0.2); color: var(--primary);">���ݒn</button> <!-- L092 -->
-            <button id="btnClosePanel" class="btn" style="flex:1;background:rgba(255,255,255,0.1)">����</button> <!-- L093 -->
-          </div> <!-- L094 -->
-        </div> <!-- L095 -->
-
-        <!-- �ē��^�u�F���ݒn�E�V�C�E�����E�C���V�f���g���� --> <!-- L096 -->
-        <div class="tab-pane" id="tabPaneNav"> <!-- L097 -->
-          <!-- ���ݒn��� --> <!-- L098 -->
-          <div class="nav-section"> <!-- L099 -->
-            <div class="nav-section-title">? ���ݒn</div> <!-- L100 -->
-            <div class="nav-location"> <!-- L101 -->
-              <div id="locCoords" style="font-size:13px;color:var(--muted);">���ݒn�F�擾��...</div> <!-- L102 -->
-              <div id="locAddress" style="font-size:14px;color:var(--text);font-weight:600;margin-top:4px;"></div> <!-- L103 -->
+          <!-- 天気予報 --> <!-- L088 -->
+          <div class="nav-section"> <!-- L089 -->
+            <div class="nav-section-title">🌤️ 天気予報</div> <!-- L090 -->
+            <div class="nav-weather" id="navWeather"> <!-- L091 -->
+              <div class="weather-item"> <!-- L092 -->
+                <span>3H</span> <!-- L093 -->
+                <span id="weather3h">--</span> <!-- L094 -->
+              </div> <!-- L095 -->
+              <div class="weather-item"> <!-- L096 -->
+                <span>6H</span> <!-- L097 -->
+                <span id="weather6h">--</span> <!-- L098 -->
+              </div> <!-- L099 -->
+              <div class="weather-item"> <!-- L100 -->
+                <span>9H</span> <!-- L101 -->
+                <span id="weather9h">--</span> <!-- L102 -->
+              </div> <!-- L103 -->
             </div> <!-- L104 -->
           </div> <!-- L105 -->
 
-          <!-- �V�C�\�� --> <!-- L106 -->
-          <div class="nav-section"> <!-- L107 -->
-            <div class="nav-section-title">?? �V�C�\��</div> <!-- L108 -->
-            <div class="nav-weather" id="navWeather"> <!-- L109 -->
-              <div class="weather-item"> <!-- L110 -->
-                <span>3H</span> <!-- L111 -->
-                <span id="weather3h">--</span> <!-- L112 -->
-              </div> <!-- L113 -->
-              <div class="weather-item"> <!-- L114 -->
-                <span>6H</span> <!-- L115 -->
-                <span id="weather6h">--</span> <!-- L116 -->
-              </div> <!-- L117 -->
-              <div class="weather-item"> <!-- L118 -->
-                <span>9H</span> <!-- L119 -->
-                <span id="weather9h">--</span> <!-- L120 -->
-              </div> <!-- L121 -->
-            </div> <!-- L122 -->
-          </div> <!-- L123 -->
+          <!-- ルート情報（ナビ中のみ表示） --> <!-- L106 -->
+          <div class="nav-section" id="routeInfoSection" style="display:none;"> <!-- L107 -->
+            <div class="nav-section-title">🚶 ルート情報</div> <!-- L108 -->
+            <div style="margin-bottom:8px;"> <!-- L109 -->
+              <div style="font-size:14px;color:var(--text);margin-bottom:4px;"><span id="destinationName">目的地</span>へのルート</div> <!-- L110 -->
+              <div> <!-- L111 -->
+                <span class="route-distance" id="routeDistance">--</span> <!-- L112 -->
+                <span class="route-time" id="routeTime" style="margin-left:8px;font-size:14px;color:var(--muted);">徒歩 --分</span> <!-- L113 -->
+              </div> <!-- L114 -->
+            </div> <!-- L115 -->
+            <button id="btnExportText" class="btn" style="width:100%;background:rgba(255,255,255,0.1);margin-bottom:8px;">📋 道順をコピー</button> <!-- L116 -->
+          </div> <!-- L117 -->
 
-          <!-- ���[�g���i�i�r���̂ݕ\���j --> <!-- L124 -->
-          <div class="nav-section" id="routeInfoSection" style="display:none;"> <!-- L125 -->
-            <div class="nav-section-title">? ���[�g���</div> <!-- L126 -->
-            <div style="margin-bottom:8px;"> <!-- L127 -->
-              <div style="font-size:14px;color:var(--text);margin-bottom:4px;"><span id="destinationName">�ړI�n</span>�ւ̃��[�g</div> <!-- L128 -->
-              <div> <!-- L129 -->
-                <span class="route-distance" id="routeDistance">--</span> <!-- L130 -->
-                <span class="route-time" id="routeTime" style="margin-left:8px;font-size:14px;color:var(--muted);">�k�� --��</span> <!-- L131 -->
-              </div> <!-- L132 -->
-            </div> <!-- L133 -->
-            <button id="btnExportText" class="btn" style="width:100%;background:rgba(255,255,255,0.1);margin-bottom:8px;">? �������R�s�[</button> <!-- L134 -->
-          </div> <!-- L135 -->
+          <!-- インシデント通知 --> <!-- L118 -->
+          <div class="nav-section" id="incidentSection" style="display:none;"> <!-- L119 -->
+            <div class="nav-section-title">⚠️ インシデント</div> <!-- L120 -->
+            <div id="incidentText" style="font-size:13px;color:var(--warning);line-height:1.6;"></div> <!-- L121 -->
+          </div> <!-- L122 -->
 
-          <!-- �C���V�f���g�ʒm --> <!-- L136 -->
-          <div class="nav-section" id="incidentSection" style="display:none;"> <!-- L137 -->
-            <div class="nav-section-title">?? �C���V�f���g</div> <!-- L138 -->
-            <div id="incidentText" style="font-size:13px;color:var(--warning);line-height:1.6;"></div> <!-- L139 -->
-          </div> <!-- L140 -->
+          <!-- 道順（ナビ中のみ表示） --> <!-- L123 -->
+          <div class="nav-section" id="instructionsSection" style="display:none;"> <!-- L124 -->
+            <div class="nav-section-title">🧭 道順</div> <!-- L125 -->
+            <div class="nav-instructions-list" id="navPanelInstructions"></div> <!-- L126 -->
+          </div> <!-- L127 -->
+        </div> <!-- L128 -->
 
-          <!-- �����i�i�r���̂ݕ\���j --> <!-- L141 -->
-          <div class="nav-section" id="instructionsSection" style="display:none;"> <!-- L142 -->
-            <div class="nav-section-title">? ����</div> <!-- L143 -->
-            <div class="nav-instructions-list" id="navPanelInstructions"></div> <!-- L144 -->
-          </div> <!-- L145 -->
-        </div> <!-- L146 -->
-
-        <!-- �ݒ�^�u�F�^�u�ʒu�{���[�g���� --> <!-- L147 -->
-        <div class="tab-pane" id="tabPaneSettings"> <!-- L148 -->
-          <h2>�ݒ�</h2> <!-- L149 -->
+        <!-- 設定タブ：タブ位置＋ルート操作 --> <!-- L129 -->
+        <div class="tab-pane" id="tabPaneSettings"> <!-- L130 -->
+          <h2>設定</h2> <!-- L131 -->
           
-          <!-- �^�u�ʒu�ݒ� --> <!-- L150 -->
-          <div style="margin-bottom:16px;"> <!-- L151 -->
-            <div style="font-size:14px;color:var(--muted);margin-bottom:8px;">�^�u�̈ʒu</div> <!-- L152 -->
-            <div class="row" style="justify-content:center;flex-wrap:wrap;gap:8px;"> <!-- L153 -->
-              <button class="chip" data-pos="top">��</button> <!-- L154 -->
-              <button class="chip" data-pos="bottom">��</button> <!-- L155 -->
-              <button class="chip" data-pos="left">��</button> <!-- L156 -->
-              <button class="chip active" data-pos="right">�E</button> <!-- L157 -->
-            </div> <!-- L158 -->
-          </div> <!-- L159 -->
+          <!-- タブ位置設定 --> <!-- L132 -->
+          <div style="margin-bottom:16px;"> <!-- L133 -->
+            <div style="font-size:14px;color:var(--muted);margin-bottom:8px;">タブの位置</div> <!-- L134 -->
+            <div class="row" style="justify-content:center;flex-wrap:wrap;gap:8px;"> <!-- L135 -->
+              <button class="chip" data-pos="top">上</button> <!-- L136 -->
+              <button class="chip" data-pos="bottom">下</button> <!-- L137 -->
+              <button class="chip" data-pos="left">左</button> <!-- L138 -->
+              <button class="chip active" data-pos="right">右</button> <!-- L139 -->
+            </div> <!-- L140 -->
+          </div> <!-- L141 -->
 
-          <!-- ���[�g����i�i�r���̂ݕ\���j --> <!-- L160 -->
-          <div id="routeControlSection" style="display:none;margin-bottom:16px;"> <!-- L161 -->
-            <div style="font-size:14px;color:var(--muted);margin-bottom:8px;">���[�g����</div> <!-- L162 -->
-            <div class="row" style="flex-direction:column;gap:8px;"> <!-- L163 -->
-              <button id="btnPauseSettings" class="btn" style="width:100%;">?? �ꎞ��~</button> <!-- L164 -->
-              <button id="btnRerouteSettings" class="btn" style="width:100%;background:rgba(98, 181, 255, 0.2); color: var(--primary);">? �����[�g</button> <!-- L165 -->
-              <button id="btnStopRoute" class="btn danger" style="width:100%;">? ���[�g�I��</button> <!-- L166 -->
-            </div> <!-- L167 -->
-          </div> <!-- L168 -->
+          <!-- ルート操作（ナビ中のみ表示） --> <!-- L142 -->
+          <div id="routeControlSection" style="display:none;margin-bottom:16px;"> <!-- L143 -->
+            <div style="font-size:14px;color:var(--muted);margin-bottom:8px;">ルート操作</div> <!-- L144 -->
+            <div class="row" style="flex-direction:column;gap:8px;"> <!-- L145 -->
+              <button id="btnPauseSettings" class="btn" style="width:100%;">⏸️ 一時停止</button> <!-- L146 -->
+              <button id="btnRerouteSettings" class="btn" style="width:100%;background:rgba(98, 181, 255, 0.2); color: var(--primary);">🔄 リルート</button> <!-- L147 -->
+              <button id="btnStopRoute" class="btn danger" style="width:100%;">🛑 ルート終了</button> <!-- L148 -->
+            </div> <!-- L149 -->
+          </div> <!-- L150 -->
 
-          <div style="font-size:12px;color:var(--muted);text-align:center;margin-top:16px;">v=tab-local-map+links</div> <!-- L169 -->
-        </div> <!-- L170 -->
+          <div style="font-size:12px;color:var(--muted);text-align:center;margin-top:16px;">v=tab-local-map+links</div> <!-- L151 -->
+        </div> <!-- L152 -->
 
-      </div> <!-- L171 -->
-    </section> <!-- L172 -->
+      </div> <!-- L153 -->
+    </section> <!-- L154 -->
 
-    <!-- FAB �Q�i�ȑf���F�����p�l���E���ݒn�E�ړI�n�̂݁j --> <!-- L173 -->
-    <div class="fab-stack" id="fabStack"> <!-- L174 -->
-      <div class="fab" id="btnSearch">�����p�l��</div> <!-- L175 -->
-      <div class="fab" id="btnLocate">���ݒn</div> <!-- L176 -->
-      <div class="fab" id="btnDestination" style="display:none">�ړI�n</div> <!-- L177 -->
-    </div> <!-- L178 -->
+    <!-- FAB 群（簡素化：検索パネル・現在地・目的地のみ） --> <!-- L155 -->
+    <div class="fab-stack" id="fabStack"> <!-- L156 -->
+      <div class="fab" id="btnSearch">検索パネル</div> <!-- L157 -->
+      <div class="fab" id="btnLocate">現在地</div> <!-- L158 -->
+      <div class="fab" id="btnDestination" style="display:none">目的地</div> <!-- L159 -->
+    </div> <!-- L160 -->
 
-    <!-- ���[�f�B���O�\�� --> <!-- L179 -->
-    <div class="loading" id="loading"> <!-- L180 -->
-      <div style="text-align:center"> <!-- L181 -->
-        <div style="font-size:24px;margin-bottom:16px">? ���ݒn�擾��</div> <!-- L182 -->
-        <div style="font-size:16px;opacity:0.8">���΂炭���҂���������...</div> <!-- L183 -->
-      </div> <!-- L184 -->
-    </div> <!-- L185 -->
+    <!-- ローディング表示 --> <!-- L161 -->
+    <div class="loading" id="loading"> <!-- L162 -->
+      <div style="text-align:center"> <!-- L163 -->
+        <div style="font-size:24px;margin-bottom:16px">📍 現在地取得中</div> <!-- L164 -->
+        <div style="font-size:16px;opacity:0.8">しばらくお待ちください...</div> <!-- L165 -->
+      </div> <!-- L166 -->
+    </div> <!-- L167 -->
 
-  </div> <!-- L186 -->
+  </div> <!-- L168 -->
 
-  <script src="app.js" defer></script> <!-- L187 -->
+  <script src="app.js" defer></script> <!-- L169 -->
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry&loading=async"
-    async defer></script> <!-- L188 -->
+    async defer></script> <!-- L170 -->
 
-  <!-- ����^�ē��^�ݒ�^�u�؂�ւ� --> <!-- L189 -->
-  <script> /* L190 */
-    (function(){ /* L191 */
-      const tabButtons = document.querySelectorAll('[data-panel-tab]'); /* L192 */
-      const paneSearch = document.getElementById('tabPaneSearch'); /* L193 */
-      const paneNav = document.getElementById('tabPaneNav'); /* L194 */
-      const paneSettings = document.getElementById('tabPaneSettings'); /* L195 */
+  <!-- 操作／案内／設定タブ切り替え --> <!-- L171 -->
+  <script> /* L172 */
+    (function(){ /* L173 */
+      const tabButtons = document.querySelectorAll('[data-panel-tab]'); /* L174 */
+      const paneSearch = document.getElementById('tabPaneSearch'); /* L175 */
+      const paneNav = document.getElementById('tabPaneNav'); /* L176 */
+      const paneSettings = document.getElementById('tabPaneSettings'); /* L177 */
 
-      function setMode(mode){ /* L196 */
-        const isNav = mode === 'nav'; /* L197 */
-        const isSettings = mode === 'settings'; /* L198 */
+      function setMode(mode){ /* L178 */
+        const isNav = mode === 'nav'; /* L179 */
+        const isSettings = mode === 'settings'; /* L180 */
 
-        if(paneSearch && paneNav && paneSettings){ /* L199 */
-          paneSearch.classList.toggle('active', !isNav && !isSettings); /* L200 */
-          paneNav.classList.toggle('active', isNav); /* L201 */
-          paneSettings.classList.toggle('active', isSettings); /* L202 */
-        } /* L203 */
+        if(paneSearch && paneNav && paneSettings){ /* L181 */
+          paneSearch.classList.toggle('active', !isNav && !isSettings); /* L182 */
+          paneNav.classList.toggle('active', isNav); /* L183 */
+          paneSettings.classList.toggle('active', isSettings); /* L184 */
+        } /* L185 */
 
-        tabButtons.forEach(function(btn){ /* L204 */
-          const active = btn.dataset.panelTab === mode; /* L205 */
-          btn.classList.toggle('active', active); /* L206 */
-        }); /* L207 */
-      } /* L208 */
+        tabButtons.forEach(function(btn){ /* L186 */
+          const active = btn.dataset.panelTab === mode; /* L187 */
+          btn.classList.toggle('active', active); /* L188 */
+        }); /* L189 */
+      } /* L190 */
 
-      function handleTabClick(e, mode){ /* L209 */
-        e.preventDefault(); /* L210 */
-        e.stopPropagation(); /* L211 */
-        setMode(mode); /* L212 */
-      } /* L213 */
+      function handleTabClick(e, mode){ /* L191 */
+        e.preventDefault(); /* L192 */
+        e.stopPropagation(); /* L193 */
+        setMode(mode); /* L194 */
+      } /* L195 */
 
-      tabButtons.forEach(function(btn){ /* L214 */
-        btn.addEventListener('click', function(e){ /* L215 */
-          const mode = this.dataset.panelTab; /* L216 */
-          handleTabClick(e, mode); /* L217 */
-        }); /* L218 */
-        btn.addEventListener('keydown', function(e){ /* L219 */
-          if(e.key === 'Enter' || e.key === ' '){ /* L220 */
-            const mode = this.dataset.panelTab; /* L221 */
-            handleTabClick(e, mode); /* L222 */
-          } /* L223 */
-        }); /* L224 */
-      }); /* L225 */
+      tabButtons.forEach(function(btn){ /* L196 */
+        btn.addEventListener('click', function(e){ /* L197 */
+          const mode = this.dataset.panelTab; /* L198 */
+          handleTabClick(e, mode); /* L199 */
+        }); /* L200 */
+        btn.addEventListener('keydown', function(e){ /* L201 */
+          if(e.key === 'Enter' || e.key === ' '){ /* L202 */
+            const mode = this.dataset.panelTab; /* L203 */
+            handleTabClick(e, mode); /* L204 */
+          } /* L205 */
+        }); /* L206 */
+      }); /* L207 */
 
-      setMode('search'); /* L226 */
+      setMode('search'); /* L208 */
 
-      /* �ݒ�^�u�F�^�u�ʒu�ύX */ /* L227 */
-      const posButtons = document.querySelectorAll('[data-pos]'); /* L228 */
-      posButtons.forEach(function(btn){ /* L229 */
-        btn.addEventListener('click', function(){ /* L230 */
-          const pos = this.dataset.pos; /* L231 */
-          posButtons.forEach(function(b){ b.classList.remove('active'); }); /* L232 */
-          this.classList.add('active'); /* L233 */
-          if(window.parent !== window){ /* L234 */
-            window.parent.postMessage({type:'WN_SET_TAB_POS', position:pos}, '*'); /* L235 */
-          } /* L236 */
-        }); /* L237 */
-      }); /* L238 */
+      /* 設定タブ：タブ位置変更 */ /* L209 */
+      const posButtons = document.querySelectorAll('[data-pos]'); /* L210 */
+      posButtons.forEach(function(btn){ /* L211 */
+        btn.addEventListener('click', function(){ /* L212 */
+          const pos = this.dataset.pos; /* L213 */
+          posButtons.forEach(function(b){ b.classList.remove('active'); }); /* L214 */
+          this.classList.add('active'); /* L215 */
+          if(window.parent !== window){ /* L216 */
+            window.parent.postMessage({type:'WN_SET_TAB_POS', position:pos}, '*'); /* L217 */
+          } /* L218 */
+        }); /* L219 */
+      }); /* L220 */
 
-      /* �e�E�B���h�E���猻�݂̃^�u�ʒu����M */ /* L239 */
-      window.addEventListener('message', function(e){ /* L240 */
-        if(e.data && e.data.type === 'WN_CURRENT_TAB_POS'){ /* L241 */
-          const pos = e.data.position || 'left'; /* L242 */
-          posButtons.forEach(function(b){ /* L243 */
-            b.classList.toggle('active', b.dataset.pos === pos); /* L244 */
-          }); /* L245 */
-        } /* L246 */
-      }); /* L247 */
+      /* 親ウィンドウから現在のタブ位置を受信 */ /* L221 */
+      window.addEventListener('message', function(e){ /* L222 */
+        if(e.data && e.data.type === 'WN_CURRENT_TAB_POS'){ /* L223 */
+          const pos = e.data.position || 'left'; /* L224 */
+          posButtons.forEach(function(b){ /* L225 */
+            b.classList.toggle('active', b.dataset.pos === pos); /* L226 */
+          }); /* L227 */
+        } /* L228 */
+      }); /* L229 */
 
-      /* ���������ɐe�E�B���h�E�֌��݈ʒu��₢���킹 */ /* L248 */
-      if(window.parent !== window){ /* L249 */
-        window.parent.postMessage({type:'WN_REQUEST_TAB_POS'}, '*'); /* L250 */
-      } /* L251 */
-    })(); /* L252 */
-  </script> <!-- L253 -->
-</body> <!-- L254 -->
-</html> <!-- L255 -->
+      /* 初期化時に親ウィンドウへ現在位置を問い合わせ */ /* L230 */
+      if(window.parent !== window){ /* L231 */
+        window.parent.postMessage({type:'WN_REQUEST_TAB_POS'}, '*'); /* L232 */
+      } /* L233 */
+    })(); /* L234 */
+  </script> <!-- L235 -->
+</body> <!-- L236 -->
+</html> <!-- L237 -->
