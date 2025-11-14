@@ -229,3 +229,42 @@
 /* L229 */ .loading.hidden {
 /* L230 */   display: none;
 /* L231 */ }
+/* L232 */ 
+/* L233 */ /* ここから追加調整 */
+/* L234 */ 
+/* L235 */ /* 「近くを検索 (10km / 5件)」タイトルを中央揃え */
+/* L236 */ #tabPaneSearch > h2 {
+/* L237 */   text-align: center;
+/* L238 */ }
+/* L239 */ 
+/* L240 */ /* 検索窓アイコンに色を付ける */
+/* L241 */ .icon-g {
+/* L242 */   color: #34a853;  /* G アイコン：Google 緑系 */
+/* L243 */ }
+/* L244 */ 
+/* L245 */ .icon-search {
+/* L246 */   color: #60a5fa;  /* 虫眼鏡：明るいブルー */
+/* L247 */ }
+/* L248 */ 
+/* L249 */ .icon-mic {
+/* L250 */   color: #f97316;  /* マイク：オレンジ（待機中） */
+/* L251 */ }
+/* L252 */ 
+/* L253 */ /* 音声検索実行中はマイクを赤にする */
+/* L254 */ .icon-mic.recording {
+/* L255 */   color: #ef4444;  /* 録音中：赤 */
+/* L256 */ }
+/* L257 */ 
+/* L258 */ /* パネル内「現在地」ボタンを明るくする */
+/* L259 */ #btnLocatePanel {
+/* L260 */   background: rgba(98,181,255,0.95) !important;
+/* L261 */   color: #fff !important;
+/* L262 */   border-color: transparent !important;
+/* L263 */   font-weight: 600;
+/* L264 */ }
+/* L265 */ 
+/* L266 */ /* 右下 FAB の「現在地」ボタンを強調 */
+/* L267 */ #btnLocate {
+/* L268 */   background: #2563eb;
+/* L269 */   color: #fff;
+/* L270 */ }
