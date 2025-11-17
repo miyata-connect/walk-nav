@@ -8,203 +8,181 @@
 <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
 <link rel="stylesheet" href="app.css?v=3" />
 <style>
-/* 追加のCSS修正: 地図の高さを確保し、レイヤー順序を調整 */
+/* 最小限の修正CSS: 既存app.cssを尊重し、オーバーライドのみ */
 body, html {
     margin: 0;
     padding: 0;
     height: 100%;
     overflow: hidden;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-#appBody {
-    height: 100vh;
-}
-
-.app {
-    position: relative;
+#appBody, .app {
     height: 100vh;
     width: 100vw;
+    position: relative;
 }
 
 #map {
-    height: 100vh;
-    width: 100vw;
+    height: 100vh !important;
+    width: 100vw !important;
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 1; /* 地図を最下層に */
+    z-index: 1; /* 地図を下に */
 }
 
 .panel {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    z-index: 100; /* パネルを上層に */
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    max-height: 80vh;
-    overflow-y: auto;
-    max-width: 400px; /* モバイルで狭く保つ */
+    position: absolute !important;
+    top: 16px !important; /* 上部に固定 */
+    left: 50% !important;
+    transform: translateX(-50%) !important; /* 中央寄せ */
+    z-index: 100 !important; /* パネルを上に */
+    max-width: 90vw !important;
+    max-height: 70vh !important;
+    overflow-y: auto !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    border-radius: 12px !important;
+    padding: 16px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+    margin: 0 !important;
 }
 
 .panel-tabs-header {
-    display: flex;
-    justify-content: space-around;
-    margin-bottom: 16px;
+    display: flex !important;
+    justify-content: space-around !important;
+    margin-bottom: 12px !important;
+    gap: 0 !important;
 }
 
 .tab-btn {
-    flex: 1;
-    padding: 8px 12px;
-    border: none;
-    background: none;
-    color: var(--muted, #666);
-    cursor: pointer;
-    border-radius: 8px;
-    transition: background 0.2s;
-}
-
-.tab-btn.active {
-    background: var(--primary, #007AFF);
-    color: white;
-}
-
-.tab-pane {
-    display: none;
-}
-
-.tab-pane.active {
-    display: block;
+    flex: 1 !important;
+    padding: 8px 4px !important;
+    margin: 0 2px !important;
+    min-width: 60px !important;
+    border-radius: 8px !important;
 }
 
 .row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+    flex-wrap: wrap !important; /* モバイルで折り返し */
 }
 
-.chip {
-    padding: 8px 12px;
-    border: 1px solid var(--border, #ddd);
-    background: white;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 14px;
+.chip, .btn {
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    border: none !important;
+    cursor: pointer !important;
+    font-size: 14px !important;
+    min-height: 40px !important; /* タップしやすく */
+    flex: 1 !important;
+    min-width: 80px !important; /* 重なり防止 */
 }
 
 .chip.active {
-    background: var(--primary, #007AFF);
-    color: white;
-    border-color: var(--primary, #007AFF);
+    background: #007AFF !important;
+    color: white !important;
 }
 
 .btn {
-    flex: 1;
-    padding: 12px;
-    border: none;
-    border-radius: 8px;
-    background: var(--primary, #007AFF);
-    color: white;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background 0.2s;
+    background: #007AFF !important;
+    color: white !important;
 }
 
 .btn.danger {
-    background: var(--danger, #FF3B30);
+    background: #FF3B30 !important;
 }
 
 .input-wrapper {
-    display: flex;
-    align-items: center;
-    background: white;
-    border-radius: 8px;
-    padding: 8px;
-    border: 1px solid var(--border, #ddd);
+    display: flex !important;
+    align-items: center !important;
+    background: white !important;
+    border-radius: 8px !important;
+    padding: 8px !important;
+    border: 1px solid #ddd !important;
+    flex: 1 !important;
+    gap: 4px !important;
 }
 
 .input {
-    border: none;
-    outline: none;
-    flex: 1;
-    margin: 0 8px;
-    font-size: 16px;
+    flex: 1 !important;
+    border: none !important;
+    outline: none !important;
+    font-size: 16px !important;
 }
 
 .icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-}
-
-.results {
-    max-height: 200px;
-    overflow-y: auto;
-    background: white;
-    border-radius: 8px;
-    padding: 8px;
+    flex-shrink: 0 !important; /* アイコンを縮めない */
+    cursor: pointer !important;
 }
 
 .fab-stack {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1000; /* FABを最上層に */
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    position: fixed !important;
+    bottom: 20px !important;
+    right: 20px !important;
+    z-index: 1000 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
 }
 
 .fab {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: var(--primary, #007AFF);
-    color: white;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    width: 56px !important;
+    height: 56px !important;
+    border-radius: 50% !important;
+    background: #007AFF !important;
+    color: white !important;
+    border: none !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
 }
 
 .loading {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 50;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 20px;
-    border-radius: 12px;
-    text-align: center;
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 50 !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    padding: 20px !important;
+    border-radius: 12px !important;
+    text-align: center !important;
 }
 
-/* タブ位置の調整例（右側の場合） */
-@media (min-width: 768px) {
+/* タブペインの表示 */
+.tab-pane {
+    display: none !important;
+}
+
+.tab-pane.active {
+    display: block !important;
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 480px) {
     .panel {
-        right: 10px;
-        left: auto;
-        width: 350px;
+        top: 8px !important;
+        left: 8px !important;
+        right: 8px !important;
+        transform: none !important;
+        max-width: none !important;
     }
-}
-
-/* 変数定義のフォールバック */
-:root {
-    --primary: #007AFF;
-    --text: #000;
-    --muted: #666;
-    --warning: #FF9500;
-    --border: #ddd;
+    
+    .row {
+        justify-content: space-between !important;
+    }
+    
+    .chip, .btn {
+        flex: none !important;
+        min-width: auto !important;
+        padding: 6px 10px !important;
+    }
 }
 </style>
 </head>
@@ -220,28 +198,28 @@ body, html {
 <div class="panel-tabs-body">
 <div class="tab-pane active" id="tabPaneSearch">
 <h2>近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
-<div class="row" style="margin-bottom:8px;justify-content:center;flex-wrap:wrap;">
+<div class="row" style="justify-content:center;flex-wrap:wrap;">
 <button class="chip active" id="r10">10km</button>
 <button class="chip" id="r20">20km</button>
 <button class="chip" id="r30">30km</button>
 <button class="chip" id="btnPointSearch" style="flex-grow:1;min-width:120px;">📍 ポイント選択</button>
 </div>
-<div class="row" id="pointAddressBlock" style="font-size:13px;color:var(--muted);margin-bottom:8px;display:none;background:rgba(0,0,0,0.2);padding:8px;border-radius:8px;">
-<div id="pointAddress" style="line-height:1.5;color:var(--warning);">ポイント：取得中...</div>
+<div class="row" id="pointAddressBlock" style="font-size:13px;color:#666;margin-bottom:8px;display:none;background:rgba(0,0,0,0.2);padding:8px;border-radius:8px;">
+<div id="pointAddress" style="line-height:1.5;color:#FF9500;">ポイント：取得中...</div>
 <div id="pointCoords" style="line-height:1.5;"></div>
 </div>
-<div class="row" style="margin-bottom:8px;">
+<div class="row">
 <button class="btn" id="btnSaveLocation" style="flex:1">現在地登録</button>
 <button class="btn" id="btnEditLocation" style="flex:1">登録地修正</button>
 </div>
-<div class="row" style="margin-bottom:8px;">
+<div class="row">
 <div class="input-wrapper">
 <span class="icon icon-g">
 <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor;">
 <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5.03,16.21 5.03,12.39C5.03,8.57 8.36,5.5 12.19,5.5C14.73,5.5 16.29,6.5 17.2,7.38L19.31,5.26C17.38,3.53 15.05,2.5 12.19,2.5C6.92,2.5 2.73,6.63 2.73,12.39C2.73,18.15 6.92,22.28 12.19,22.28C17.63,22.28 21.64,18.5 21.64,12.61C21.64,12 21.52,11.55 21.35,11.1Z"></path>
 </svg>
 </span>
-<input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" autocomplete="off" style="flex:1" />
+<input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" autocomplete="off" />
 <span class="icon icon-search" id="btnSearchIcon">
 <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor;">
 <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
@@ -255,16 +233,17 @@ body, html {
 </div>
 </div>
 <div id="results" class="results" style="display:none"></div>
-<div class="row" style="margin-top:12px;gap:8px;">
+<div class="row" style="margin-top:12px;gap:8px;justify-content:space-between;">
 <button id="btnReset" class="btn danger" style="flex:1">リセット</button>
-<button id="btnLocatePanel" class="btn" style="flex:1;background:rgba(98,181,255,0.2);color:var(--primary);">現在地</button>
+<button id="btnLocatePanel" class="btn" style="flex:1;background:rgba(98,181,255,0.2);color:#007AFF;">現在地</button>
 <button id="btnClosePanel" class="btn" style="flex:1;background:rgba(255,255,255,0.1);">閉じる</button>
 </div>
-</div><div class="tab-pane" id="tabPaneNav">
+</div>
+<div class="tab-pane" id="tabPaneNav">
 <div class="nav-section">
 <div class="nav-section-title">📍 現在地</div>
-<div id="locCoords" style="font-size:13px;color:var(--muted);">現在地：取得中...</div>
-<div id="locAddress" style="font-size:14px;color:var(--text);font-weight:600;margin-top:4px;"></div>
+<div id="locCoords" style="font-size:13px;color:#666;">現在地：取得中...</div>
+<div id="locAddress" style="font-size:14px;color:#000;font-weight:600;margin-top:4px;"></div>
 </div>
 <div class="nav-section">
 <div class="nav-section-title">🌤️ 天気予報</div>
@@ -277,28 +256,29 @@ body, html {
 <div class="nav-section" id="routeInfoSection" style="display:none;">
 <div class="nav-section-title">🚶 ルート情報</div>
 <div style="margin-bottom:8px;">
-<div style="font-size:14px;color:var(--text);margin-bottom:4px;">
+<div style="font-size:14px;color:#000;margin-bottom:4px;">
 <span id="destinationName">目的地</span>へのルート
 </div>
 <div>
 <span id="routeDistance" class="route-distance">--</span>
-<span id="routeTime" class="route-time" style="margin-left:8px;font-size:14px;color:var(--muted);">徒歩 --分</span>
+<span id="routeTime" class="route-time" style="margin-left:8px;font-size:14px;color:#666;">徒歩 --分</span>
 </div>
 </div>
 <button id="btnExportText" class="btn" style="width:100%;background:rgba(255,255,255,0.1);margin-bottom:8px;">📋 道順をコピー</button>
 </div>
 <div class="nav-section" id="incidentSection" style="display:none;">
 <div class="nav-section-title">⚠️ インシデント</div>
-<div id="incidentText" style="font-size:13px;color:var(--warning);line-height:1.6;"></div>
+<div id="incidentText" style="font-size:13px;color:#FF9500;line-height:1.6;"></div>
 </div>
 <div class="nav-section" id="instructionsSection" style="display:none;">
 <div class="nav-section-title">🧭 道順</div>
 <div id="navPanelInstructions" class="nav-instructions-list"></div>
 </div>
-</div><div class="tab-pane" id="tabPaneSettings">
+</div>
+<div class="tab-pane" id="tabPaneSettings">
 <h2>設定</h2>
 <div style="margin-bottom:16px;">
-<div style="font-size:14px;color:var(--muted);margin-bottom:8px;">タブの位置</div>
+<div style="font-size:14px;color:#666;margin-bottom:8px;">タブの位置</div>
 <div class="row" style="justify-content:center;flex-wrap:wrap;gap:8px;">
 <button class="chip" data-pos="top">上</button>
 <button class="chip" data-pos="bottom">下</button>
@@ -307,16 +287,17 @@ body, html {
 </div>
 </div>
 <div id="routeControlSection" style="display:none;margin-bottom:16px;">
-<div style="font-size:14px;color:var(--muted);margin-bottom:8px;">ルート操作</div>
+<div style="font-size:14px;color:#666;margin-bottom:8px;">ルート操作</div>
 <div class="row" style="flex-direction:column;gap:8px;">
 <button id="btnPauseSettings" class="btn" style="width:100%;">⏸️ 一時停止</button>
-<button id="btnRerouteSettings" class="btn" style="width:100%;background:rgba(98,181,255,0.2);color:var(--primary);">🔄 リルート</button>
+<button id="btnRerouteSettings" class="btn" style="width:100%;background:rgba(98,181,255,0.2);color:#007AFF;">🔄 リルート</button>
 <button id="btnStopRoute" class="btn danger" style="width:100%;">🛑 ルート終了</button>
 </div>
 </div>
-<div style="font-size:12px;color:var(--muted);text-align:center;margin-top:16px;">v=embedless-walknav</div>
+<div style="font-size:12px;color:#666;text-align:center;margin-top:16px;">v=embedless-walknav</div>
 </div>
-</div></section>
+</div>
+</section>
 <div class="fab-stack" id="fabStack">
 <div class="fab" id="btnSearch">検索パネル</div>
 <div class="fab" id="btnLocate">現在地</div>
@@ -331,86 +312,47 @@ body, html {
 </div>
 <script src="app.js"></script>
 <script>
-// 追加のJS修正: 地図初期化を確実に行い、白表示を防ぐ
-let map;
-let geocoder;
-let directionsService;
-let directionsRenderer;
+// 地図初期化: app.jsと重複回避、シンプルに
+let map, geocoder, directionsService, directionsRenderer;
 
 function initMap() {
-    // 地図コンテナが完全にレンダリングされた後で初期化
     if (typeof google === 'undefined' || !google.maps) {
-        setTimeout(initMap, 100); // 遅延再試行
+        setTimeout(initMap, 200);
         return;
     }
 
     map = new google.maps.Map(document.getElementById('map'), {
-        center: { lat: 35.6895, lng: 139.6917 }, // デフォルト: 東京
-        zoom: 15,
-        mapTypeId: 'roadmap',
-        styles: [] // 必要に応じてカスタムスタイル
+        center: { lat: 35.6895, lng: 139.6917 },
+        zoom: 15
     });
 
     geocoder = new google.maps.Geocoder();
     directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer({
-        map: map,
-        suppressMarkers: false,
-        polylineOptions: {
-            strokeColor: '#007AFF',
-            strokeOpacity: 0.8,
-            strokeWeight: 5
-        }
-    });
+    directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
 
-    // リサイズイベントで地図を再描画（白表示対策）
-    google.maps.event.addDomListener(window, 'resize', function() {
-        const center = map.getCenter();
+    // リサイズ対策
+    window.addEventListener('resize', () => {
         google.maps.event.trigger(map, 'resize');
-        if (center) map.setCenter(center);
     });
-
-    // 初回リサイズトリガー
     google.maps.event.trigger(map, 'resize');
 
-    // 現在地取得開始（例）
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            function(position) {
-                const pos = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                };
-                map.setCenter(pos);
-                // マーカー追加など（app.jsに統合）
-                document.getElementById('loading').style.display = 'none';
-            },
-            function() {
-                document.getElementById('loading').style.display = 'none';
-            }
-        );
+    // 現在地取得（app.jsに委ねるが、フォールバック）
+    if (navigator.geolocation && !document.getElementById('loading').style.display) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            map.setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+            document.getElementById('loading').style.display = 'none';
+        }, () => {
+            document.getElementById('loading').style.display = 'none';
+        });
     }
-
-    console.log('地図初期化完了');
 }
 
-// Google Maps APIのコールバックをwindowに設定
 window.initMap = initMap;
 
-// DOM読み込み完了後に初期化を保証
-document.addEventListener('DOMContentLoaded', function() {
-    // app.jsが読み込まれた後もinitMapを呼ぶ
-    if (window.google && window.google.maps) {
-        initMap();
-    }
+// DOMLoadedでapp.jsの後を待つ
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(initMap, 500); // app.jsの読み込み後を想定
 });
-
-// スクリプトの読み込み後を待つ追加ハンドラ
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initMap);
-} else {
-    initMap();
-}
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry&loading=async&callback=initMap" async defer></script>
 </body>
