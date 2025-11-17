@@ -7,6 +7,206 @@
 <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
 <link rel="stylesheet" href="app.css?v=3" />
+<style>
+/* 追加のCSS修正: 地図の高さを確保し、レイヤー順序を調整 */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+#appBody {
+    height: 100vh;
+}
+
+.app {
+    position: relative;
+    height: 100vh;
+    width: 100vw;
+}
+
+#map {
+    height: 100vh;
+    width: 100vw;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1; /* 地図を最下層に */
+}
+
+.panel {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    z-index: 100; /* パネルを上層に */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-height: 80vh;
+    overflow-y: auto;
+    max-width: 400px; /* モバイルで狭く保つ */
+}
+
+.panel-tabs-header {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 16px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    color: var(--muted, #666);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.tab-btn.active {
+    background: var(--primary, #007AFF);
+    color: white;
+}
+
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.chip {
+    padding: 8px 12px;
+    border: 1px solid var(--border, #ddd);
+    background: white;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.chip.active {
+    background: var(--primary, #007AFF);
+    color: white;
+    border-color: var(--primary, #007AFF);
+}
+
+.btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary, #007AFF);
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.btn.danger {
+    background: var(--danger, #FF3B30);
+}
+
+.input-wrapper {
+    display: flex;
+    align-items: center;
+    background: white;
+    border-radius: 8px;
+    padding: 8px;
+    border: 1px solid var(--border, #ddd);
+}
+
+.input {
+    border: none;
+    outline: none;
+    flex: 1;
+    margin: 0 8px;
+    font-size: 16px;
+}
+
+.icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.results {
+    max-height: 200px;
+    overflow-y: auto;
+    background: white;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.fab-stack {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000; /* FABを最上層に */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.fab {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--primary, #007AFF);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 50;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+/* タブ位置の調整例（右側の場合） */
+@media (min-width: 768px) {
+    .panel {
+        right: 10px;
+        left: auto;
+        width: 350px;
+    }
+}
+
+/* 変数定義のフォールバック */
+:root {
+    --primary: #007AFF;
+    --text: #000;
+    --muted: #666;
+    --warning: #FF9500;
+    --border: #ddd;
+}
+</style>
 </head>
 <body id="appBody">
 <div class="app">
@@ -128,7 +328,90 @@
 <div style="font-size:16px;opacity:0.8;">しばらくお待ちください...</div>
 </div>
 </div>
-</div><script src="app.js"></script>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry&loading=async" async defer></script>
+</div>
+<script src="app.js"></script>
+<script>
+// 追加のJS修正: 地図初期化を確実に行い、白表示を防ぐ
+let map;
+let geocoder;
+let directionsService;
+let directionsRenderer;
+
+function initMap() {
+    // 地図コンテナが完全にレンダリングされた後で初期化
+    if (typeof google === 'undefined' || !google.maps) {
+        setTimeout(initMap, 100); // 遅延再試行
+        return;
+    }
+
+    map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat: 35.6895, lng: 139.6917 }, // デフォルト: 東京
+        zoom: 15,
+        mapTypeId: 'roadmap',
+        styles: [] // 必要に応じてカスタムスタイル
+    });
+
+    geocoder = new google.maps.Geocoder();
+    directionsService = new google.maps.DirectionsService();
+    directionsRenderer = new google.maps.DirectionsRenderer({
+        map: map,
+        suppressMarkers: false,
+        polylineOptions: {
+            strokeColor: '#007AFF',
+            strokeOpacity: 0.8,
+            strokeWeight: 5
+        }
+    });
+
+    // リサイズイベントで地図を再描画（白表示対策）
+    google.maps.event.addDomListener(window, 'resize', function() {
+        const center = map.getCenter();
+        google.maps.event.trigger(map, 'resize');
+        if (center) map.setCenter(center);
+    });
+
+    // 初回リサイズトリガー
+    google.maps.event.trigger(map, 'resize');
+
+    // 現在地取得開始（例）
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const pos = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                map.setCenter(pos);
+                // マーカー追加など（app.jsに統合）
+                document.getElementById('loading').style.display = 'none';
+            },
+            function() {
+                document.getElementById('loading').style.display = 'none';
+            }
+        );
+    }
+
+    console.log('地図初期化完了');
+}
+
+// Google Maps APIのコールバックをwindowに設定
+window.initMap = initMap;
+
+// DOM読み込み完了後に初期化を保証
+document.addEventListener('DOMContentLoaded', function() {
+    // app.jsが読み込まれた後もinitMapを呼ぶ
+    if (window.google && window.google.maps) {
+        initMap();
+    }
+});
+
+// スクリプトの読み込み後を待つ追加ハンドラ
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMap);
+} else {
+    initMap();
+}
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXC6CB2yaUkrJ5UYj3mymAsruQe4MzGPk&v=weekly&libraries=marker,geometry&loading=async&callback=initMap" async defer></script>
 </body>
 </html>
