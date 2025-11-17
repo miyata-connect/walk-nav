@@ -1,3 +1,5 @@
+<bash_tool>
+cd /tmp && cat > app.js << 'ENDOFFILE'
 'use strict';
 const ISSUE_ID = 'idx202511050540';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
@@ -67,21 +69,21 @@ for (let i = 0; i < retries; i++) {
 try {
 const response = await fetch(url, options);
 if (!response.ok && i < retries - 1) {
-console.log(`[Retry] ${i + 1}/${retries}: ${url}`);
+console.log([Retry] ${i + 1}/${retries}: ${url});
 await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (i + 1)));
 continue;
 }
 return response;
 } catch (error) {
 if (i === retries - 1) throw error;
-console.log(`[Retry] ${i + 1}/${retries}: ${error.message}`);
+console.log([Retry] ${i + 1}/${retries}: ${error.message});
 await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (i + 1)));
 }
 }
 }
 async function placesTextSearch(payload, fieldMask) {
 try {
-const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
+const resp = await fetchWithRetry(${WORKER_ORIGIN}/places:searchText, {
 method: 'POST',
 headers: {
 'Content-Type': 'application/json',
@@ -95,13 +97,13 @@ if (!resp.ok) {
 }
 return await resp.json();
 } catch (error) {
-console.error(`検索エラー: ${error.message}`);
+console.error(検索エラー: ${error.message});
 throw error;
 }
 }
 async function placesNearby(payload, fieldMask) {
 try {
-const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchNearby`, {
+const resp = await fetchWithRetry(${WORKER_ORIGIN}/places:searchNearby, {
 method: 'POST',
 headers: {
 'Content-Type': 'application/json',
@@ -115,7 +117,7 @@ if (!resp.ok) {
 }
 return await resp.json();
 } catch (error) {
-console.error(`検索エラー: ${error.message}`);
+console.error(検索エラー: ${error.message});
 throw error;
 }
 }
@@ -192,7 +194,7 @@ position: { lat, lng },
 content: pin,
 zIndex: 999
 });
-console.log(`[WalkNav] 検索地点設定: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+console.log([WalkNav] 検索地点設定: ${lat.toFixed(6)}, ${lng.toFixed(6)});
 console.log('検索地点を設定しました');
 fetchPointAddress(lat, lng);
 }
@@ -210,7 +212,7 @@ function readLegDistanceText(leg) {
 if (leg?.distance?.text) return leg.distance.text;
 if (typeof leg?.distanceMeters === 'number') {
 const km = (leg.distanceMeters / 1000).toFixed(1);
-return `${km} km`;
+return ${km} km;
 }
 return leg?.localizedValues?.distance?.text || '--';
 }
@@ -219,7 +221,7 @@ if (leg?.duration?.text) return leg.duration.text;
 if (typeof leg?.duration === 'string' && leg.duration.endsWith('s')) {
 const sec = parseInt(leg.duration.replace('s', ''), 10) || 0;
 const min = Math.max(1, Math.round(sec / 60));
-return `${min} 分`;
+return ${min} 分;
 }
 return leg?.localizedValues?.duration?.text || '--';
 }
@@ -297,7 +299,7 @@ appState.compassWatchId = null;
 function updateMarkerRotation() {
 const icon = document.getElementById('user-marker-icon');
 if (icon) {
-icon.style.transform = `rotate(${appState.currentHeading}deg)`;
+icon.style.transform = rotate(${appState.currentHeading}deg);
 }
 }
 function startLocationWatcher() {
@@ -308,7 +310,7 @@ appState.locationWatchId = null;
 console.log('[Location] Starting watchPosition (Nav Mode)...');
 const onWatchSuccess = (pos) => {
 const { latitude, longitude } = pos.coords;
-console.log(`[Location] Watch update: ${latitude}, ${longitude}`);
+console.log([Location] Watch update: ${latitude}, ${longitude});
 setUserMarker(latitude, longitude);
 fetchLocationNameGoogle(latitude, longitude);
 
@@ -483,7 +485,7 @@ if (result.routes && result.routes.length > 0) {
 }
 } catch (error) {
 console.error('[Navigation] Error:', error);
-console.error(`ルートエラー: ${error.message}`);
+console.error(ルートエラー: ${error.message});
 appState.isNavigating = false;
 appState.isSimulation = false;
 updateNavigationUI(false);
@@ -715,8 +717,8 @@ const marker = new google.maps.marker.AdvancedMarkerElement({
 
 appState.searchMarkers.push(marker);
 });
-console.log(`${limitedResults.length}件の検索結果`);
-console.log(`[Search] ${limitedResults.length}件の結果を表示しました`);
+console.log(${limitedResults.length}件の検索結果);
+console.log([Search] ${limitedResults.length}件の結果を表示しました);
 }
 function initSpeechRecognition() {
 if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -739,7 +741,7 @@ console.log('[Voice] 認識結果:', transcript);
 const qInput = document.getElementById('q');
 if (qInput) qInput.value = transcript;
 performSearch(transcript);
-console.log(`音声認識: ${transcript}`);
+console.log(音声認識: ${transcript});
 };
 appState.recognition.onerror = (event) => {
 console.error('[Voice] エラー:', event.error);
@@ -835,7 +837,7 @@ if (!addressElement || !coordsElement) {
 console.error('[DEBUG] Elements not found!');
 return;
 }
-const coordsText = `緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
+const coordsText = 緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)};
 coordsElement.textContent = coordsText;
 try {
 console.log('[Geocode] Fetching address from Cloudflare...');
@@ -887,10 +889,10 @@ console.error('[DEBUG] Point Elements not found!');
 return;
 }
 addressElement.textContent = 'ポイント：住所取得中...';
-coordsElement.textContent = `緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)}`;
+coordsElement.textContent = (緯度 ${lat.toFixed(6)} / 経度 ${lng.toFixed(6)});
 addressBlock.style.display = 'flex';
 try {
-const response = await fetchWithRetry(`${WORKER_ORIGIN}/geocode`, {
+const response = await fetchWithRetry(${WORKER_ORIGIN}/geocode, {
 method: 'POST',
 headers: { 'Content-Type': 'application/json' },
 body: JSON.stringify({
@@ -978,10 +980,10 @@ if (weather9h) weather9h.textContent = 'X';
 }
 function createDialog(config) {
 const overlay = document.createElement('div');
-overlay.className = `dialog-overlay ${config.scroll ? 'scroll' : ''}`;
+overlay.className = dialog-overlay ${config.scroll ? 'scroll' : ''};
 overlay.id = config.id || 'dialog';
 const box = document.createElement('div');
-box.className = `dialog-box ${config.wide ? 'wide' : ''}`;
+box.className = dialog-box ${config.wide ? 'wide' : ''};
 box.innerHTML = config.content;
 overlay.appendChild(box);
 document.body.appendChild(overlay);
@@ -994,7 +996,7 @@ return;
 }
 const dialog = createDialog({
 id: 'saveLocationDialog',
-content: `<h3 class="dialog-title">現在地点登録画面</h3> <p class="dialog-text">登録する地点名を入力してください:</p> <input type="text" id="locationNameInput" class="dialog-input" placeholder="地点名を入力" /> <div class="dialog-actions"> <button id="btnCancelSave" class="dialog-btn cancel">キャンセル</button> <button id="btnConfirmSave" class="dialog-btn confirm">OK</button> </div>`
+content: <h3 class="dialog-title">現在地点登録画面</h3> <p class="dialog-text">登録する地点名を入力してください:</p> <input type="text" id="locationNameInput" class="dialog-input" placeholder="地点名を入力" /> <div class="dialog-actions"> <button id="btnCancelSave" class="dialog-btn cancel">キャンセル</button> <button id="btnConfirmSave" class="dialog-btn confirm">OK</button> </div>
 });
 const input = document.getElementById('locationNameInput');
 const btnCancel = document.getElementById('btnCancelSave');
@@ -1019,7 +1021,7 @@ locations.push(savedLocation);
 localStorage.setItem('savedLocations', JSON.stringify(locations));
 console.log('[SaveLocation] 現在地を登録:', savedLocation);
 dialog.remove();
-console.log(`「${locationName}」を登録しました`);
+console.log(「${locationName}」を登録しました);
 };
 input.addEventListener('keypress', (e) => {
 if (e.key === 'Enter') btnConfirm.click();
@@ -1030,21 +1032,21 @@ const locations = JSON.parse(localStorage.getItem('savedLocations') || '[]');
 if (locations.length === 0) {
 const dialog = createDialog({
 id: 'editDialog',
-content: `<h3 class="dialog-title">登録地点修正</h3> <p class="dialog-muted">登録された地点がありません</p> <button id="btnCloseEmpty" class="dialog-btn confirm full">閉じる</button>`
+content: <h3 class="dialog-title">登録地点修正</h3> <p class="dialog-muted">登録された地点がありません</p> <button id="btnCloseEmpty" class="dialog-btn confirm full">閉じる</button>
 });
 document.getElementById('btnCloseEmpty').onclick = () => dialog.remove();
 return;
 }
 let listHTML = '';
 locations.forEach((loc, index) => {
-listHTML += `<div class="location-item"> <div class="location-item-name">${loc.name}</div> <div class="location-item-coords">緯度: ${loc.lat.toFixed(6)} / 経度: ${loc.lng.toFixed(6)}</div> <div class="location-item-actions"> <button class="location-item-btn nav" data-index="${index}">ナビ開始</button> <button class="location-item-btn edit" data-index="${index}">名前変更</button> <button class="location-item-btn delete" data-index="${index}">削除</button> </div> </div>`;
+listHTML += <div class="location-item"> <div class="location-item-name">${loc.name}</div> <div class="location-item-coords">緯度: ${loc.lat.toFixed(6)} / 経度: ${loc.lng.toFixed(6)}</div> <div class="location-item-actions"> <button class="location-item-btn nav" data-index="${index}">ナビ開始</button> <button class="location-item-btn edit" data-index="${index}">名前変更</button> <button class="location-item-btn delete" data-index="${index}">削除</button> </div> </div>;
 });
 listHTML += '';
 const dialog = createDialog({
 id: 'editDialog',
 wide: true,
 scroll: true,
-content: `<h3 class="dialog-title">登録地点修正</h3> ${listHTML} <button id="btnCloseEdit" class="dialog-btn cancel full" style="margin-top:16px">閉じる</button>`
+content: <h3 class="dialog-title">登録地点修正</h3> ${listHTML} <button id="btnCloseEdit" class="dialog-btn cancel full" style="margin-top:16px">閉じる</button>
 });
 document.getElementById('btnCloseEdit').onclick = () => dialog.remove();
 document.querySelectorAll('.location-item-btn.nav').forEach(btn => {
@@ -1061,7 +1063,7 @@ const index = parseInt(btn.dataset.index);
 const loc = locations[index];
 const renameDialog = createDialog({
 id: 'renameDialog',
-content: `<h3 class="dialog-title">地点名変更</h3> <input type="text" id="renameInput" value="${loc.name}" class="dialog-input" /> <div class="dialog-actions"> <button id="btnCancelRename" class="dialog-btn cancel">キャンセル</button> <button id="btnConfirmRename" class="dialog-btn confirm">OK</button> </div>`
+content: <h3 class="dialog-title">地点名変更</h3> <input type="text" id="renameInput" value="${loc.name}" class="dialog-input" /> <div class="dialog-actions"> <button id="btnCancelRename" class="dialog-btn cancel">キャンセル</button> <button id="btnConfirmRename" class="dialog-btn confirm">OK</button> </div>
 });
 const renameInput = document.getElementById('renameInput');
 setTimeout(() => {
@@ -1080,7 +1082,7 @@ locations[index].name = newName;
 localStorage.setItem('savedLocations', JSON.stringify(locations));
 renameDialog.remove();
 dialog.remove();
-console.log(`地点名を「${newName}」に変更しました`);
+console.log(地点名を「${newName}」に変更しました);
 };
 renameInput.addEventListener('keypress', (e) => {
 if (e.key === 'Enter') document.getElementById('btnConfirmRename').click();
@@ -1093,7 +1095,7 @@ const index = parseInt(btn.dataset.index);
 const loc = locations[index];
 const confirmDialog = createDialog({
 id: 'confirmDeleteDialog',
-content: `<h3 class="dialog-title">削除確認</h3> <p class="dialog-text">「${loc.name}」を削除しますか？</p> <div class="dialog-actions"> <button id="btnCancelDelete" class="dialog-btn cancel">キャンセル</button> <button id="btnConfirmDelete" class="dialog-btn delete">削除</button> </div>`
+content: <h3 class="dialog-title">削除確認</h3> <p class="dialog-text">「${loc.name}」を削除しますか？</p> <div class="dialog-actions"> <button id="btnCancelDelete" class="dialog-btn cancel">キャンセル</button> <button id="btnConfirmDelete" class="dialog-btn delete">削除</button> </div>
 });
 document.getElementById('btnCancelDelete').onclick = () => confirmDialog.remove();
 document.getElementById('btnConfirmDelete').onclick = () => {
@@ -1101,7 +1103,7 @@ locations.splice(index, 1);
 localStorage.setItem('savedLocations', JSON.stringify(locations));
 confirmDialog.remove();
 dialog.remove();
-console.log(`「${loc.name}」を削除しました`);
+console.log(「${loc.name}」を削除しました);
 };
 };
 });
@@ -1112,12 +1114,12 @@ console.warn('コピーするルートデータがありません');
 return;
 }
 const data = appState.currentRouteData;
-let textOutput = `■ 目的地: ${data.destinationName}\n`;
-textOutput += `■ 概要: ${data.summary} (約 ${data.distance}, 徒歩 ${data.duration})\n\n`;
+let textOutput = ■ 目的地: ${data.destinationName}\n;
+textOutput += ■ 概要: ${data.summary} (約 ${data.distance}, 徒歩 ${data.duration})\n\n;
 if (data.warnings.length > 0) {
 textOutput += "■ 警告:\n";
 data.warnings.forEach(w => {
-textOutput += `・ ${w.replace(/<[^>]+>/g, ' ')}\n`;
+textOutput += ・ ${w.replace(/<[^>]+>/g, ' ')}\n;
 });
 textOutput += "\n";
 }
@@ -1125,7 +1127,7 @@ textOutput += "■ 道順:\n";
 if (data.steps && data.steps.length > 0) {
 data.steps.forEach((step, index) => {
 const instruction = (step.html_instructions || '').replace(/<[^>]+>/g, ' ');
-textOutput += `${index + 1}. ${instruction} (${step.distance.text})\n`;
+textOutput += ${index + 1}. ${instruction} (${step.distance.text})\n;
 });
 } else {
 textOutput += "詳細な道順はありません。\n";
@@ -1178,7 +1180,7 @@ appBody.classList.add('keyboard-open');
 setTimeout(() => {
 const inputTopInPanel = searchInput.offsetTop;
 searchPanel.scrollTop = inputTopInPanel - 20;
-console.log(`[Keyboard] Scrolled panel to ${searchPanel.scrollTop}`);
+console.log([Keyboard] Scrolled panel to ${searchPanel.scrollTop});
 }, 350);
 });
 searchInput.addEventListener('blur', () => {
@@ -1402,3 +1404,13 @@ setTimeout(initializeWhenReady, 100);
 }
 }
 window.addEventListener('DOMContentLoaded', initializeWhenReady);
+ENDOFFILE
+echo "app.js created in /tmp"
+
+</bash_tool>
+<bash_tool>
+ls -lh /tmp/app.js
+</bash_tool>
+<bash_tool>
+cp /tmp/app.js /mnt/user-data/outputs/app.js && echo "File copied to outputs"
+</bash_tool>
