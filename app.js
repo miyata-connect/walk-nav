@@ -3,7 +3,7 @@
 // ==========================================
 // 定数定義
 // ==========================================
-const ISSUE_ID = 'idx20251119_fix_keyboard_reset_v2'; // 戻り検知強化版
+const ISSUE_ID = 'idx20251119_fix_keyboard_docking_v3'; // キーボード直上ドッキング版
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0'; 
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -551,7 +551,7 @@ function displayResults(places, centerLat, centerLng) {
 }
 
 // ==========================================
-// UIバインディング（VisualViewport監視による確実な復帰）
+// UIバインディング（キーボード対応・Docking修正版）
 // ==========================================
 function bindKeyboardWatch() {
   const searchInput = getEl('q');
@@ -561,57 +561,51 @@ function bindKeyboardWatch() {
 
   if (!searchInput || !searchPanel) return;
 
-  // VisualViewport APIによる「画面サイズ復帰」検知
-  // これにより、フォーカスが残っていてもキーボードが閉じれば確実に下に降ります
-  if (window.visualViewport) {
-    const handleResize = () => {
-       const currentHeight = window.visualViewport.height;
-       const windowHeight = window.innerHeight;
+  // 位置調整関数
+  const updatePosition = () => {
+    if (!window.visualViewport) return;
 
-       // 画面の高さがウィンドウ高さの80%以上に戻ったら「キーボードは閉じた」とみなす
-       if (currentHeight > windowHeight * 0.8) {
-           // 強制的に下にリセット
-           searchPanel.style.transition = ''; 
-           searchPanel.style.top = 'auto';
-           searchPanel.style.bottom = '0';
-           
-           if (appBody) appBody.classList.remove('keyboard-open');
-           
-           // 検索結果が出ていなくて、ナビ中なら案内を再表示
-           const resultsVisible = getEl('results')?.style.display === 'block';
-           if (!resultsVisible && !appState.pointSearchMode && navPanel) {
-              navPanel.style.display = 'block';
-           }
-       } else {
-           // 画面が狭い＝キーボードが出ている
-           // フォーカスがある場合のみ上に移動させる
-           if (document.activeElement === searchInput) {
-               searchPanel.style.transition = 'none'; 
-               searchPanel.style.bottom = 'auto';
-               searchPanel.style.top = '10px';
-               
-               if (appBody) appBody.classList.add('keyboard-open');
-               if (navPanel) navPanel.style.display = 'none';
-           }
-       }
-    };
-    window.visualViewport.addEventListener('resize', handleResize);
+    // 画面全体の高さ(window.innerHeight)と、現在見えている高さ(visualViewport.height)の差
+    const vvHeight = window.visualViewport.height;
+    const layoutHeight = window.innerHeight;
+    const heightDiff = layoutHeight - vvHeight;
+    
+    // 差分が150px以上ある＝キーボードが出ていると判断
+    if (heightDiff > 150) {
+      // キーボードの高さ分だけパネルの底上げをする
+      // これでテキストボックスがキーボードの真上に配置されます
+      searchPanel.style.bottom = `${heightDiff}px`;
+      searchPanel.style.top = 'auto'; // 上固定は解除
+      
+      if (appBody) appBody.classList.add('keyboard-open');
+      if (navPanel) navPanel.style.display = 'none';
+    } else {
+      // キーボードが閉じている＝差分がほとんどない
+      searchPanel.style.bottom = '0px';
+      searchPanel.style.top = 'auto';
+      
+      if (appBody) appBody.classList.remove('keyboard-open');
+      const resultsVisible = getEl('results')?.style.display === 'block';
+      if (!resultsVisible && !appState.pointSearchMode && navPanel) {
+         navPanel.style.display = 'block';
+      }
+    }
+  };
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', updatePosition);
+    window.visualViewport.addEventListener('scroll', updatePosition);
   }
 
-  // フォールバック: フォーカスイベント
+  // フォールバック＆初期動作用
   searchInput.addEventListener('focus', () => {
-    searchPanel.style.transition = 'none'; 
-    searchPanel.style.bottom = 'auto'; 
-    searchPanel.style.top = '10px';    
-    
-    if (appBody) appBody.classList.add('keyboard-open');
-    if (navPanel) navPanel.style.display = 'none';
+     // 少し待ってから位置調整を実行（キーボードアニメーション待ち）
+     setTimeout(updatePosition, 300);
   });
-
-  // blurも念のため残しますが、主な復帰処理は上記のresizeで行います
+  
   searchInput.addEventListener('blur', () => {
-     // タイムラグを持たせず即時適用を試みる
-     // ただしVisualViewportの判定が優先されるため、ここは補助的な役割
+     // フォーカス外れたらすぐチェック
+     setTimeout(updatePosition, 100);
   });
 }
 
