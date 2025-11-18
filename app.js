@@ -3,8 +3,8 @@
 // ==========================================
 // 定数定義
 // ==========================================
-const ISSUE_ID = 'idx202511050540'; // 更新：パネル表示ロジック、ボタン配置
-const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0'; // Maps表示用のみ
+const ISSUE_ID = 'idx202511050540';
+const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0'; // Maps表示用のみ(HTML側と統一)
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
@@ -443,6 +443,10 @@ async function startNavigation(destination) {
   switchPanelTab('nav');
   stopCompassListener();
 
+  // ルート操作セクションを表示
+  const routeControlSection = document.getElementById('routeControlSection');
+  if (routeControlSection) routeControlSection.style.display = 'block';
+
   try {
     console.log('ルートを取得中...');
 
@@ -475,10 +479,19 @@ async function startNavigation(destination) {
       document.getElementById('destinationName').textContent = destination.name;
       document.getElementById('routeDistance').textContent = distanceText;
       document.getElementById('routeTime').textContent = `徒歩 ${durationText}`;
-      document.getElementById('routePanel').style.display = 'block';
-      document.getElementById('searchPanel').style.display = 'block';
-      document.getElementById('results').style.display = 'none';
-      document.getElementById('btnDestination').style.display = 'flex';
+      
+      // パネルの表示切替（HTMLのIDに修正）
+      const routeInfoSection = document.getElementById('routeInfoSection');
+      if (routeInfoSection) routeInfoSection.style.display = 'block';
+
+      const searchPanel = document.getElementById('searchPanel');
+      if (searchPanel) searchPanel.style.display = 'block';
+      
+      const results = document.getElementById('results');
+      if (results) results.style.display = 'none';
+
+      const btnDestination = document.getElementById('btnDestination');
+      if (btnDestination) btnDestination.style.display = 'flex';
 
       const instructionsList = document.getElementById('navPanelInstructions');
       instructionsList.innerHTML = '';
@@ -491,7 +504,10 @@ async function startNavigation(destination) {
           instructionsList.appendChild(item);
         });
       }
-      document.getElementById('navPanel').style.display = 'block';
+      
+      // 指示パネル（道順）の表示
+      const instructionsSection = document.getElementById('instructionsSection');
+      if (instructionsSection) instructionsSection.style.display = 'block';
 
       appState.currentRouteData = {
         steps: l0?.steps,
@@ -502,12 +518,14 @@ async function startNavigation(destination) {
         warnings: r0.warnings || []
       };
 
-      const incidentPanel = document.getElementById('incidentPanel');
-      if (r0.warnings && r0.warnings.length > 0) {
-        incidentPanel.innerHTML = '⚠️ ' + r0.warnings.map(w => w.replace(/<[^>]+>/g, ' ')).join('<br>⚠️ ');
-        incidentPanel.style.display = 'block';
-      } else {
-        incidentPanel.style.display = 'none';
+      // インシデント表示ロジック修正
+      const incidentSection = document.getElementById('incidentSection');
+      const incidentText = document.getElementById('incidentText');
+      if (r0.warnings && r0.warnings.length > 0 && incidentText && incidentSection) {
+        incidentText.innerHTML = '⚠️ ' + r0.warnings.map(w => w.replace(/<[^>]+>/g, ' ')).join('<br>⚠️ ');
+        incidentSection.style.display = 'block';
+      } else if (incidentSection) {
+        incidentSection.style.display = 'none';
       }
 
       await fetchWeather(originLat, originLng);
@@ -577,16 +595,25 @@ function stopNavigation() {
   appState.isNavigating = false;
   appState.isPaused = false;
 
-  document.getElementById('routePanel').style.display = 'none';
-  document.getElementById('navPanel').style.display = 'block';
+  // UIリセット（HTMLのIDに適合）
+  document.getElementById('routeInfoSection').style.display = 'none';
+  document.getElementById('instructionsSection').style.display = 'none'; // 旧navPanel
   document.getElementById('navPanelInstructions').innerHTML = '';
-  document.getElementById('incidentPanel').style.display = 'none';
-  document.getElementById('incidentPanel').innerHTML = '';
+  
+  const incidentSection = document.getElementById('incidentSection');
+  const incidentText = document.getElementById('incidentText');
+  if (incidentSection) incidentSection.style.display = 'none';
+  if (incidentText) incidentText.innerHTML = '';
+
   document.getElementById('searchPanel').style.display = 'block';
   document.getElementById('btnDestination').style.display = 'none';
   document.getElementById('q').value = '';
   document.getElementById('results').style.display = 'none';
   document.getElementById('results').innerHTML = '';
+
+  // ルート操作セクションを非表示
+  const routeControlSection = document.getElementById('routeControlSection');
+  if (routeControlSection) routeControlSection.style.display = 'none';
 
   document.getElementById('weather3h').textContent = '--';
   document.getElementById('weather6h').textContent = '--';
@@ -595,9 +622,12 @@ function stopNavigation() {
   document.getElementById('fabStack').style.display = 'none';
   document.getElementById('btnSearch').style.display = 'flex';
 
-  const btnPause = document.getElementById('btnPause');
-  btnPause.textContent = '一時停止';
-  btnPause.classList.remove('paused');
+  // ID修正
+  const btnPause = document.getElementById('btnPauseSettings');
+  if (btnPause) {
+      btnPause.textContent = '⏸️ 一時停止';
+      btnPause.classList.remove('paused');
+  }
 
   appState.searchMarkers.forEach(marker => marker.map = null);
   appState.searchMarkers = [];
@@ -630,16 +660,21 @@ function togglePause() {
   }
 
   appState.isPaused = !appState.isPaused;
-  const btnPause = document.getElementById('btnPause');
+  // ID修正
+  const btnPause = document.getElementById('btnPauseSettings');
 
   if (appState.isPaused) {
-    btnPause.textContent = '再開';
-    btnPause.classList.add('paused');
+    if (btnPause) {
+        btnPause.textContent = '▶️ 再開';
+        btnPause.classList.add('paused');
+    }
     console.warn('ナビゲーションを一時停止しました');
     console.log('[Navigation] 一時停止');
   } else {
-    btnPause.textContent = '一時停止';
-    btnPause.classList.remove('paused');
+    if (btnPause) {
+        btnPause.textContent = '⏸️ 一時停止';
+        btnPause.classList.remove('paused');
+    }
     console.log('ナビゲーションを再開しました');
     console.log('[Navigation] 再開');
     if (appState.currentPos) {
@@ -729,14 +764,20 @@ async function performSearch(query) {
 
   console.warn('検索結果が見つかりませんでした');
   document.getElementById('results').style.display = 'none';
-  document.getElementById('navPanel').style.display = 'block';
+  
+  // 検索失敗時は案内タブに戻す意図？
+  // ただし、現在はタブUIなので何もしないか、またはInstructionsを表示
+  const instructionsSection = document.getElementById('instructionsSection');
+  if (instructionsSection) instructionsSection.style.display = 'block';
 }
 
 // ==========================================
 // 検索結果表示
 // ==========================================
 function displayResults(places, centerLat, centerLng) {
-  document.getElementById('navPanel').style.display = 'none';
+  // 結果表示時はInstructionsは隠す
+  const instructionsSection = document.getElementById('instructionsSection');
+  if (instructionsSection) instructionsSection.style.display = 'none';
 
   appState.searchMarkers.forEach(marker => marker.map = null);
   appState.searchMarkers = [];
@@ -1371,12 +1412,12 @@ function bindKeyboardWatch() {
   const searchInput = document.getElementById('q');
   const searchPanel = document.getElementById('searchPanel');
   const appBody = document.getElementById('appBody');
-  const navPanel = document.getElementById('navPanel');
+  const navPanel = document.getElementById('instructionsSection'); // ID修正
 
   searchInput.addEventListener('focus', () => {
     console.log('[Keyboard] Input focused');
     appBody.classList.add('keyboard-open');
-    navPanel.style.display = 'none';
+    if (navPanel) navPanel.style.display = 'none';
     setTimeout(() => {
       const inputTopInPanel = searchInput.offsetTop;
       searchPanel.scrollTop = inputTopInPanel - 20;
@@ -1389,7 +1430,8 @@ function bindKeyboardWatch() {
     appBody.classList.remove('keyboard-open');
     searchPanel.scrollTop = 0;
     const resultsVisible = document.getElementById('results').style.display === 'block';
-    if (!resultsVisible && !appState.pointSearchMode) {
+    if (!resultsVisible && !appState.pointSearchMode && navPanel) {
+      // 戻すかどうかはコンテキストによるが、安全のため表示
       navPanel.style.display = 'block';
     }
   });
@@ -1404,7 +1446,7 @@ function bindSearchPanelEvents() {
   const r20 = document.getElementById('r20');
   const r30 = document.getElementById('r30');
   const btnPointSearch = document.getElementById('btnPointSearch');
-  const navPanel = document.getElementById('navPanel');
+  const instructionsSection = document.getElementById('instructionsSection');
 
   r10.onclick = () => {
     r10.classList.add('active');
@@ -1433,14 +1475,14 @@ function bindSearchPanelEvents() {
       btnPointSearch.style.color = '#0a2818';
       btnPointSearch.style.borderColor = 'transparent';
       console.log('地図をタップして検索地点を選択');
-      navPanel.style.display = 'none';
+      if (instructionsSection) instructionsSection.style.display = 'none';
     } else {
       btnPointSearch.textContent = '📍 ポイント選択';
       btnPointSearch.style.background = 'rgba(255,255,255,.08)';
       btnPointSearch.style.color = 'var(--text)';
       btnPointSearch.style.borderColor = 'var(--stroke)';
-      if (document.getElementById('results').style.display === 'none') {
-        navPanel.style.display = 'block';
+      if (document.getElementById('results').style.display === 'none' && instructionsSection) {
+        instructionsSection.style.display = 'block';
       }
     }
   };
@@ -1486,7 +1528,10 @@ function bindSearchEvents() {
     btnPointSearch.style.background = 'rgba(255,255,255,.08)';
     btnPointSearch.style.color = 'var(--text)';
     btnPointSearch.style.borderColor = 'var(--stroke)';
-    document.getElementById('navPanel').style.display = 'block';
+    
+    const instructionsSection = document.getElementById('instructionsSection');
+    if (instructionsSection) instructionsSection.style.display = 'block';
+    
     document.getElementById('r10').classList.add('active');
     document.getElementById('r20').classList.remove('active');
     document.getElementById('r30').classList.remove('active');
@@ -1502,20 +1547,26 @@ function bindFABEvents() {
     document.getElementById('searchPanel').style.display = 'block';
     document.getElementById('fabStack').style.display = 'none';
     document.getElementById('appBody').classList.add('panel-open');
-    if (document.getElementById('results').style.display === 'none' && !appState.pointSearchMode) {
-      document.getElementById('navPanel').style.display = 'block';
+    
+    // 検索結果がなく、ポイント選択中でもなければ案内を表示
+    const instructionsSection = document.getElementById('instructionsSection');
+    if (document.getElementById('results').style.display === 'none' && !appState.pointSearchMode && instructionsSection) {
+      instructionsSection.style.display = 'block';
     }
     document.getElementById('navPanelInstructions').innerHTML = '';
-    document.getElementById('incidentPanel').style.display = 'none';
+    
+    const incidentSection = document.getElementById('incidentSection');
+    if (incidentSection) incidentSection.style.display = 'none';
 
     // FABから戻ったら操作タブへ
     switchPanelTab('search');
   };
   document.getElementById('btnClosePanel').onclick = () => {
     document.getElementById('searchPanel').style.display = 'none';
+    // ナビ中でないならFABなども隠す（埋め込み用途など）
     if (!appState.isNavigating) {
       document.getElementById('fabStack').style.display = 'none';
-      document.getElementById('navPanel').style.display = 'none';
+      // 修正: navPanelは存在しないため削除
     } else {
       document.getElementById('fabStack').style.display = 'flex';
     }
@@ -1529,14 +1580,21 @@ function bindFABEvents() {
       console.log('目的地に移動しました');
     }
   };
-  document.getElementById('btnPause').onclick = togglePause;
-  document.getElementById('btnReroute').onclick = () => {
-    if (appState.currentDestination) {
-      startNavigation(appState.currentDestination);
-    } else {
-      console.warn('目的地が設定されていません');
-    }
-  };
+
+  // ID修正：設定タブ内のボタンイベントをバインド
+  const btnPause = document.getElementById('btnPauseSettings');
+  if (btnPause) btnPause.onclick = togglePause;
+
+  const btnReroute = document.getElementById('btnRerouteSettings');
+  if (btnReroute) {
+      btnReroute.onclick = () => {
+        if (appState.currentDestination) {
+        startNavigation(appState.currentDestination);
+        } else {
+        console.warn('目的地が設定されていません');
+        }
+    };
+  }
 }
 
 function bindRoutePanelEvents() {
@@ -1565,8 +1623,7 @@ function startApp() {
   document.getElementById('fabStack').style.display = 'none';
   document.getElementById('btnSearch').style.display = 'flex';
   document.getElementById('appBody').classList.add('panel-open');
-  document.getElementById('navPanel').style.display = 'block';
-
+  
   // 初期は操作タブ
   switchPanelTab('search');
 
@@ -1577,7 +1634,7 @@ function startApp() {
   console.log('[WalkNav] ISSUE', ISSUE_ID, 'boot');
 }
 
-// [修正] DOMContentLoaded を待って起動する（既存方式維持）
+// DOMContentLoaded を待って起動する
 function initializeWhenReady() {
   if (typeof google !== 'undefined' && google.maps && google.maps.Map && google.maps.geometry) {
     startApp();
@@ -1586,7 +1643,4 @@ function initializeWhenReady() {
   }
 }
 
-// [修正] DOMContentLoaded リスナーを復活（既存設計準拠）
 window.addEventListener('DOMContentLoaded', initializeWhenReady);
-
-// [注記] window.initMap は embed.html からは呼ばれないため未定義（元仕様踏襲）
