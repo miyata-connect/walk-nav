@@ -3,7 +3,7 @@
 // ==========================================
 // 定数定義
 // ==========================================
-const ISSUE_ID = 'idx20251119_final_complete_v1'; 
+const ISSUE_ID = 'idx20251119_final_code_set'; 
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0'; 
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -97,8 +97,7 @@ async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
 
 async function placesTextSearch(payload, fieldMask) {
   try {
-    // 日本語化の徹底
-    payload.languageCode = 'ja';
+    payload.languageCode = 'ja'; // 日本語化
     const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
       method: 'POST',
       headers: {
@@ -117,8 +116,7 @@ async function placesTextSearch(payload, fieldMask) {
 
 async function placesNearby(payload, fieldMask) {
   try {
-    // 日本語化の徹底
-    payload.languageCode = 'ja';
+    payload.languageCode = 'ja'; // 日本語化
     const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchNearby`, {
       method: 'POST',
       headers: {
@@ -155,7 +153,6 @@ function initMap(center) {
       gestureHandling: 'greedy',
       clickableIcons: true,
       disableDefaultUI: true
-      // ※地図タイル自体の言語設定はindex.htmlのscriptタグで行います
     });
 
     appState.map.addListener('click', (e) => {
@@ -451,7 +448,7 @@ function acquireLocation() {
     const loadingEl = getEl('loading');
     if (loadingEl) loadingEl.remove(); 
     
-    // 初期位置を徳島県つるぎ町（貞光付近）に設定
+    // 徳島県つるぎ町（貞光）をデフォルト位置に設定
     const defaultPos = { lat: 34.0344, lng: 134.0577 }; 
     
     if (!appState.mapInitialized) {
@@ -559,7 +556,7 @@ function displayResults(places, centerLat, centerLng) {
 }
 
 // ==========================================
-// UIバインディング（VisualViewport + Transform方式）
+// UIバインディング（Transform方式）
 // ==========================================
 function bindKeyboardWatch() {
   const searchInput = getEl('q');
@@ -576,30 +573,26 @@ function bindKeyboardWatch() {
     const visualHeight = window.visualViewport.height;
     const diff = layoutHeight - visualHeight;
 
-    // キーボードが出ている場合（差分が大きい）
     if (diff > 150) {
-      // パネル全体を上にずらす
+      // キーボード展開時: transformで持ち上げ
       searchPanel.style.transition = 'none'; 
       searchPanel.style.transform = `translateY(-${diff}px)`;
       
       if (appBody) appBody.classList.add('keyboard-open');
       if (navPanel) navPanel.style.display = 'none';
 
-      // 入力欄が見えるようにスクロール調整
       setTimeout(() => {
         searchInput.scrollIntoView({ behavior: 'auto', block: 'nearest' });
       }, 50);
     } else {
-      // キーボードが閉じている
+      // キーボード閉時: リセット
       resetPanelPosition();
     }
   };
 
   const resetPanelPosition = () => {
     searchPanel.style.transition = ''; 
-    searchPanel.style.transform = 'translateY(0)'; 
-    searchPanel.style.top = 'auto';
-    searchPanel.style.bottom = '0';
+    searchPanel.style.transform = 'translateY(0)';
     
     if (appBody) appBody.classList.remove('keyboard-open');
     const resultsVisible = getEl('results')?.style.display === 'block';
@@ -622,7 +615,6 @@ function bindKeyboardWatch() {
     setTimeout(updatePosition, 100);
   });
 
-  // パネル外タップでフォーカス解除（上がりっぱなし防止）
   document.addEventListener('click', (e) => {
     if (document.activeElement === searchInput && !searchPanel.contains(e.target)) {
         searchInput.blur();
