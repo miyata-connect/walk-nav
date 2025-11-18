@@ -3,7 +3,7 @@
 // ==========================================
 // 定数定義
 // ==========================================
-const ISSUE_ID = 'idx20251119_fix_keyboard_docking_v3'; // キーボード直上ドッキング版
+const ISSUE_ID = 'idx20251119_fix_keyboard_transform_v4'; // Transform補正版
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0'; 
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -551,7 +551,7 @@ function displayResults(places, centerLat, centerLng) {
 }
 
 // ==========================================
-// UIバインディング（キーボード対応・Docking修正版）
+// UIバインディング（Transform補正・完全版）
 // ==========================================
 function bindKeyboardWatch() {
   const searchInput = getEl('q');
@@ -561,34 +561,49 @@ function bindKeyboardWatch() {
 
   if (!searchInput || !searchPanel) return;
 
-  // 位置調整関数
   const updatePosition = () => {
     if (!window.visualViewport) return;
 
-    // 画面全体の高さ(window.innerHeight)と、現在見えている高さ(visualViewport.height)の差
-    const vvHeight = window.visualViewport.height;
+    // 画面本来の高さ
     const layoutHeight = window.innerHeight;
-    const heightDiff = layoutHeight - vvHeight;
-    
-    // 差分が150px以上ある＝キーボードが出ていると判断
-    if (heightDiff > 150) {
-      // キーボードの高さ分だけパネルの底上げをする
-      // これでテキストボックスがキーボードの真上に配置されます
-      searchPanel.style.bottom = `${heightDiff}px`;
-      searchPanel.style.top = 'auto'; // 上固定は解除
+    // 現在見えている高さ（キーボードが出ると縮む）
+    const visualHeight = window.visualViewport.height;
+
+    // 差分（キーボードの高さ + アドレスバーの変動分）
+    const diff = layoutHeight - visualHeight;
+
+    // 差分が小さい＝キーボード閉じてる / 大きい＝キーボード出てる
+    if (diff > 150) {
+      // 【重要】bottomプロパティではなく、transformで持ち上げる
+      // これならブラウザが勝手にレイアウト調整した場合、visualHeightも連動するため
+      // 二重に上がることがなく、常に「見えている画面の底」に配置されます。
+      searchPanel.style.transition = 'none'; // アニメーションさせず即座に追従
+      searchPanel.style.transform = `translateY(-${diff}px)`;
       
       if (appBody) appBody.classList.add('keyboard-open');
       if (navPanel) navPanel.style.display = 'none';
+
+      // スクロール位置調整
+      setTimeout(() => {
+        searchInput.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+      }, 50);
+
     } else {
-      // キーボードが閉じている＝差分がほとんどない
-      searchPanel.style.bottom = '0px';
-      searchPanel.style.top = 'auto';
-      
-      if (appBody) appBody.classList.remove('keyboard-open');
-      const resultsVisible = getEl('results')?.style.display === 'block';
-      if (!resultsVisible && !appState.pointSearchMode && navPanel) {
-         navPanel.style.display = 'block';
-      }
+      // キーボードが閉じている -> 強制リセット
+      resetPanelPosition();
+    }
+  };
+
+  const resetPanelPosition = () => {
+    searchPanel.style.transition = ''; 
+    searchPanel.style.transform = 'translateY(0)'; // 元の位置（bottom:0）に戻す
+    searchPanel.style.top = 'auto';
+    searchPanel.style.bottom = '0';
+    
+    if (appBody) appBody.classList.remove('keyboard-open');
+    const resultsVisible = getEl('results')?.style.display === 'block';
+    if (!resultsVisible && !appState.pointSearchMode && navPanel) {
+        navPanel.style.display = 'block';
     }
   };
 
@@ -597,15 +612,24 @@ function bindKeyboardWatch() {
     window.visualViewport.addEventListener('scroll', updatePosition);
   }
 
-  // フォールバック＆初期動作用
+  // フォーカス時・外れ時のフォールバック
   searchInput.addEventListener('focus', () => {
-     // 少し待ってから位置調整を実行（キーボードアニメーション待ち）
-     setTimeout(updatePosition, 300);
+    setTimeout(updatePosition, 300);
   });
   
   searchInput.addEventListener('blur', () => {
-     // フォーカス外れたらすぐチェック
-     setTimeout(updatePosition, 100);
+    // フォーカスが外れたら、VisualViewportの判定を待たずにリセットを試みる
+    resetPanelPosition();
+    // 念のため少し後にもチェック
+    setTimeout(updatePosition, 100);
+  });
+
+  // 画面全体のどこかをタップしたら、フォーカスを外してパネルを戻す（上がりっぱなし対策）
+  document.addEventListener('click', (e) => {
+    // パネル外、かつ入力中ならフォーカスを外す
+    if (document.activeElement === searchInput && !searchPanel.contains(e.target)) {
+        searchInput.blur();
+    }
   });
 }
 
