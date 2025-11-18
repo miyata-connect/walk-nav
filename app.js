@@ -3,7 +3,7 @@
 // ==========================================
 // 定数定義
 // ==========================================
-const ISSUE_ID = 'idx20251119_fix_keyboard_v5'; // バージョン更新
+const ISSUE_ID = 'idx20251119_fix_keyboard_app_js'; // app.js用に修正
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0'; 
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -551,7 +551,7 @@ function displayResults(places, centerLat, centerLng) {
 }
 
 // ==========================================
-// UIバインディング（キーボード対応修正版）
+// UIバインディング (キーボード対応・app.js版)
 // ==========================================
 function bindKeyboardWatch() {
   const searchInput = getEl('q');
@@ -559,36 +559,69 @@ function bindKeyboardWatch() {
   const appBody = getEl('appBody');
   const navPanel = getEl('instructionsSection');
 
-  if (!searchInput) return;
+  if (!searchInput || !searchPanel) return;
 
-  // VisualViewport API: キーボード表示時に高さを検知してスクロール位置を調整
+  // VisualViewport API を使った「物理的な持ち上げ」ロジック
   if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', () => {
-      // ビューポートの高さが著しく小さくなった＝キーボードが出たと判断
-      if (document.activeElement === searchInput) {
-        setTimeout(() => {
-             searchInput.scrollIntoView({ behavior: 'auto', block: 'center' });
-        }, 100);
+    const onResize = () => {
+      // 入力欄にフォーカスがない場合はリセットして終了
+      if (document.activeElement !== searchInput) {
+         searchPanel.style.bottom = '0';
+         if (appBody) appBody.classList.remove('keyboard-open');
+         return;
       }
-    });
+
+      // 画面の本来の高さ(innerHeight)と、現在の表示領域(visualViewport.height)の差
+      const keyboardHeight = window.innerHeight - window.visualViewport.height;
+
+      // 差分が150px以上あればキーボードが出ていると判定
+      if (keyboardHeight > 150) {
+         // パネルのbottomをキーボードの高さ分だけ持ち上げる
+         searchPanel.style.bottom = `${keyboardHeight}px`;
+         
+         if (appBody) appBody.classList.add('keyboard-open');
+         if (navPanel) navPanel.style.display = 'none';
+
+         // 入力欄が隠れないようにスクロール位置も念押しで調整
+         setTimeout(() => {
+            searchInput.scrollIntoView({ behavior: 'auto', block: 'center' });
+         }, 50);
+
+      } else {
+         // キーボードが閉じた
+         searchPanel.style.bottom = '0';
+         if (appBody) appBody.classList.remove('keyboard-open');
+         
+         const resultsVisible = getEl('results')?.style.display === 'block';
+         if (!resultsVisible && !appState.pointSearchMode && navPanel) {
+           navPanel.style.display = 'block';
+         }
+      }
+    };
+
+    window.visualViewport.addEventListener('resize', onResize);
+    window.visualViewport.addEventListener('scroll', onResize);
   }
 
+  // フォールバック（API非対応端末向け）
   searchInput.addEventListener('focus', () => {
-    if (appBody) appBody.classList.add('keyboard-open');
-    if (navPanel) navPanel.style.display = 'none';
-    
-    // behavior: 'auto' に変更（スムーズスクロールはキーボード表示時に不安定になるため）
-    // タイミングをずらして2回実行し、確実に表示領域に入れる
+    // VisualViewport非対応でも最低限のクラス付与
+    if (!window.visualViewport && appBody) {
+        appBody.classList.add('keyboard-open');
+    }
+    // 遅延実行でスクロールを試みる
     setTimeout(() => {
       searchInput.scrollIntoView({ behavior: 'auto', block: 'center' });
     }, 300);
-    setTimeout(() => {
-        searchInput.scrollIntoView({ behavior: 'auto', block: 'center' });
-    }, 600);
   });
 
   searchInput.addEventListener('blur', () => {
-    if (appBody) appBody.classList.remove('keyboard-open');
+    if (!window.visualViewport && appBody) {
+        appBody.classList.remove('keyboard-open');
+    }
+    // フォーカスが外れたら位置をリセット（VisualViewportイベントが発火しない場合への保険）
+    searchPanel.style.bottom = '0';
+    
     if (searchPanel) searchPanel.scrollTop = 0;
     const resultsVisible = getEl('results')?.style.display === 'block';
     if (!resultsVisible && !appState.pointSearchMode && navPanel) {
