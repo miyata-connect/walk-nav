@@ -3,7 +3,7 @@
 // ==========================================
 // 定数定義
 // ==========================================
-const ISSUE_ID = 'idx20251119_fix_keyboard_transform_v4'; // Transform補正版
+const ISSUE_ID = 'idx20251119_fix_loc_tsurugi_v5'; // つるぎ町＆日本語化強化版
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0'; 
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -97,6 +97,8 @@ async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
 
 async function placesTextSearch(payload, fieldMask) {
   try {
+    // 言語コードを確実に指定
+    payload.languageCode = 'ja';
     const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
       method: 'POST',
       headers: {
@@ -115,6 +117,7 @@ async function placesTextSearch(payload, fieldMask) {
 
 async function placesNearby(payload, fieldMask) {
   try {
+    payload.languageCode = 'ja';
     const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchNearby`, {
       method: 'POST',
       headers: {
@@ -151,6 +154,8 @@ function initMap(center) {
       gestureHandling: 'greedy',
       clickableIcons: true,
       disableDefaultUI: true
+      // 注意: マップタイルの言語(Nat'l Rte等)はJSのオプションでは変更できません。
+      // index.htmlのscriptタグに &language=ja を追加する必要があります。
     });
 
     appState.map.addListener('click', (e) => {
@@ -445,11 +450,14 @@ function acquireLocation() {
     console.warn('[WalkNav] Geolocation error:', error);
     const loadingEl = getEl('loading');
     if (loadingEl) loadingEl.remove(); 
-    const defaultPos = { lat: 35.6812, lng: 139.7671 }; 
+    
+    // ★修正: デフォルト位置を東京から「徳島県つるぎ町（貞光周辺）」に変更
+    const defaultPos = { lat: 34.0344, lng: 134.0577 }; 
+    
     if (!appState.mapInitialized) {
       initMap(defaultPos);
     }
-    setText('locAddress', '現在地取得失敗 (デフォルト位置)');
+    setText('locAddress', '現在地取得失敗 (つるぎ町を表示)');
     setText('locCoords', 'GPSエラー');
   };
 
@@ -507,7 +515,7 @@ async function performSearch(query) {
     const data = await placesTextSearch({
         textQuery: query,
         locationBias: { circle: { center: { latitude: center.lat, longitude: center.lng }, radius: 5000 } },
-        languageCode: 'ja'
+        languageCode: 'ja' // 日本語指定
     }, DEFAULT_MASK);
     const results = data.places || [];
     displayResults(results, center.lat, center.lng);
@@ -551,7 +559,7 @@ function displayResults(places, centerLat, centerLng) {
 }
 
 // ==========================================
-// UIバインディング（Transform補正・完全版）
+// UIバインディング（キーボード対応・完全版）
 // ==========================================
 function bindKeyboardWatch() {
   const searchInput = getEl('q');
@@ -564,39 +572,31 @@ function bindKeyboardWatch() {
   const updatePosition = () => {
     if (!window.visualViewport) return;
 
-    // 画面本来の高さ
     const layoutHeight = window.innerHeight;
-    // 現在見えている高さ（キーボードが出ると縮む）
     const visualHeight = window.visualViewport.height;
-
-    // 差分（キーボードの高さ + アドレスバーの変動分）
     const diff = layoutHeight - visualHeight;
 
-    // 差分が小さい＝キーボード閉じてる / 大きい＝キーボード出てる
+    // キーボードが出ていると判定
     if (diff > 150) {
-      // 【重要】bottomプロパティではなく、transformで持ち上げる
-      // これならブラウザが勝手にレイアウト調整した場合、visualHeightも連動するため
-      // 二重に上がることがなく、常に「見えている画面の底」に配置されます。
-      searchPanel.style.transition = 'none'; // アニメーションさせず即座に追従
+      // transformで位置を補正 (bottomプロパティの二重適用を防ぐ)
+      searchPanel.style.transition = 'none'; 
       searchPanel.style.transform = `translateY(-${diff}px)`;
       
       if (appBody) appBody.classList.add('keyboard-open');
       if (navPanel) navPanel.style.display = 'none';
 
-      // スクロール位置調整
       setTimeout(() => {
         searchInput.scrollIntoView({ behavior: 'auto', block: 'nearest' });
       }, 50);
-
     } else {
-      // キーボードが閉じている -> 強制リセット
+      // キーボードが閉じている -> リセット
       resetPanelPosition();
     }
   };
 
   const resetPanelPosition = () => {
     searchPanel.style.transition = ''; 
-    searchPanel.style.transform = 'translateY(0)'; // 元の位置（bottom:0）に戻す
+    searchPanel.style.transform = 'translateY(0)'; 
     searchPanel.style.top = 'auto';
     searchPanel.style.bottom = '0';
     
@@ -612,21 +612,16 @@ function bindKeyboardWatch() {
     window.visualViewport.addEventListener('scroll', updatePosition);
   }
 
-  // フォーカス時・外れ時のフォールバック
   searchInput.addEventListener('focus', () => {
     setTimeout(updatePosition, 300);
   });
   
   searchInput.addEventListener('blur', () => {
-    // フォーカスが外れたら、VisualViewportの判定を待たずにリセットを試みる
     resetPanelPosition();
-    // 念のため少し後にもチェック
     setTimeout(updatePosition, 100);
   });
 
-  // 画面全体のどこかをタップしたら、フォーカスを外してパネルを戻す（上がりっぱなし対策）
   document.addEventListener('click', (e) => {
-    // パネル外、かつ入力中ならフォーカスを外す
     if (document.activeElement === searchInput && !searchPanel.contains(e.target)) {
         searchInput.blur();
     }
