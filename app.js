@@ -3,7 +3,7 @@
 // ==========================================
 // 定数定義
 // ==========================================
-const ISSUE_ID = 'idx20251119_fix_keyboard_move_top'; // 入力時は上に逃げる版
+const ISSUE_ID = 'idx20251119_fix_keyboard_reset_v2'; // 戻り検知強化版
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0'; 
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -551,7 +551,7 @@ function displayResults(places, centerLat, centerLng) {
 }
 
 // ==========================================
-// UIバインディング（キーボード完全対応：Top移動版）
+// UIバインディング（VisualViewport監視による確実な復帰）
 // ==========================================
 function bindKeyboardWatch() {
   const searchInput = getEl('q');
@@ -561,30 +561,57 @@ function bindKeyboardWatch() {
 
   if (!searchInput || !searchPanel) return;
 
-  // 1. フォーカス時：検索バーを強制的に【画面上部】へ移動
-  //    これでキーボードの高さがどうであれ、絶対に隠れません。
+  // VisualViewport APIによる「画面サイズ復帰」検知
+  // これにより、フォーカスが残っていてもキーボードが閉じれば確実に下に降ります
+  if (window.visualViewport) {
+    const handleResize = () => {
+       const currentHeight = window.visualViewport.height;
+       const windowHeight = window.innerHeight;
+
+       // 画面の高さがウィンドウ高さの80%以上に戻ったら「キーボードは閉じた」とみなす
+       if (currentHeight > windowHeight * 0.8) {
+           // 強制的に下にリセット
+           searchPanel.style.transition = ''; 
+           searchPanel.style.top = 'auto';
+           searchPanel.style.bottom = '0';
+           
+           if (appBody) appBody.classList.remove('keyboard-open');
+           
+           // 検索結果が出ていなくて、ナビ中なら案内を再表示
+           const resultsVisible = getEl('results')?.style.display === 'block';
+           if (!resultsVisible && !appState.pointSearchMode && navPanel) {
+              navPanel.style.display = 'block';
+           }
+       } else {
+           // 画面が狭い＝キーボードが出ている
+           // フォーカスがある場合のみ上に移動させる
+           if (document.activeElement === searchInput) {
+               searchPanel.style.transition = 'none'; 
+               searchPanel.style.bottom = 'auto';
+               searchPanel.style.top = '10px';
+               
+               if (appBody) appBody.classList.add('keyboard-open');
+               if (navPanel) navPanel.style.display = 'none';
+           }
+       }
+    };
+    window.visualViewport.addEventListener('resize', handleResize);
+  }
+
+  // フォールバック: フォーカスイベント
   searchInput.addEventListener('focus', () => {
-    // アニメーションを無効化して瞬時に移動させる（チラつき防止）
     searchPanel.style.transition = 'none'; 
-    searchPanel.style.bottom = 'auto'; // 下固定を解除
-    searchPanel.style.top = '10px';    // 上から10pxの位置に固定
+    searchPanel.style.bottom = 'auto'; 
+    searchPanel.style.top = '10px';    
     
     if (appBody) appBody.classList.add('keyboard-open');
     if (navPanel) navPanel.style.display = 'none';
   });
 
-  // 2. フォーカス外れ時：検索バーを【画面下部】へ戻す
+  // blurも念のため残しますが、主な復帰処理は上記のresizeで行います
   searchInput.addEventListener('blur', () => {
-    searchPanel.style.transition = ''; // アニメーション復帰（必要なら）
-    searchPanel.style.top = 'auto';    // 上固定を解除
-    searchPanel.style.bottom = '0';    // 下に戻す
-    
-    if (appBody) appBody.classList.remove('keyboard-open');
-    
-    const resultsVisible = getEl('results')?.style.display === 'block';
-    if (!resultsVisible && !appState.pointSearchMode && navPanel) {
-      navPanel.style.display = 'block';
-    }
+     // タイムラグを持たせず即時適用を試みる
+     // ただしVisualViewportの判定が優先されるため、ここは補助的な役割
   });
 }
 
