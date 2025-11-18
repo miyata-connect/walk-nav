@@ -229,3 +229,9 @@
 /* L229 */ .loading.hidden {
 /* L230 */   display: none;
 /* L231 */ }
+/* L232 */
+/* L233 */ /* キーボード表示時の対応 */
+/* L234 */ body.keyboard-open .panel {
+/* L235 */   padding-bottom: 45vh !important; /* キーボード分の余白を確保 */
+/* L236 */   max-height: 100% !important;     /* パネルの高さ制限を解除 */
+/* L237 */ }
