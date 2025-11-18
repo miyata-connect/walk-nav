@@ -3,7 +3,7 @@
 // ==========================================
 // 定数定義
 // ==========================================
-const ISSUE_ID = 'idx202511050540_fix3';
+const ISSUE_ID = 'idx202511050540_fix4';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0'; 
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -11,7 +11,7 @@ const MAX_RETRY = 3;
 const RETRY_DELAY = 1000;
 const LOCATION_OPTIONS = {
   enableHighAccuracy: true,
-  timeout: 15000, // タイムアウトを短縮
+  timeout: 15000, 
   maximumAge: 0
 };
 
@@ -40,7 +40,7 @@ const appState = {
 };
 
 // ==========================================
-// ヘルパー：安全な要素取得
+// ヘルパー
 // ==========================================
 function getEl(id) {
   return document.getElementById(id);
@@ -57,7 +57,7 @@ function setText(id, text) {
 }
 
 // ==========================================
-// タブ切り替えヘルパー
+// タブ切り替え
 // ==========================================
 function switchPanelTab(mode) {
   const isNav = mode === 'nav';
@@ -77,7 +77,7 @@ function switchPanelTab(mode) {
 }
 
 // ==========================================
-// API (Worker経由)
+// API (Worker)
 // ==========================================
 async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
   for (let i = 0; i < retries; i++) {
@@ -135,24 +135,19 @@ async function placesNearby(payload, fieldMask) {
 // 地図初期化
 // ==========================================
 function initMap(center) {
-  // すでに初期化済みなら中心移動だけ
   if (appState.map) {
     appState.map.setCenter(center);
     console.log('[WalkNav] Map center updated');
     return;
   }
-
   const mapEl = getEl('map');
-  if (!mapEl) {
-    console.error('Map element not found');
-    return;
-  }
+  if (!mapEl) return;
   
   try {
     appState.map = new google.maps.Map(mapEl, {
       center,
       zoom: 17,
-      mapId: 'DEMO_MAP', // 必要に応じて正式なMap IDに置換
+      mapId: 'DEMO_MAP',
       gestureHandling: 'greedy',
       clickableIcons: true,
       disableDefaultUI: true
@@ -160,12 +155,10 @@ function initMap(center) {
 
     appState.map.addListener('click', (e) => {
       if (!appState.pointSearchMode) return;
-      if (e.latLng) {
-        setSearchPoint(e.latLng.lat(), e.latLng.lng());
-      }
+      if (e.latLng) setSearchPoint(e.latLng.lat(), e.latLng.lng());
     });
     appState.mapInitialized = true;
-    console.log('[WalkNav] Map initialized successfully');
+    console.log('[WalkNav] Map initialized');
   } catch (e) {
     console.error('[WalkNav] Map initialization failed:', e);
     alert('地図の読み込みに失敗しました。APIキーの設定を確認してください。');
@@ -173,7 +166,7 @@ function initMap(center) {
 }
 
 // ==========================================
-// マーカー操作
+// マーカー
 // ==========================================
 function setUserMarker(lat, lng) {
   appState.currentPos = { lat, lng };
@@ -195,17 +188,10 @@ function setUserMarker(lat, lng) {
 
     try {
       appState.userMarker = new google.maps.marker.AdvancedMarkerElement({
-        map: appState.map,
-        position: { lat, lng },
-        content: pin,
-        zIndex: 1000
+        map: appState.map, position: { lat, lng }, content: pin, zIndex: 1000
       });
     } catch(e) {
-      console.warn('AdvancedMarkerElement failed, using legacy marker');
-      appState.userMarker = new google.maps.Marker({
-        map: appState.map,
-        position: { lat, lng }
-      });
+      appState.userMarker = new google.maps.Marker({ map: appState.map, position: { lat, lng } });
     }
   } else {
     appState.userMarker.position = { lat, lng };
@@ -227,16 +213,10 @@ function setSearchPoint(lat, lng) {
 
   try {
     appState.searchPointMarker = new google.maps.marker.AdvancedMarkerElement({
-      map: appState.map,
-      position: { lat, lng },
-      content: pin,
-      zIndex: 999
+      map: appState.map, position: { lat, lng }, content: pin, zIndex: 999
     });
   } catch(e) {
-    appState.searchPointMarker = new google.maps.Marker({
-        map: appState.map,
-        position: { lat, lng }
-    });
+    appState.searchPointMarker = new google.maps.Marker({ map: appState.map, position: { lat, lng } });
   }
   fetchPointAddress(lat, lng);
 }
@@ -269,31 +249,22 @@ function readLegDurationText(leg) {
   return leg?.localizedValues?.duration?.text || '--';
 }
 
-// ==========================================
-// ルート描画
-// ==========================================
 function drawRoutePolyline(route) {
   if (appState.currentPolyline) {
     appState.currentPolyline.setMap(null);
     appState.currentPolyline = null;
   }
-
   let encoded = route?.overview_polyline?.points || route?.polyline?.encodedPolyline || route?.overviewPolyline?.encodedPolyline;
   if (!encoded) return;
 
   const path = google.maps.geometry.encoding.decodePath(encoded);
   appState.currentPolyline = new google.maps.Polyline({
-    path: path,
-    geodesic: true,
-    strokeColor: '#62b5ff',
-    strokeOpacity: 0.8,
-    strokeWeight: 6,
-    map: appState.map
+    path: path, geodesic: true, strokeColor: '#62b5ff', strokeOpacity: 0.8, strokeWeight: 6, map: appState.map
   });
 }
 
 // ==========================================
-// センサー関連
+// センサー
 // ==========================================
 function startCompassListener() {
   if (!window.DeviceOrientationEvent) return;
@@ -306,7 +277,6 @@ function startCompassListener() {
       if (icon) icon.style.transform = `rotate(${heading}deg)`;
     }
   };
-  
   if (typeof DeviceOrientationEvent.requestPermission === 'function') {
     DeviceOrientationEvent.requestPermission().then(state => {
       if (state === 'granted') {
@@ -321,9 +291,7 @@ function startCompassListener() {
   }
 }
 
-function stopCompassListener() {
-  // 簡易実装：リスナー解除は省略可能だが、必要なら実装
-}
+function stopCompassListener() { /* omitted */ }
 
 function startLocationWatcher() {
   if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
@@ -333,7 +301,6 @@ function startLocationWatcher() {
       setUserMarker(latitude, longitude);
       if (appState.isNavigating && !appState.isPaused && appState.map) {
         appState.map.panTo({ lat: latitude, lng: longitude });
-        // ヘディング計算ロジックは省略
       }
     },
     (e) => console.error(e),
@@ -349,7 +316,7 @@ function stopLocationWatcher() {
 }
 
 // ==========================================
-// ナビゲーションロジック
+// ナビゲーション
 // ==========================================
 async function startNavigation(destination) {
   let originLat, originLng;
@@ -412,12 +379,11 @@ async function startNavigation(destination) {
         });
       }
       setDisplay('instructionsSection', 'block');
-      appState.currentRouteData = { destinationName: destination.name, summary: r0.summary }; // 簡易保存
+      appState.currentRouteData = { destinationName: destination.name, summary: r0.summary }; 
 
       if(!appState.isSimulation) startLocationWatcher();
       drawRoutePolyline(r0);
       
-      // ズーム調整
       const bounds = new google.maps.LatLngBounds();
       bounds.extend({lat: originLat, lng: originLng});
       bounds.extend({lat: destination.lat, lng: destination.lng});
@@ -446,7 +412,6 @@ function stopNavigation() {
   setDisplay('fabStack', 'none');
   setDisplay('btnSearch', 'flex');
   
-  // UIリセット
   getEl('q').value = '';
   getEl('results').innerHTML = '';
   setDisplay('results', 'none');
@@ -459,14 +424,13 @@ function stopNavigation() {
 }
 
 // ==========================================
-// 検索・位置取得関連
+// 検索・位置
 // ==========================================
 function acquireLocation() {
-  // 成功時コールバック
   const onSuccess = (pos) => {
     const { latitude, longitude } = pos.coords;
     const loadingEl = getEl('loading');
-    if (loadingEl) loadingEl.remove(); // ローディング消去
+    if (loadingEl) loadingEl.remove(); 
 
     if (!appState.mapInitialized) {
       initMap({ lat: latitude, lng: longitude });
@@ -477,13 +441,10 @@ function acquireLocation() {
     fetchLocationNameGoogle(latitude, longitude);
   };
 
-  // エラー時コールバック（ここが重要）
   const onError = (error) => {
     console.warn('[WalkNav] Geolocation error:', error);
     const loadingEl = getEl('loading');
-    if (loadingEl) loadingEl.remove(); // エラーでも必ずローディングを消す
-
-    // 東京駅をデフォルトに
+    if (loadingEl) loadingEl.remove(); 
     const defaultPos = { lat: 35.6812, lng: 139.7671 }; 
     if (!appState.mapInitialized) {
       initMap(defaultPos);
@@ -496,8 +457,6 @@ function acquireLocation() {
     onError('Geolocation not supported');
     return;
   }
-
-  // try-catch で同期エラーも捕捉して onError に流す
   try {
     navigator.geolocation.getCurrentPosition(onSuccess, onError, LOCATION_OPTIONS);
   } catch (e) {
@@ -540,8 +499,6 @@ async function fetchPointAddress(lat, lng) {
 async function performSearch(query) {
   if (!query) return;
   console.log('Search:', query);
-  
-  // 起点
   const center = appState.pointSearchMode && appState.searchPoint 
     ? appState.searchPoint 
     : (appState.currentPos || appState.map.getCenter().toJSON());
@@ -552,7 +509,6 @@ async function performSearch(query) {
         locationBias: { circle: { center: { latitude: center.lat, longitude: center.lng }, radius: 5000 } },
         languageCode: 'ja'
     }, DEFAULT_MASK);
-    
     const results = data.places || [];
     displayResults(results, center.lat, center.lng);
   } catch(e) {
@@ -566,7 +522,6 @@ function displayResults(places, centerLat, centerLng) {
   resDiv.innerHTML = '';
   setDisplay('results', 'block');
   setDisplay('instructionsSection', 'none');
-  
   appState.searchMarkers.forEach(m => m.map = null);
   appState.searchMarkers = [];
 
@@ -574,18 +529,15 @@ function displayResults(places, centerLat, centerLng) {
     if(i >= 5) return;
     const lat = p.location.latitude;
     const lng = p.location.longitude;
-    
     const item = document.createElement('div');
     item.className = 'result-item';
     item.innerHTML = `<div>${i+1}. ${p.displayName.text}</div><div style="font-size:0.8em;opacity:0.7">${p.formattedAddress}</div>`;
     item.onclick = () => startNavigation({ name: p.displayName.text, lat, lng });
     resDiv.appendChild(item);
 
-    // マーカー
     const pin = document.createElement('div');
     pin.style.cssText = 'width:24px;height:24px;background:#25d07a;border-radius:50%;color:#fff;text-align:center;line-height:24px;font-size:12px;font-weight:bold;border:2px solid #fff;';
     pin.textContent = i + 1;
-    
     try {
         const m = new google.maps.marker.AdvancedMarkerElement({
             map: appState.map, position: {lat, lng}, content: pin, title: p.displayName.text
@@ -601,6 +553,34 @@ function displayResults(places, centerLat, centerLng) {
 // ==========================================
 // UIバインディング
 // ==========================================
+function bindKeyboardWatch() {
+  const searchInput = getEl('q');
+  const searchPanel = getEl('searchPanel');
+  const appBody = getEl('appBody');
+  const navPanel = getEl('instructionsSection');
+
+  if (!searchInput) return;
+
+  searchInput.addEventListener('focus', () => {
+    if (appBody) appBody.classList.add('keyboard-open');
+    if (navPanel) navPanel.style.display = 'none';
+    
+    // Scroll input into view logic
+    setTimeout(() => {
+      searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 400);
+  });
+
+  searchInput.addEventListener('blur', () => {
+    if (appBody) appBody.classList.remove('keyboard-open');
+    if (searchPanel) searchPanel.scrollTop = 0;
+    const resultsVisible = getEl('results')?.style.display === 'block';
+    if (!resultsVisible && !appState.pointSearchMode && navPanel) {
+      navPanel.style.display = 'block';
+    }
+  });
+}
+
 function bindUI() {
   const btnSearch = getEl('btnSearchIcon');
   const inputQ = getEl('q');
@@ -609,6 +589,8 @@ function bindUI() {
   const btnClose = getEl('btnClosePanel');
   const btnFabSearch = getEl('btnSearch');
   const btnStop = getEl('btnStopRoute');
+
+  bindKeyboardWatch(); // Ensure keyboard watch is bound
 
   if(btnSearch) btnSearch.onclick = () => performSearch(inputQ.value);
   if(inputQ) inputQ.onkeypress = (e) => { if(e.key==='Enter') performSearch(inputQ.value); };
@@ -639,13 +621,29 @@ function bindUI() {
 
   if(btnStop) btnStop.onclick = stopNavigation;
   
-  // ポイント選択ボタン
   const btnPoint = getEl('btnPointSearch');
   if(btnPoint) btnPoint.onclick = () => {
     appState.pointSearchMode = !appState.pointSearchMode;
     btnPoint.textContent = appState.pointSearchMode ? '📍 選択中...' : '📍 ポイント選択';
     btnPoint.style.background = appState.pointSearchMode ? '#25d07a' : '';
     btnPoint.style.color = appState.pointSearchMode ? '#fff' : '';
+  };
+
+  // Tab buttons (r10, r20, r30) need event listeners too
+  const r10 = getEl('r10');
+  const r20 = getEl('r20');
+  const r30 = getEl('r30');
+  if (r10) r10.onclick = () => {
+      r10.classList.add('active'); r20.classList.remove('active'); r30.classList.remove('active');
+      setText('radiusLabel', '10km');
+  };
+  if (r20) r20.onclick = () => {
+      r20.classList.add('active'); r10.classList.remove('active'); r30.classList.remove('active');
+      setText('radiusLabel', '20km');
+  };
+  if (r30) r30.onclick = () => {
+      r30.classList.add('active'); r10.classList.remove('active'); r20.classList.remove('active');
+      setText('radiusLabel', '30km');
   };
 }
 
@@ -660,10 +658,7 @@ function startApp() {
   
   bindUI();
   switchPanelTab('search');
-  
-  // 位置情報取得開始 (エラーでも地図が出るように修正済み)
   acquireLocation();
-  
   startCompassListener();
 }
 
