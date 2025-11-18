@@ -3,7 +3,7 @@
 // ==========================================
 // 定数定義
 // ==========================================
-const ISSUE_ID = 'idx202511050540_fix4';
+const ISSUE_ID = 'idx20251119_fix_keyboard_v5'; // バージョン更新
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0'; 
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -178,7 +178,7 @@ function setUserMarker(lat, lng) {
     pin.style.height = '32px';
     pin.innerHTML = `
       <svg id="user-marker-icon" viewBox="0 0 24 24" 
-            style="width: 100%; height: 100%;
+           style="width: 100%; height: 100%;
                    transform: rotate(${appState.currentHeading}deg);
                    transition: transform 0.2s ease-out;
                    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
@@ -551,7 +551,7 @@ function displayResults(places, centerLat, centerLng) {
 }
 
 // ==========================================
-// UIバインディング
+// UIバインディング（キーボード対応修正版）
 // ==========================================
 function bindKeyboardWatch() {
   const searchInput = getEl('q');
@@ -561,14 +561,30 @@ function bindKeyboardWatch() {
 
   if (!searchInput) return;
 
+  // VisualViewport API: キーボード表示時に高さを検知してスクロール位置を調整
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      // ビューポートの高さが著しく小さくなった＝キーボードが出たと判断
+      if (document.activeElement === searchInput) {
+        setTimeout(() => {
+             searchInput.scrollIntoView({ behavior: 'auto', block: 'center' });
+        }, 100);
+      }
+    });
+  }
+
   searchInput.addEventListener('focus', () => {
     if (appBody) appBody.classList.add('keyboard-open');
     if (navPanel) navPanel.style.display = 'none';
     
-    // Scroll input into view logic
+    // behavior: 'auto' に変更（スムーズスクロールはキーボード表示時に不安定になるため）
+    // タイミングをずらして2回実行し、確実に表示領域に入れる
     setTimeout(() => {
-      searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 400);
+      searchInput.scrollIntoView({ behavior: 'auto', block: 'center' });
+    }, 300);
+    setTimeout(() => {
+        searchInput.scrollIntoView({ behavior: 'auto', block: 'center' });
+    }, 600);
   });
 
   searchInput.addEventListener('blur', () => {
@@ -590,7 +606,7 @@ function bindUI() {
   const btnFabSearch = getEl('btnSearch');
   const btnStop = getEl('btnStopRoute');
 
-  bindKeyboardWatch(); // Ensure keyboard watch is bound
+  bindKeyboardWatch(); 
 
   if(btnSearch) btnSearch.onclick = () => performSearch(inputQ.value);
   if(inputQ) inputQ.onkeypress = (e) => { if(e.key==='Enter') performSearch(inputQ.value); };
@@ -629,7 +645,7 @@ function bindUI() {
     btnPoint.style.color = appState.pointSearchMode ? '#fff' : '';
   };
 
-  // Tab buttons (r10, r20, r30) need event listeners too
+  // Tab buttons
   const r10 = getEl('r10');
   const r20 = getEl('r20');
   const r30 = getEl('r30');
