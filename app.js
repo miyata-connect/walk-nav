@@ -451,7 +451,7 @@ function acquireLocation() {
     const loadingEl = getEl('loading');
     if (loadingEl) loadingEl.remove(); 
     
-    // ★修正: デフォルト位置を東京から「徳島県つるぎ町（貞光周辺）」に変更
+    // ★修正: デフォルト位置を東京から「徳島県つるぎ町(貞光周辺)」に変更
     const defaultPos = { lat: 34.0344, lng: 134.0577 }; 
     
     if (!appState.mapInitialized) {
@@ -559,72 +559,67 @@ function displayResults(places, centerLat, centerLng) {
 }
 
 // ==========================================
-// UIバインディング（キーボード対応・完全版）
+// UIバインディング(キーボード対応・改善版)
 // ==========================================
 function bindKeyboardWatch() {
   const searchInput = getEl('q');
   const searchPanel = getEl('searchPanel');
-  const appBody = getEl('appBody');
-  const navPanel = getEl('instructionsSection');
 
   if (!searchInput || !searchPanel) return;
 
-  const updatePosition = () => {
+  let keyboardHeight = 0;
+
+  const adjustPanelPosition = () => {
     if (!window.visualViewport) return;
 
-    const layoutHeight = window.innerHeight;
-    const visualHeight = window.visualViewport.height;
-    const diff = layoutHeight - visualHeight;
+    const viewportHeight = window.visualViewport.height;
+    const windowHeight = window.innerHeight;
+    const diff = windowHeight - viewportHeight;
 
-    // キーボードが出ていると判定
+    // キーボードが表示されている(150px以上の差)
     if (diff > 150) {
-      // transformで位置を補正 (bottomプロパティの二重適用を防ぐ)
-      searchPanel.style.transition = 'none'; 
-      searchPanel.style.transform = `translateY(-${diff}px)`;
+      keyboardHeight = diff;
       
-      if (appBody) appBody.classList.add('keyboard-open');
-      if (navPanel) navPanel.style.display = 'none';
-
+      // パネル全体を上にスライド
+      searchPanel.style.transition = 'transform 0.3s ease-out';
+      searchPanel.style.transform = `translateY(-${keyboardHeight}px)`;
+      
+      // 入力欄が見えるように少し待ってスクロール
       setTimeout(() => {
-        searchInput.scrollIntoView({ behavior: 'auto', block: 'nearest' });
-      }, 50);
+        searchInput.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center'
+        });
+      }, 100);
+      
     } else {
-      // キーボードが閉じている -> リセット
-      resetPanelPosition();
+      // キーボードが閉じた
+      keyboardHeight = 0;
+      searchPanel.style.transition = 'transform 0.3s ease-out';
+      searchPanel.style.transform = 'translateY(0)';
     }
   };
 
-  const resetPanelPosition = () => {
-    searchPanel.style.transition = ''; 
-    searchPanel.style.transform = 'translateY(0)'; 
-    searchPanel.style.top = 'auto';
-    searchPanel.style.bottom = '0';
-    
-    if (appBody) appBody.classList.remove('keyboard-open');
-    const resultsVisible = getEl('results')?.style.display === 'block';
-    if (!resultsVisible && !appState.pointSearchMode && navPanel) {
-        navPanel.style.display = 'block';
-    }
-  };
-
+  // visualViewportの変化を監視
   if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', updatePosition);
-    window.visualViewport.addEventListener('scroll', updatePosition);
+    window.visualViewport.addEventListener('resize', adjustPanelPosition);
+    window.visualViewport.addEventListener('scroll', adjustPanelPosition);
   }
 
+  // フォーカス時
   searchInput.addEventListener('focus', () => {
-    setTimeout(updatePosition, 300);
-  });
-  
-  searchInput.addEventListener('blur', () => {
-    resetPanelPosition();
-    setTimeout(updatePosition, 100);
+    // 少し待ってから調整(キーボードアニメーション完了後)
+    setTimeout(adjustPanelPosition, 300);
   });
 
-  document.addEventListener('click', (e) => {
-    if (document.activeElement === searchInput && !searchPanel.contains(e.target)) {
-        searchInput.blur();
-    }
+  // ブラー時(キーボードが閉じる)
+  searchInput.addEventListener('blur', () => {
+    setTimeout(() => {
+      if (document.activeElement !== searchInput) {
+        searchPanel.style.transition = 'transform 0.3s ease-out';
+        searchPanel.style.transform = 'translateY(0)';
+      }
+    }, 100);
   });
 }
 
