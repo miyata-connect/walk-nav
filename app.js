@@ -3,7 +3,7 @@
 // ==========================================
 // 定数定義
 // ==========================================
-const ISSUE_ID = 'idx20251119_final_code_set'; 
+const ISSUE_ID = 'idx20251119_fix_loc_tsurugi_v5'; // つるぎ町＆日本語化強化版
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0'; 
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -97,7 +97,8 @@ async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
 
 async function placesTextSearch(payload, fieldMask) {
   try {
-    payload.languageCode = 'ja'; // 日本語化
+    // 言語コードを確実に指定
+    payload.languageCode = 'ja';
     const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
       method: 'POST',
       headers: {
@@ -116,7 +117,7 @@ async function placesTextSearch(payload, fieldMask) {
 
 async function placesNearby(payload, fieldMask) {
   try {
-    payload.languageCode = 'ja'; // 日本語化
+    payload.languageCode = 'ja';
     const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchNearby`, {
       method: 'POST',
       headers: {
@@ -153,6 +154,8 @@ function initMap(center) {
       gestureHandling: 'greedy',
       clickableIcons: true,
       disableDefaultUI: true
+      // 注意: マップタイルの言語(Nat'l Rte等)はJSのオプションでは変更できません。
+      // index.htmlのscriptタグに &language=ja を追加する必要があります。
     });
 
     appState.map.addListener('click', (e) => {
@@ -448,7 +451,7 @@ function acquireLocation() {
     const loadingEl = getEl('loading');
     if (loadingEl) loadingEl.remove(); 
     
-    // 徳島県つるぎ町（貞光）をデフォルト位置に設定
+    // ★修正: デフォルト位置を東京から「徳島県つるぎ町（貞光周辺）」に変更
     const defaultPos = { lat: 34.0344, lng: 134.0577 }; 
     
     if (!appState.mapInitialized) {
@@ -512,7 +515,7 @@ async function performSearch(query) {
     const data = await placesTextSearch({
         textQuery: query,
         locationBias: { circle: { center: { latitude: center.lat, longitude: center.lng }, radius: 5000 } },
-        languageCode: 'ja'
+        languageCode: 'ja' // 日本語指定
     }, DEFAULT_MASK);
     const results = data.places || [];
     displayResults(results, center.lat, center.lng);
@@ -556,7 +559,7 @@ function displayResults(places, centerLat, centerLng) {
 }
 
 // ==========================================
-// UIバインディング（Transform方式）
+// UIバインディング（キーボード対応・完全版）
 // ==========================================
 function bindKeyboardWatch() {
   const searchInput = getEl('q');
@@ -573,8 +576,9 @@ function bindKeyboardWatch() {
     const visualHeight = window.visualViewport.height;
     const diff = layoutHeight - visualHeight;
 
+    // キーボードが出ていると判定
     if (diff > 150) {
-      // キーボード展開時: transformで持ち上げ
+      // transformで位置を補正 (bottomプロパティの二重適用を防ぐ)
       searchPanel.style.transition = 'none'; 
       searchPanel.style.transform = `translateY(-${diff}px)`;
       
@@ -585,14 +589,16 @@ function bindKeyboardWatch() {
         searchInput.scrollIntoView({ behavior: 'auto', block: 'nearest' });
       }, 50);
     } else {
-      // キーボード閉時: リセット
+      // キーボードが閉じている -> リセット
       resetPanelPosition();
     }
   };
 
   const resetPanelPosition = () => {
     searchPanel.style.transition = ''; 
-    searchPanel.style.transform = 'translateY(0)';
+    searchPanel.style.transform = 'translateY(0)'; 
+    searchPanel.style.top = 'auto';
+    searchPanel.style.bottom = '0';
     
     if (appBody) appBody.classList.remove('keyboard-open');
     const resultsVisible = getEl('results')?.style.display === 'block';
