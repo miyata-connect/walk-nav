@@ -36,7 +36,8 @@ const appState = {
   compassWatchId: null,
   currentHeading: 0,
   isSimulation: false,
-  currentRouteData: null
+  currentRouteData: null,
+  keyboardAdjusted: false
 };
 
 // ==========================================
@@ -57,8 +58,30 @@ function setText(id, text) {
 }
 
 // ==========================================
-// タブ切り替え
+// タブ切り替え（高さ統一機能追加）
 // ==========================================
+function unifyTabPaneHeights() {
+  const panes = document.querySelectorAll('.tab-pane');
+  if (panes.length === 0) return;
+  
+  // 一時的にすべてのタブを表示して高さを測定
+  let maxHeight = 0;
+  panes.forEach(pane => {
+    const originalDisplay = pane.style.display;
+    pane.style.display = 'block';
+    const height = pane.scrollHeight;
+    if (height > maxHeight) maxHeight = height;
+    pane.style.display = originalDisplay;
+  });
+  
+  // 最大高さをすべてのタブに適用
+  panes.forEach(pane => {
+    pane.style.minHeight = `${maxHeight}px`;
+  });
+  
+  console.log(`[TabHeight] Unified to ${maxHeight}px`);
+}
+
 function switchPanelTab(mode) {
   const isNav = mode === 'nav';
   const paneSearch = getEl('tabPaneSearch');
@@ -74,6 +97,9 @@ function switchPanelTab(mode) {
     const active = btn.dataset.panelTab === target;
     btn.classList.toggle('active', active);
   });
+  
+  // タブ切り替え時に高さを再計算
+  setTimeout(unifyTabPaneHeights, 100);
 }
 
 // ==========================================
@@ -97,7 +123,6 @@ async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
 
 async function placesTextSearch(payload, fieldMask) {
   try {
-    // 言語コードを確実に指定
     payload.languageCode = 'ja';
     const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
       method: 'POST',
@@ -154,8 +179,6 @@ function initMap(center) {
       gestureHandling: 'greedy',
       clickableIcons: true,
       disableDefaultUI: true
-      // 注意: マップタイルの言語(Nat'l Rte等)はJSのオプションでは変更できません。
-      // index.htmlのscriptタグに &language=ja を追加する必要があります。
     });
 
     appState.map.addListener('click', (e) => {
@@ -451,7 +474,6 @@ function acquireLocation() {
     const loadingEl = getEl('loading');
     if (loadingEl) loadingEl.remove(); 
     
-    // ★修正: デフォルト位置を東京から「徳島県つるぎ町(貞光周辺)」に変更
     const defaultPos = { lat: 34.0344, lng: 134.0577 }; 
     
     if (!appState.mapInitialized) {
@@ -515,7 +537,7 @@ async function performSearch(query) {
     const data = await placesTextSearch({
         textQuery: query,
         locationBias: { circle: { center: { latitude: center.lat, longitude: center.lng }, radius: 5000 } },
-        languageCode: 'ja' // 日本語指定
+        languageCode: 'ja'
     }, DEFAULT_MASK);
     const results = data.places || [];
     displayResults(results, center.lat, center.lng);
@@ -559,7 +581,7 @@ function displayResults(places, centerLat, centerLng) {
 }
 
 // ==========================================
-// UIバインディング(キーボード対応・移動量調整版)
+// UIバインディング(キーボード対応・累積バグ修正版)
 // ==========================================
 function bindKeyboardWatch() {
   const searchInput = getEl('q');
@@ -574,53 +596,52 @@ function bindKeyboardWatch() {
     const windowHeight = window.innerHeight;
     const keyboardHeight = windowHeight - viewportHeight;
 
-    // キーボードが表示されている(150px以上の差)
     if (keyboardHeight > 150) {
-      // ★改善: 移動量を調整
-      // パネルの高さを取得
-      const panelHeight = searchPanel.offsetHeight;
+      if (appState.keyboardAdjusted) return;
+      
+      searchPanel.style.transform = 'translateY(0)';
       const inputRect = searchInput.getBoundingClientRect();
-      const inputTop = inputRect.top;
+      const inputBottom = inputRect.bottom;
       
-      // 入力欄がキーボードの上に来る最小限の移動量を計算
-      // 入力欄の上部 + 余裕(80px) がビューポート内に収まるように
-      const targetPosition = viewportHeight - 80;
-      let moveAmount = Math.max(0, inputTop - targetPosition);
+      const targetY = viewportHeight * 0.4;
+      let moveAmount = Math.max(0, inputBottom - targetY);
       
-      // 最大移動量を制限(パネルが画面外に出ないように)
-      const maxMove = Math.min(keyboardHeight * 0.6, panelHeight * 0.3);
+      const panelHeight = searchPanel.offsetHeight;
+      const maxMove = Math.min(panelHeight * 0.3, 200);
       moveAmount = Math.min(moveAmount, maxMove);
       
-      // パネルを上にスライド
       searchPanel.style.transition = 'transform 0.25s ease-out';
       searchPanel.style.transform = `translateY(-${moveAmount}px)`;
       
-      console.log(`[Keyboard] height:${keyboardHeight}px, move:${moveAmount}px`);
+      appState.keyboardAdjusted = true;
+      console.log(`[Keyboard] Show - keyboard:${keyboardHeight}px, move:${moveAmount}px`);
       
     } else {
-      // キーボードが閉じた
+      if (!appState.keyboardAdjusted) return;
+      
       searchPanel.style.transition = 'transform 0.25s ease-out';
       searchPanel.style.transform = 'translateY(0)';
+      
+      appState.keyboardAdjusted = false;
+      console.log('[Keyboard] Hide');
     }
   };
 
-  // visualViewportの変化を監視
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', adjustPanelPosition);
     window.visualViewport.addEventListener('scroll', adjustPanelPosition);
   }
 
-  // フォーカス時
   searchInput.addEventListener('focus', () => {
     setTimeout(adjustPanelPosition, 300);
   });
 
-  // ブラー時
   searchInput.addEventListener('blur', () => {
     setTimeout(() => {
       if (document.activeElement !== searchInput) {
         searchPanel.style.transition = 'transform 0.25s ease-out';
         searchPanel.style.transform = 'translateY(0)';
+        appState.keyboardAdjusted = false;
       }
     }, 100);
   });
@@ -705,6 +726,9 @@ function startApp() {
   switchPanelTab('search');
   acquireLocation();
   startCompassListener();
+  
+  // ★初回タブ高さ統一
+  setTimeout(unifyTabPaneHeights, 500);
 }
 
 function initializeWhenReady() {
