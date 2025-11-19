@@ -559,7 +559,7 @@ function displayResults(places, centerLat, centerLng) {
 }
 
 // ==========================================
-// UIバインディング(キーボード対応・改善版)
+// UIバインディング(キーボード対応・移動量調整版)
 // ==========================================
 function bindKeyboardWatch() {
   const searchInput = getEl('q');
@@ -567,35 +567,39 @@ function bindKeyboardWatch() {
 
   if (!searchInput || !searchPanel) return;
 
-  let keyboardHeight = 0;
-
   const adjustPanelPosition = () => {
     if (!window.visualViewport) return;
 
     const viewportHeight = window.visualViewport.height;
     const windowHeight = window.innerHeight;
-    const diff = windowHeight - viewportHeight;
+    const keyboardHeight = windowHeight - viewportHeight;
 
     // キーボードが表示されている(150px以上の差)
-    if (diff > 150) {
-      keyboardHeight = diff;
+    if (keyboardHeight > 150) {
+      // ★改善: 移動量を調整
+      // パネルの高さを取得
+      const panelHeight = searchPanel.offsetHeight;
+      const inputRect = searchInput.getBoundingClientRect();
+      const inputTop = inputRect.top;
       
-      // パネル全体を上にスライド
-      searchPanel.style.transition = 'transform 0.3s ease-out';
-      searchPanel.style.transform = `translateY(-${keyboardHeight}px)`;
+      // 入力欄がキーボードの上に来る最小限の移動量を計算
+      // 入力欄の上部 + 余裕(80px) がビューポート内に収まるように
+      const targetPosition = viewportHeight - 80;
+      let moveAmount = Math.max(0, inputTop - targetPosition);
       
-      // 入力欄が見えるように少し待ってスクロール
-      setTimeout(() => {
-        searchInput.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center'
-        });
-      }, 100);
+      // 最大移動量を制限(パネルが画面外に出ないように)
+      const maxMove = Math.min(keyboardHeight * 0.6, panelHeight * 0.3);
+      moveAmount = Math.min(moveAmount, maxMove);
+      
+      // パネルを上にスライド
+      searchPanel.style.transition = 'transform 0.25s ease-out';
+      searchPanel.style.transform = `translateY(-${moveAmount}px)`;
+      
+      console.log(`[Keyboard] height:${keyboardHeight}px, move:${moveAmount}px`);
       
     } else {
       // キーボードが閉じた
-      keyboardHeight = 0;
-      searchPanel.style.transition = 'transform 0.3s ease-out';
+      searchPanel.style.transition = 'transform 0.25s ease-out';
       searchPanel.style.transform = 'translateY(0)';
     }
   };
@@ -608,15 +612,14 @@ function bindKeyboardWatch() {
 
   // フォーカス時
   searchInput.addEventListener('focus', () => {
-    // 少し待ってから調整(キーボードアニメーション完了後)
     setTimeout(adjustPanelPosition, 300);
   });
 
-  // ブラー時(キーボードが閉じる)
+  // ブラー時
   searchInput.addEventListener('blur', () => {
     setTimeout(() => {
       if (document.activeElement !== searchInput) {
-        searchPanel.style.transition = 'transform 0.3s ease-out';
+        searchPanel.style.transition = 'transform 0.25s ease-out';
         searchPanel.style.transform = 'translateY(0)';
       }
     }, 100);
