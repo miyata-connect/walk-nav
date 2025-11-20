@@ -14,6 +14,7 @@ const LOCATION_OPTIONS = {
   timeout: 15000, 
   maximumAge: 0
 };
+const SAVED_LOCATIONS_KEY = 'walknav_saved_locations';
 
 // ==========================================
 // 状態管理オブジェクト
@@ -38,7 +39,9 @@ const appState = {
   isSimulation: false,
   currentRouteData: null,
   keyboardAdjusted: false,
-  unifiedHeight: null  // ★タブ高さを記憶
+  unifiedHeight: null,
+  savedLocations: [],
+  editingLocationIndex: null
 };
 
 // ==========================================
@@ -59,13 +62,107 @@ function setText(id, text) {
 }
 
 // ==========================================
+// 登録地管理
+// ==========================================
+function loadSavedLocations() {
+  try {
+    const saved = localStorage.getItem(SAVED_LOCATIONS_KEY);
+    appState.savedLocations = saved ? JSON.parse(saved) : [];
+  } catch(e) {
+    console.error('登録地の読み込みエラー:', e);
+    appState.savedLocations = [];
+  }
+}
+
+function saveSavedLocations() {
+  try {
+    localStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(appState.savedLocations));
+    console.log('[SavedLocations] 保存完了:', appState.savedLocations.length, '件');
+  } catch(e) {
+    console.error('登録地の保存エラー:', e);
+  }
+}
+
+function showSaveLocationDialog() {
+  if (!appState.currentPos) {
+    alert('現在地が取得できていません');
+    return;
+  }
+
+  const address = getEl('locAddress')?.textContent || '現在地';
+  const lat = appState.currentPos.lat;
+  const lng = appState.currentPos.lng;
+
+  // ダイアログを表示
+  const name = prompt('登録地名を入力してください:', address);
+  if (!name) return;
+
+  // 登録
+  appState.savedLocations.push({
+    name: name,
+    address: address,
+    lat: lat,
+    lng: lng,
+    timestamp: Date.now()
+  });
+
+  saveSavedLocations();
+  alert(`「${name}」を登録しました`);
+}
+
+function showEditLocationDialog() {
+  loadSavedLocations();
+
+  if (appState.savedLocations.length === 0) {
+    alert('登録地がありません');
+    return;
+  }
+
+  // 登録地リストを作成
+  let message = '編集する登録地を選択してください:\n\n';
+  appState.savedLocations.forEach((loc, i) => {
+    message += `${i + 1}. ${loc.name}\n`;
+  });
+
+  const choice = prompt(message + '\n番号を入力してください:');
+  if (!choice) return;
+
+  const index = parseInt(choice) - 1;
+  if (index < 0 || index >= appState.savedLocations.length) {
+    alert('無効な番号です');
+    return;
+  }
+
+  const location = appState.savedLocations[index];
+  const newName = prompt('新しい登録地名を入力してください:', location.name);
+  if (!newName) return;
+
+  // 削除するか確認
+  const actions = prompt(
+    `1. 名前を変更\n2. 削除\n\n番号を入力してください:`,
+    '1'
+  );
+
+  if (actions === '2') {
+    if (confirm(`「${location.name}」を削除しますか?`)) {
+      appState.savedLocations.splice(index, 1);
+      saveSavedLocations();
+      alert('削除しました');
+    }
+  } else {
+    location.name = newName;
+    saveSavedLocations();
+    alert('更新しました');
+  }
+}
+
+// ==========================================
 // タブ切り替え（高さ完全固定版）
 // ==========================================
 function unifyTabPaneHeights() {
   const panes = document.querySelectorAll('.tab-pane');
   if (panes.length === 0) return;
   
-  // ★すでに高さが確定している場合はスキップ
   if (appState.unifiedHeight !== null) {
     panes.forEach(pane => {
       pane.style.minHeight = `${appState.unifiedHeight}px`;
@@ -74,7 +171,6 @@ function unifyTabPaneHeights() {
     return;
   }
   
-  // 一時的にすべてのタブを表示して高さを測定
   let maxHeight = 0;
   const originalStates = [];
   
@@ -88,14 +184,12 @@ function unifyTabPaneHeights() {
     pane.style.height = 'auto';
   });
   
-  // 高さを再計算
   setTimeout(() => {
     panes.forEach(pane => {
       const height = pane.scrollHeight;
       if (height > maxHeight) maxHeight = height;
     });
     
-    // ★高さを記憶して固定
     appState.unifiedHeight = maxHeight;
     
     panes.forEach(pane => {
@@ -103,7 +197,6 @@ function unifyTabPaneHeights() {
       pane.style.height = `${maxHeight}px`;
     });
     
-    // 元の表示状態に戻す
     originalStates.forEach(state => {
       state.element.style.display = state.display;
     });
@@ -682,6 +775,8 @@ function bindUI() {
   const btnClose = getEl('btnClosePanel');
   const btnFabSearch = getEl('btnSearch');
   const btnStop = getEl('btnStopRoute');
+  const btnSaveLocation = getEl('btnSaveLocation');
+  const btnEditLocation = getEl('btnEditLocation');
 
   bindKeyboardWatch(); 
 
@@ -713,6 +808,10 @@ function bindUI() {
   };
 
   if(btnStop) btnStop.onclick = stopNavigation;
+  
+  // ★登録地管理ボタン
+  if(btnSaveLocation) btnSaveLocation.onclick = showSaveLocationDialog;
+  if(btnEditLocation) btnEditLocation.onclick = showEditLocationDialog;
   
   const btnPoint = getEl('btnPointSearch');
   if(btnPoint) btnPoint.onclick = () => {
@@ -749,12 +848,12 @@ function startApp() {
   setDisplay('fabStack', 'none');
   setDisplay('btnSearch', 'flex');
   
+  loadSavedLocations();
   bindUI();
   switchPanelTab('search');
   acquireLocation();
   startCompassListener();
   
-  // ★初回タブ高さ統一（固定）
   setTimeout(unifyTabPaneHeights, 500);
 }
 
