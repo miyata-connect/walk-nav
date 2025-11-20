@@ -1,9 +1,6 @@
 'use strict';
 
-// ==========================================
-// 定数定義
-// ==========================================
-const ISSUE_ID = 'idx20251119_fix_loc_tsurugi_v5'; // つるぎ町＆日本語化強化版
+const ISSUE_ID = 'idx20251119_fix_loc_tsurugi_v5';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0'; 
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -15,10 +12,8 @@ const LOCATION_OPTIONS = {
   maximumAge: 0
 };
 const SAVED_LOCATIONS_KEY = 'walknav_saved_locations';
+const MAP_MODE_KEY = 'walknav_map_mode';
 
-// ==========================================
-// 状態管理オブジェクト
-// ==========================================
 const appState = {
   map: null,
   userMarker: null,
@@ -42,12 +37,10 @@ const appState = {
   unifiedHeight: null,
   savedLocations: [],
   editingLocationIndex: null,
-  isEditDialogOpen: false
+  isEditDialogOpen: false,
+  mapMode: 'roadmap'
 };
 
-// ==========================================
-// ヘルパー
-// ==========================================
 function getEl(id) {
   return document.getElementById(id);
 }
@@ -62,9 +55,6 @@ function setText(id, text) {
   if (el) el.textContent = text;
 }
 
-// ==========================================
-// 登録地管理
-// ==========================================
 function loadSavedLocations() {
   try {
     const saved = localStorage.getItem(SAVED_LOCATIONS_KEY);
@@ -82,6 +72,57 @@ function saveSavedLocations() {
   } catch(e) {
     console.error('登録地の保存エラー:', e);
   }
+}
+
+function loadMapMode() {
+  try {
+    const saved = localStorage.getItem(MAP_MODE_KEY);
+    appState.mapMode = saved || 'roadmap';
+  } catch(e) {
+    appState.mapMode = 'roadmap';
+  }
+}
+
+function saveMapMode(mode) {
+  try {
+    localStorage.setItem(MAP_MODE_KEY, mode);
+    appState.mapMode = mode;
+    console.log('[MapMode] 保存:', mode);
+  } catch(e) {
+    console.error('地図モード保存エラー:', e);
+  }
+}
+
+function changeMapMode(mode) {
+  if (!appState.map) return;
+  
+  saveMapMode(mode);
+  
+  if (mode === 'photo') {
+    appState.map.setMapTypeId(google.maps.MapTypeId.SATELLITE);
+  } else if (mode === '3d') {
+    appState.map.setMapTypeId(google.maps.MapTypeId.HYBRID);
+    appState.map.setTilt(45);
+  } else {
+    appState.map.setMapTypeId(google.maps.MapTypeId.ROADMAP);
+    appState.map.setTilt(0);
+  }
+  
+  updateMapModeButtons(mode);
+}
+
+function updateMapModeButtons(activeMode) {
+  ['btnMapPhoto', 'btnMapRoadmap', 'btnMap3D'].forEach(btnId => {
+    const btn = getEl(btnId);
+    if (btn) {
+      const mode = btn.dataset.mode;
+      if (mode === activeMode) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    }
+  });
 }
 
 function showSaveLocationDialog() {
@@ -318,9 +359,6 @@ function showLocationEditForm(index) {
   setTimeout(() => input.focus(), 100);
 }
 
-// ==========================================
-// タブ切り替え（高さ完全固定版）
-// ==========================================
 function unifyTabPaneHeights() {
   const panes = document.querySelectorAll('.tab-pane');
   if (panes.length === 0) return;
@@ -369,24 +407,25 @@ function unifyTabPaneHeights() {
 
 function switchPanelTab(mode) {
   const isNav = mode === 'nav';
+  const isSettings = mode === 'settings';
+  
   const paneSearch = getEl('tabPaneSearch');
   const paneNav = getEl('tabPaneNav');
+  const paneSettings = getEl('tabPaneSettings');
 
-  if (paneSearch && paneNav) {
-    paneSearch.classList.toggle('active', !isNav);
+  if (paneSearch && paneNav && paneSettings) {
+    paneSearch.classList.toggle('active', !isNav && !isSettings);
     paneNav.classList.toggle('active', isNav);
+    paneSettings.classList.toggle('active', isSettings);
   }
 
-  const target = isNav ? 'nav' : 'search';
+  const target = isSettings ? 'settings' : (isNav ? 'nav' : 'search');
   document.querySelectorAll('[data-panel-tab]').forEach(btn => {
     const active = btn.dataset.panelTab === target;
     btn.classList.toggle('active', active);
   });
 }
 
-// ==========================================
-// API (Worker)
-// ==========================================
 async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
   for (let i = 0; i < retries; i++) {
     try {
@@ -441,9 +480,6 @@ async function placesNearby(payload, fieldMask) {
   }
 }
 
-// ==========================================
-// 地図初期化
-// ==========================================
 function initMap(center) {
   if (appState.map) {
     appState.map.setCenter(center);
@@ -467,6 +503,9 @@ function initMap(center) {
       if (!appState.pointSearchMode) return;
       if (e.latLng) setSearchPoint(e.latLng.lat(), e.latLng.lng());
     });
+    
+    changeMapMode(appState.mapMode);
+    
     appState.mapInitialized = true;
     console.log('[WalkNav] Map initialized');
   } catch (e) {
@@ -475,9 +514,6 @@ function initMap(center) {
   }
 }
 
-// ==========================================
-// マーカー
-// ==========================================
 function setUserMarker(lat, lng) {
   appState.currentPos = { lat, lng };
   if (!appState.map) return;
@@ -531,9 +567,6 @@ function setSearchPoint(lat, lng) {
   fetchPointAddress(lat, lng);
 }
 
-// ==========================================
-// ユーティリティ
-// ==========================================
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371000;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -573,9 +606,6 @@ function drawRoutePolyline(route) {
   });
 }
 
-// ==========================================
-// センサー
-// ==========================================
 function startCompassListener() {
   if (!window.DeviceOrientationEvent) return;
   const handler = (event) => {
@@ -629,9 +659,6 @@ function stopLocationWatcher() {
   }
 }
 
-// ==========================================
-// ナビゲーション
-// ==========================================
 async function startNavigation(destination) {
   let originLat, originLng;
   if (appState.pointSearchMode && appState.searchPoint) {
@@ -737,9 +764,6 @@ function stopNavigation() {
   }
 }
 
-// ==========================================
-// 検索・位置
-// ==========================================
 function acquireLocation() {
   const onSuccess = (pos) => {
     const { latitude, longitude } = pos.coords;
@@ -866,9 +890,6 @@ function displayResults(places, centerLat, centerLng) {
   });
 }
 
-// ==========================================
-// UIバインディング
-// ==========================================
 function bindKeyboardWatch() {
   const searchInput = getEl('q');
   const searchPanel = getEl('searchPanel');
@@ -986,6 +1007,14 @@ function bindUI() {
     btnPoint.style.color = appState.pointSearchMode ? '#fff' : '';
   };
 
+  const btnMapPhoto = getEl('btnMapPhoto');
+  const btnMapRoadmap = getEl('btnMapRoadmap');
+  const btnMap3D = getEl('btnMap3D');
+  
+  if(btnMapPhoto) btnMapPhoto.onclick = () => changeMapMode('photo');
+  if(btnMapRoadmap) btnMapRoadmap.onclick = () => changeMapMode('roadmap');
+  if(btnMap3D) btnMap3D.onclick = () => changeMapMode('3d');
+
   const r10 = getEl('r10');
   const r20 = getEl('r20');
   const r30 = getEl('r30');
@@ -1003,9 +1032,6 @@ function bindUI() {
   };
 }
 
-// ==========================================
-// アプリ起動
-// ==========================================
 function startApp() {
   console.log('[WalkNav] Starting app...');
   setDisplay('searchPanel', 'block');
@@ -1013,7 +1039,9 @@ function startApp() {
   setDisplay('btnSearch', 'flex');
   
   loadSavedLocations();
+  loadMapMode();
   bindUI();
+  updateMapModeButtons(appState.mapMode);
   switchPanelTab('search');
   acquireLocation();
   startCompassListener();
