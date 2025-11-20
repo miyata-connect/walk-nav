@@ -41,7 +41,8 @@ const appState = {
   keyboardAdjusted: false,
   unifiedHeight: null,
   savedLocations: [],
-  editingLocationIndex: null
+  editingLocationIndex: null,
+  isEditDialogOpen: false
 };
 
 // ==========================================
@@ -118,41 +119,113 @@ function showEditLocationDialog() {
     return;
   }
 
-  // 登録地リストを作成
-  let message = '編集する登録地を選択してください:\n\n';
-  appState.savedLocations.forEach((loc, i) => {
-    message += `${i + 1}. ${loc.name}\n`;
+  if (appState.isEditDialogOpen) return;
+  appState.isEditDialogOpen = true;
+
+  // カスタムダイアログを作成
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  `;
+
+  const dialog = document.createElement('div');
+  dialog.style.cssText = `
+    background: #1e1e1e;
+    border-radius: 16px;
+    padding: 20px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 70vh;
+    overflow-y: auto;
+    color: #fff;
+  `;
+
+  const title = document.createElement('h3');
+  title.textContent = '編集する登録地を選択してください:';
+  title.style.cssText = 'margin: 0 0 16px 0; font-size: 18px;';
+  dialog.appendChild(title);
+
+  const list = document.createElement('div');
+  list.style.cssText = 'display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;';
+
+  appState.savedLocations.forEach((loc, index) => {
+    const item = document.createElement('div');
+    item.style.cssText = `
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    `;
+    item.innerHTML = `
+      <div style="font-weight: 600; margin-bottom: 4px;">${loc.name}</div>
+      <div style="font-size: 13px; opacity: 0.7;">${loc.address}</div>
+    `;
+
+    item.onmouseover = () => item.style.background = 'rgba(255,255,255,0.2)';
+    item.onmouseout = () => item.style.background = 'rgba(255,255,255,0.1)';
+
+    item.onclick = () => {
+      document.body.removeChild(overlay);
+      appState.isEditDialogOpen = false;
+      editLocation(index);
+    };
+
+    list.appendChild(item);
   });
 
-  const choice = prompt(message + '\n番号を入力してください:');
-  if (!choice) return;
+  dialog.appendChild(list);
 
-  const index = parseInt(choice) - 1;
-  if (index < 0 || index >= appState.savedLocations.length) {
-    alert('無効な番号です');
-    return;
-  }
+  const btnClose = document.createElement('button');
+  btnClose.textContent = 'キャンセル';
+  btnClose.style.cssText = `
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+    font-size: 16px;
+    cursor: pointer;
+  `;
+  btnClose.onclick = () => {
+    document.body.removeChild(overlay);
+    appState.isEditDialogOpen = false;
+  };
 
+  dialog.appendChild(btnClose);
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+}
+
+function editLocation(index) {
   const location = appState.savedLocations[index];
-  const newName = prompt('新しい登録地名を入力してください:', location.name);
-  if (!newName) return;
 
-  // 削除するか確認
-  const actions = prompt(
-    `1. 名前を変更\n2. 削除\n\n番号を入力してください:`,
-    '1'
-  );
+  const action = confirm(`「${location.name}」を編集しますか?\n\nOK: 名前を変更\nキャンセル: 削除`);
 
-  if (actions === '2') {
+  if (action) {
+    // 名前変更
+    const newName = prompt('新しい登録地名を入力してください:', location.name);
+    if (newName && newName !== location.name) {
+      location.name = newName;
+      saveSavedLocations();
+      alert('更新しました');
+    }
+  } else {
+    // 削除確認
     if (confirm(`「${location.name}」を削除しますか?`)) {
       appState.savedLocations.splice(index, 1);
       saveSavedLocations();
       alert('削除しました');
     }
-  } else {
-    location.name = newName;
-    saveSavedLocations();
-    alert('更新しました');
   }
 }
 
