@@ -97,6 +97,14 @@
 </div>
 </div><div class="tab-pane" id="tabPaneSettings">
 <h2>設定</h2>
+<div class="map-mode-section">
+<div class="map-mode-label">地図表示モード</div>
+<div class="map-mode-buttons">
+<button id="btnMapPhoto" class="map-mode-btn" data-mode="photo">写真</button>
+<button id="btnMapRoadmap" class="map-mode-btn active" data-mode="roadmap">地図</button>
+<button id="btnMap3D" class="map-mode-btn" data-mode="3d">3D</button>
+</div>
+</div>
 <div style="margin-bottom:16px;">
 <div style="font-size:14px;color:var(--muted);margin-bottom:8px;">タブの位置</div>
 <div class="row" style="justify-content:center;flex-wrap:wrap;gap:8px;">
@@ -152,7 +160,6 @@ var tab = b.getAttribute('data-panel-tab');
 b.classList.toggle('active', tab === target);
 }
 }
-// タブボタンのイベント
 for (var i = 0; i < tabButtons.length; i++) {
 (function (btn) {
 if (!btn) return;
@@ -168,9 +175,7 @@ setMode(mode);
 });
 })(tabButtons[i]);
 }
-// 初期タブは「操作」
 setMode('search');
-// タブ位置ボタン（埋め込み用）
 for (var j = 0; j < posButtons.length; j++) {
 (function (btnPos) {
 if (!btnPos) return;
