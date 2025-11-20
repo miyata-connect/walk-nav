@@ -349,136 +349,180 @@
 /* L349 */   box-sizing: border-box;
 /* L350 */ }
 /* L351 */
-/* L352 */ /* 編集ダイアログオーバーレイ */
-/* L353 */ .edit-dialog-overlay {
-/* L354 */   position: fixed;
-/* L355 */   inset: 0;
-/* L356 */   background: rgba(0,0,0,0.7);
-/* L357 */   z-index: 10000;
-/* L358 */   display: flex;
-/* L359 */   align-items: center;
-/* L360 */   justify-content: center;
-/* L361 */   padding: 20px;
-/* L362 */   touch-action: manipulation;
-/* L363 */ }
-/* L364 */
-/* L365 */ /* 編集ダイアログ本体 */
-/* L366 */ .edit-dialog {
-/* L367 */   background: #1e1e1e;
-/* L368 */   border-radius: 16px;
-/* L369 */   padding: 20px;
-/* L370 */   max-width: 500px;
-/* L371 */   width: 100%;
-/* L372 */   max-height: 70vh;
-/* L373 */   overflow-y: auto;
-/* L374 */   color: #fff;
-/* L375 */ }
-/* L376 */
-/* L377 */ /* ダイアログタイトル */
-/* L378 */ .edit-dialog h3 {
-/* L379 */   margin: 0 0 16px 0;
-/* L380 */   font-size: 18px;
-/* L381 */   font-weight: 600;
-/* L382 */ }
-/* L383 */
-/* L384 */ /* リストコンテナ */
-/* L385 */ .edit-dialog-list {
-/* L386 */   display: flex;
-/* L387 */   flex-direction: column;
-/* L388 */   gap: 8px;
-/* L389 */   margin-bottom: 16px;
+/* L352 */ /* 地図モード選択セクション */
+/* L353 */ .map-mode-section {
+/* L354 */   margin-bottom: 16px;
+/* L355 */ }
+/* L356 */
+/* L357 */ .map-mode-label {
+/* L358 */   font-size: 14px;
+/* L359 */   font-weight: 600;
+/* L360 */   margin-bottom: 10px;
+/* L361 */   color: #fff;
+/* L362 */ }
+/* L363 */
+/* L364 */ .map-mode-buttons {
+/* L365 */   display: flex;
+/* L366 */   gap: 8px;
+/* L367 */ }
+/* L368 */
+/* L369 */ .map-mode-btn {
+/* L370 */   flex: 1;
+/* L371 */   padding: 10px 12px;
+/* L372 */   border-radius: 12px;
+/* L373 */   font-size: 14px;
+/* L374 */   font-weight: 500;
+/* L375 */   cursor: pointer;
+/* L376 */   background: rgba(255,255,255,0.1);
+/* L377 */   color: #fff;
+/* L378 */   border: 1px solid var(--stroke);
+/* L379 */   text-align: center;
+/* L380 */   outline: none;
+/* L381 */   -webkit-tap-highlight-color: transparent;
+/* L382 */   transition: all 0.2s;
+/* L383 */ }
+/* L384 */
+/* L385 */ .map-mode-btn.active {
+/* L386 */   background: #3aa0ff;
+/* L387 */   border-color: #3aa0ff;
+/* L388 */   color: #fff;
+/* L389 */   box-shadow: 0 2px 8px rgba(58,160,255,0.4);
 /* L390 */ }
 /* L391 */
-/* L392 */ /* リストアイテム */
-/* L393 */ .edit-dialog-item {
-/* L394 */   background: rgba(255,255,255,0.1);
-/* L395 */   border: 1px solid rgba(255,255,255,0.2);
-/* L396 */   border-radius: 12px;
-/* L397 */   padding: 12px;
-/* L398 */   cursor: pointer;
-/* L399 */   transition: background 0.2s;
-/* L400 */   outline: none;
-/* L401 */   -webkit-tap-highlight-color: transparent;
-/* L402 */ }
-/* L403 */
-/* L404 */ .edit-dialog-item:hover {
-/* L405 */   background: rgba(255,255,255,0.2);
-/* L406 */ }
-/* L407 */
-/* L408 */ .edit-dialog-item-title {
-/* L409 */   font-weight: 600;
-/* L410 */   margin-bottom: 4px;
-/* L411 */ }
-/* L412 */
-/* L413 */ .edit-dialog-item-subtitle {
-/* L414 */   font-size: 13px;
-/* L415 */   opacity: 0.7;
-/* L416 */ }
-/* L417 */
-/* L418 */ /* ボタン共通スタイル */
-/* L419 */ .edit-dialog-btn {
-/* L420 */   width: 100%;
-/* L421 */   padding: 14px;
-/* L422 */   border-radius: 12px;
-/* L423 */   font-size: 16px;
-/* L424 */   font-weight: 600;
-/* L425 */   cursor: pointer;
-/* L426 */   border: none;
-/* L427 */   outline: none;
-/* L428 */   transition: opacity 0.2s;
-/* L429 */   -webkit-tap-highlight-color: transparent;
-/* L430 */ }
-/* L431 */
-/* L432 */ .edit-dialog-btn:active {
-/* L433 */   opacity: 0.8;
+/* L392 */ .map-mode-btn:active {
+/* L393 */   opacity: 0.7;
+/* L394 */ }
+/* L395 */
+/* L396 */ /* 編集ダイアログオーバーレイ */
+/* L397 */ .edit-dialog-overlay {
+/* L398 */   position: fixed;
+/* L399 */   inset: 0;
+/* L400 */   background: rgba(0,0,0,0.7);
+/* L401 */   z-index: 10000;
+/* L402 */   display: flex;
+/* L403 */   align-items: center;
+/* L404 */   justify-content: center;
+/* L405 */   padding: 20px;
+/* L406 */   touch-action: manipulation;
+/* L407 */ }
+/* L408 */
+/* L409 */ /* 編集ダイアログ本体 */
+/* L410 */ .edit-dialog {
+/* L411 */   background: #1e1e1e;
+/* L412 */   border-radius: 16px;
+/* L413 */   padding: 20px;
+/* L414 */   max-width: 500px;
+/* L415 */   width: 100%;
+/* L416 */   max-height: 70vh;
+/* L417 */   overflow-y: auto;
+/* L418 */   color: #fff;
+/* L419 */ }
+/* L420 */
+/* L421 */ /* ダイアログタイトル */
+/* L422 */ .edit-dialog h3 {
+/* L423 */   margin: 0 0 16px 0;
+/* L424 */   font-size: 18px;
+/* L425 */   font-weight: 600;
+/* L426 */ }
+/* L427 */
+/* L428 */ /* リストコンテナ */
+/* L429 */ .edit-dialog-list {
+/* L430 */   display: flex;
+/* L431 */   flex-direction: column;
+/* L432 */   gap: 8px;
+/* L433 */   margin-bottom: 16px;
 /* L434 */ }
 /* L435 */
-/* L436 */ /* ボタンバリエーション */
-/* L437 */ .edit-dialog-btn-primary {
-/* L438 */   background: #25d07a;
-/* L439 */   color: #fff;
-/* L440 */   margin-bottom: 8px;
-/* L441 */ }
-/* L442 */
-/* L443 */ .edit-dialog-btn-danger {
-/* L444 */   background: #ff6565;
-/* L445 */   color: #fff;
-/* L446 */   margin-bottom: 8px;
-/* L447 */ }
-/* L448 */
-/* L449 */ .edit-dialog-btn-secondary {
-/* L450 */   background: rgba(255,255,255,0.1);
-/* L451 */   color: #fff;
-/* L452 */   border: 1px solid rgba(255,255,255,0.2);
-/* L453 */ }
-/* L454 */
-/* L455 */ /* 確認ダイアログボタングループ */
-/* L456 */ .edit-dialog-btn-group {
-/* L457 */   display: flex;
-/* L458 */   gap: 8px;
-/* L459 */   margin-top: 16px;
+/* L436 */ /* リストアイテム */
+/* L437 */ .edit-dialog-item {
+/* L438 */   background: rgba(255,255,255,0.1);
+/* L439 */   border: 1px solid rgba(255,255,255,0.2);
+/* L440 */   border-radius: 12px;
+/* L441 */   padding: 12px;
+/* L442 */   cursor: pointer;
+/* L443 */   transition: background 0.2s;
+/* L444 */   outline: none;
+/* L445 */   -webkit-tap-highlight-color: transparent;
+/* L446 */ }
+/* L447 */
+/* L448 */ .edit-dialog-item:hover {
+/* L449 */   background: rgba(255,255,255,0.2);
+/* L450 */ }
+/* L451 */
+/* L452 */ .edit-dialog-item-title {
+/* L453 */   font-weight: 600;
+/* L454 */   margin-bottom: 4px;
+/* L455 */ }
+/* L456 */
+/* L457 */ .edit-dialog-item-subtitle {
+/* L458 */   font-size: 13px;
+/* L459 */   opacity: 0.7;
 /* L460 */ }
 /* L461 */
-/* L462 */ .edit-dialog-btn-group .edit-dialog-btn {
-/* L463 */   flex: 1;
-/* L464 */   margin-bottom: 0;
-/* L465 */ }
-/* L466 */
-/* L467 */ /* 修正フォーム用input */
-/* L468 */ .edit-dialog-input {
-/* L469 */   width: 100%;
-/* L470 */   padding: 12px;
-/* L471 */   border-radius: 12px;
-/* L472 */   background: rgba(255,255,255,0.1);
-/* L473 */   border: 1px solid rgba(255,255,255,0.2);
-/* L474 */   color: #fff;
-/* L475 */   font-size: 16px;
-/* L476 */   margin-bottom: 16px;
-/* L477 */   outline: none;
-/* L478 */   box-sizing: border-box;
-/* L479 */ }
-/* L480 */
-/* L481 */ .edit-dialog-input:focus {
-/* L482 */   border-color: #25d07a;
-/* L483 */   background: rgba(255,255,255,0.15);
-/* L484 */ }
+/* L462 */ /* ボタン共通スタイル */
+/* L463 */ .edit-dialog-btn {
+/* L464 */   width: 100%;
+/* L465 */   padding: 14px;
+/* L466 */   border-radius: 12px;
+/* L467 */   font-size: 16px;
+/* L468 */   font-weight: 600;
+/* L469 */   cursor: pointer;
+/* L470 */   border: none;
+/* L471 */   outline: none;
+/* L472 */   transition: opacity 0.2s;
+/* L473 */   -webkit-tap-highlight-color: transparent;
+/* L474 */ }
+/* L475 */
+/* L476 */ .edit-dialog-btn:active {
+/* L477 */   opacity: 0.8;
+/* L478 */ }
+/* L479 */
+/* L480 */ /* ボタンバリエーション */
+/* L481 */ .edit-dialog-btn-primary {
+/* L482 */   background: #25d07a;
+/* L483 */   color: #fff;
+/* L484 */   margin-bottom: 8px;
+/* L485 */ }
+/* L486 */
+/* L487 */ .edit-dialog-btn-danger {
+/* L488 */   background: #ff6565;
+/* L489 */   color: #fff;
+/* L490 */   margin-bottom: 8px;
+/* L491 */ }
+/* L492 */
+/* L493 */ .edit-dialog-btn-secondary {
+/* L494 */   background: rgba(255,255,255,0.1);
+/* L495 */   color: #fff;
+/* L496 */   border: 1px solid rgba(255,255,255,0.2);
+/* L497 */ }
+/* L498 */
+/* L499 */ /* 確認ダイアログボタングループ */
+/* L500 */ .edit-dialog-btn-group {
+/* L501 */   display: flex;
+/* L502 */   gap: 8px;
+/* L503 */   margin-top: 16px;
+/* L504 */ }
+/* L505 */
+/* L506 */ .edit-dialog-btn-group .edit-dialog-btn {
+/* L507 */   flex: 1;
+/* L508 */   margin-bottom: 0;
+/* L509 */ }
+/* L510 */
+/* L511 */ /* 修正フォーム用input */
+/* L512 */ .edit-dialog-input {
+/* L513 */   width: 100%;
+/* L514 */   padding: 12px;
+/* L515 */   border-radius: 12px;
+/* L516 */   background: rgba(255,255,255,0.1);
+/* L517 */   border: 1px solid rgba(255,255,255,0.2);
+/* L518 */   color: #fff;
+/* L519 */   font-size: 16px;
+/* L520 */   margin-bottom: 16px;
+/* L521 */   outline: none;
+/* L522 */   box-sizing: border-box;
+/* L523 */ }
+/* L524 */
+/* L525 */ .edit-dialog-input:focus {
+/* L526 */   border-color: #25d07a;
+/* L527 */   background: rgba(255,255,255,0.15);
+/* L528 */ }
