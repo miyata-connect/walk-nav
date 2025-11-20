@@ -94,11 +94,9 @@ function showSaveLocationDialog() {
   const lat = appState.currentPos.lat;
   const lng = appState.currentPos.lng;
 
-  // ダイアログを表示
   const name = prompt('登録地名を入力してください:', address);
   if (!name) return;
 
-  // 登録
   appState.savedLocations.push({
     name: name,
     address: address,
@@ -122,61 +120,38 @@ function showEditLocationDialog() {
   if (appState.isEditDialogOpen) return;
   appState.isEditDialogOpen = true;
 
-  // カスタムダイアログを作成
   const overlay = document.createElement('div');
-  overlay.style.cssText = `
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    z-index: 10000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  `;
+  overlay.className = 'edit-dialog-overlay';
 
   const dialog = document.createElement('div');
-  dialog.style.cssText = `
-    background: #1e1e1e;
-    border-radius: 16px;
-    padding: 20px;
-    max-width: 500px;
-    width: 100%;
-    max-height: 70vh;
-    overflow-y: auto;
-    color: #fff;
-  `;
+  dialog.className = 'edit-dialog';
 
   const title = document.createElement('h3');
-  title.textContent = '編集する登録地を選択してください:';
-  title.style.cssText = 'margin: 0 0 16px 0; font-size: 18px;';
+  title.textContent = '編集する登録地を選択してください';
   dialog.appendChild(title);
 
   const list = document.createElement('div');
-  list.style.cssText = 'display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;';
+  list.className = 'edit-dialog-list';
 
   appState.savedLocations.forEach((loc, index) => {
     const item = document.createElement('div');
-    item.style.cssText = `
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 12px;
-      padding: 12px;
-      cursor: pointer;
-      transition: background 0.2s;
-    `;
-    item.innerHTML = `
-      <div style="font-weight: 600; margin-bottom: 4px;">${loc.name}</div>
-      <div style="font-size: 13px; opacity: 0.7;">${loc.address}</div>
-    `;
+    item.className = 'edit-dialog-item';
 
-    item.onmouseover = () => item.style.background = 'rgba(255,255,255,0.2)';
-    item.onmouseout = () => item.style.background = 'rgba(255,255,255,0.1)';
+    const itemTitle = document.createElement('div');
+    itemTitle.className = 'edit-dialog-item-title';
+    itemTitle.textContent = loc.name;
+
+    const itemSubtitle = document.createElement('div');
+    itemSubtitle.className = 'edit-dialog-item-subtitle';
+    itemSubtitle.textContent = loc.address;
+
+    item.appendChild(itemTitle);
+    item.appendChild(itemSubtitle);
 
     item.onclick = () => {
       document.body.removeChild(overlay);
       appState.isEditDialogOpen = false;
-      editLocation(index);
+      showLocationEditMenu(index);
     };
 
     list.appendChild(item);
@@ -185,17 +160,8 @@ function showEditLocationDialog() {
   dialog.appendChild(list);
 
   const btnClose = document.createElement('button');
+  btnClose.className = 'edit-dialog-btn edit-dialog-btn-secondary';
   btnClose.textContent = 'キャンセル';
-  btnClose.style.cssText = `
-    width: 100%;
-    padding: 12px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.1);
-    color: #fff;
-    border: 1px solid rgba(255,255,255,0.2);
-    font-size: 16px;
-    cursor: pointer;
-  `;
   btnClose.onclick = () => {
     document.body.removeChild(overlay);
     appState.isEditDialogOpen = false;
@@ -206,27 +172,150 @@ function showEditLocationDialog() {
   document.body.appendChild(overlay);
 }
 
-function editLocation(index) {
+function showLocationEditMenu(index) {
   const location = appState.savedLocations[index];
 
-  const action = confirm(`「${location.name}」を編集しますか?\n\nOK: 名前を変更\nキャンセル: 削除`);
+  const overlay = document.createElement('div');
+  overlay.className = 'edit-dialog-overlay';
 
-  if (action) {
-    // 名前変更
-    const newName = prompt('新しい登録地名を入力してください:', location.name);
-    if (newName && newName !== location.name) {
-      location.name = newName;
-      saveSavedLocations();
-      alert('更新しました');
+  const dialog = document.createElement('div');
+  dialog.className = 'edit-dialog';
+
+  const title = document.createElement('h3');
+  title.textContent = `「${location.name}」を編集`;
+  dialog.appendChild(title);
+
+  const btnEdit = document.createElement('button');
+  btnEdit.className = 'edit-dialog-btn edit-dialog-btn-primary';
+  btnEdit.textContent = '修正';
+  btnEdit.onclick = () => {
+    document.body.removeChild(overlay);
+    showLocationEditForm(index);
+  };
+
+  const btnDelete = document.createElement('button');
+  btnDelete.className = 'edit-dialog-btn edit-dialog-btn-danger';
+  btnDelete.textContent = '削除';
+  btnDelete.onclick = () => {
+    document.body.removeChild(overlay);
+    showLocationDeleteConfirm(index);
+  };
+
+  const btnCancel = document.createElement('button');
+  btnCancel.className = 'edit-dialog-btn edit-dialog-btn-secondary';
+  btnCancel.textContent = 'キャンセル';
+  btnCancel.onclick = () => {
+    document.body.removeChild(overlay);
+    appState.isEditDialogOpen = false;
+  };
+
+  dialog.appendChild(btnEdit);
+  dialog.appendChild(btnDelete);
+  dialog.appendChild(btnCancel);
+
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+}
+
+function showLocationDeleteConfirm(index) {
+  const location = appState.savedLocations[index];
+
+  const overlay = document.createElement('div');
+  overlay.className = 'edit-dialog-overlay';
+
+  const dialog = document.createElement('div');
+  dialog.className = 'edit-dialog';
+
+  const title = document.createElement('h3');
+  title.textContent = 'この登録ポイントを削除しますか?';
+  dialog.appendChild(title);
+
+  const message = document.createElement('div');
+  message.style.cssText = 'margin-bottom: 16px; opacity: 0.8;';
+  message.textContent = `「${location.name}」`;
+  dialog.appendChild(message);
+
+  const btnGroup = document.createElement('div');
+  btnGroup.className = 'edit-dialog-btn-group';
+
+  const btnNo = document.createElement('button');
+  btnNo.className = 'edit-dialog-btn edit-dialog-btn-secondary';
+  btnNo.textContent = 'いいえ';
+  btnNo.onclick = () => {
+    document.body.removeChild(overlay);
+    appState.isEditDialogOpen = false;
+  };
+
+  const btnYes = document.createElement('button');
+  btnYes.className = 'edit-dialog-btn edit-dialog-btn-danger';
+  btnYes.textContent = 'はい';
+  btnYes.onclick = () => {
+    appState.savedLocations.splice(index, 1);
+    saveSavedLocations();
+    document.body.removeChild(overlay);
+    appState.isEditDialogOpen = false;
+    alert('削除しました');
+  };
+
+  btnGroup.appendChild(btnNo);
+  btnGroup.appendChild(btnYes);
+
+  dialog.appendChild(btnGroup);
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+}
+
+function showLocationEditForm(index) {
+  const location = appState.savedLocations[index];
+
+  const overlay = document.createElement('div');
+  overlay.className = 'edit-dialog-overlay';
+
+  const dialog = document.createElement('div');
+  dialog.className = 'edit-dialog';
+
+  const title = document.createElement('h3');
+  title.textContent = '登録地名を修正';
+  dialog.appendChild(title);
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'edit-dialog-input';
+  input.value = location.name;
+  input.placeholder = '登録地名を入力';
+  dialog.appendChild(input);
+
+  const btnComplete = document.createElement('button');
+  btnComplete.className = 'edit-dialog-btn edit-dialog-btn-primary';
+  btnComplete.textContent = '完了';
+  btnComplete.onclick = () => {
+    const newName = input.value.trim();
+    if (!newName) {
+      alert('登録地名を入力してください');
+      return;
     }
-  } else {
-    // 削除確認
-    if (confirm(`「${location.name}」を削除しますか?`)) {
-      appState.savedLocations.splice(index, 1);
-      saveSavedLocations();
-      alert('削除しました');
-    }
-  }
+    location.name = newName;
+    saveSavedLocations();
+    document.body.removeChild(overlay);
+    appState.isEditDialogOpen = false;
+    alert('更新しました');
+  };
+
+  const btnCancel = document.createElement('button');
+  btnCancel.className = 'edit-dialog-btn edit-dialog-btn-secondary';
+  btnCancel.textContent = 'キャンセル';
+  btnCancel.onclick = () => {
+    document.body.removeChild(overlay);
+    appState.isEditDialogOpen = false;
+  };
+
+  dialog.appendChild(btnComplete);
+  dialog.appendChild(btnCancel);
+
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+
+  setTimeout(() => input.focus(), 100);
 }
 
 // ==========================================
@@ -512,7 +601,11 @@ function startCompassListener() {
   }
 }
 
-function stopCompassListener() { /* omitted */ }
+function stopCompassListener() {
+  if (appState.compassWatchId) {
+    appState.compassWatchId = null;
+  }
+}
 
 function startLocationWatcher() {
   if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
@@ -882,7 +975,6 @@ function bindUI() {
 
   if(btnStop) btnStop.onclick = stopNavigation;
   
-  // ★登録地管理ボタン
   if(btnSaveLocation) btnSaveLocation.onclick = showSaveLocationDialog;
   if(btnEditLocation) btnEditLocation.onclick = showEditLocationDialog;
   
@@ -894,7 +986,6 @@ function bindUI() {
     btnPoint.style.color = appState.pointSearchMode ? '#fff' : '';
   };
 
-  // Tab buttons
   const r10 = getEl('r10');
   const r20 = getEl('r20');
   const r30 = getEl('r30');
