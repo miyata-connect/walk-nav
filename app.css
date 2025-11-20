@@ -33,7 +33,7 @@
 /* L033 */   height: 100%;
 /* L034 */ }
 /* L035 */ 
-/* L036 */ /* パネル（キーボード対応強化版） */
+/* L036 */ /* パネル（余白最適化版） */
 /* L037 */ .panel {
 /* L038 */   position: fixed;
 /* L039 */   left: 0;
@@ -41,7 +41,7 @@
 /* L041 */   bottom: 0;
 /* L042 */   background: var(--panel-bg);
 /* L043 */   backdrop-filter: blur(18px);
-/* L044 */   padding: 16px;
+/* L044 */   padding: 16px 16px 12px 16px;  /* ★下paddingを削減 */
 /* L045 */   box-sizing: border-box;
 /* L046 */   border-top-left-radius: 20px;
 /* L047 */   border-top-right-radius: 20px;
@@ -83,7 +83,7 @@
 /* L083 */ 
 /* L084 */ .tab-pane {
 /* L085 */   display: none;
-/* L086 */   min-height: 420px;  /* ★追加: タブ内容の最小高さを確保 */
+/* L086 */   /* ★min-heightを削除し、コンテンツに合わせる */
 /* L087 */ }
 /* L088 */ 
 /* L089 */ .tab-pane.active {
@@ -101,154 +101,165 @@
 /* L101 */   display: flex;
 /* L102 */   gap: 8px;
 /* L103 */   align-items: center;
-/* L104 */ }
-/* L105 */ 
-/* L106 */ .chip {
-/* L107 */   padding: 6px 14px;
-/* L108 */   border-radius: 999px;
-/* L109 */   background: rgba(255,255,255,0.15);
-/* L110 */   color: #fff;
-/* L111 */   border: 1px solid var(--stroke);
-/* L112 */   cursor: pointer;
-/* L113 */   font-size: 13px;
-/* L114 */ }
-/* L115 */ 
-/* L116 */ .chip.active {
-/* L117 */   background: #fff;
-/* L118 */   color: #111;
-/* L119 */ }
-/* L120 */ 
-/* L121 */ .btn {
-/* L122 */   padding: 10px 12px;
-/* L123 */   border-radius: 12px;
-/* L124 */   font-size: 14px;
-/* L125 */   cursor: pointer;
-/* L126 */   background: rgba(255,255,255,0.2);
-/* L127 */   color: #fff;
-/* L128 */   border: 1px solid var(--stroke);
-/* L129 */   flex-shrink: 0;
-/* L130 */   text-align: center;
-/* L131 */ }
-/* L132 */ 
-/* L133 */ .btn.danger {
-/* L134 */   background: rgba(244,63,94,0.3);
-/* L135 */   border-color: rgba(244,63,94,0.6);
-/* L136 */ }
-/* L137 */ 
-/* L138 */ .input-wrapper {
-/* L139 */   display: flex;
-/* L140 */   align-items: center;
-/* L141 */   gap: 6px;
-/* L142 */   background: rgba(255,255,255,0.1);
-/* L143 */   border: 1px solid var(--stroke);
-/* L144 */   border-radius: 12px;
-/* L145 */   padding: 6px 10px;
-/* L146 */   flex: 1;
-/* L147 */ }
-/* L148 */ 
-/* L149 */ .input {
-/* L150 */   flex: 1;
-/* L151 */   background: transparent;
-/* L152 */   border: none;
-/* L153 */   color: #fff;
-/* L154 */   outline: none;
-/* L155 */   font-size: 15px;
-/* L156 */ }
-/* L157 */ 
-/* L158 */ .icon {
-/* L159 */   display: flex;
-/* L160 */   align-items: center;
-/* L161 */   justify-content: center;
-/* L162 */   color: #fff;
-/* L163 */ }
-/* L164 */ 
-/* L165 */ /* 検索結果 */
-/* L166 */ .results {
-/* L167 */   margin-top: 10px;
-/* L168 */   display: flex;
-/* L169 */   flex-direction: column;
-/* L170 */   gap: 8px;
-/* L171 */ }
-/* L172 */ 
-/* L173 */ .result-item {
-/* L174 */   background: rgba(255,255,255,0.1);
-/* L175 */   border: 1px solid var(--stroke);
-/* L176 */   border-radius: 12px;
-/* L177 */   padding: 10px;
-/* L178 */   cursor: pointer;
-/* L179 */ }
-/* L180 */ 
-/* L181 */ /* ナビゲーション */
-/* L182 */ .nav-section {
-/* L183 */   margin-bottom: 16px;
-/* L184 */   padding-bottom: 12px;
-/* L185 */   border-bottom: 1px solid var(--stroke);
-/* L186 */ }
-/* L187 */ 
-/* L188 */ .nav-section-title {
-/* L189 */   font-size: 12px;
-/* L190 */   font-weight: 600;
-/* L191 */   color: var(--muted);
-/* L192 */   margin-bottom: 6px;
+/* L104 */   margin-bottom: 8px;  /* ★余白を追加 */
+/* L105 */ }
+/* L106 */ 
+/* L107 */ .chip {
+/* L108 */   padding: 6px 14px;
+/* L109 */   border-radius: 999px;
+/* L110 */   background: rgba(255,255,255,0.15);
+/* L111 */   color: #fff;
+/* L112 */   border: 1px solid var(--stroke);
+/* L113 */   cursor: pointer;
+/* L114 */   font-size: 13px;
+/* L115 */ }
+/* L116 */ 
+/* L117 */ .chip.active {
+/* L118 */   background: #fff;
+/* L119 */   color: #111;
+/* L120 */ }
+/* L121 */ 
+/* L122 */ .btn {
+/* L123 */   padding: 10px 12px;
+/* L124 */   border-radius: 12px;
+/* L125 */   font-size: 14px;
+/* L126 */   cursor: pointer;
+/* L127 */   background: rgba(255,255,255,0.2);
+/* L128 */   color: #fff;
+/* L129 */   border: 1px solid var(--stroke);
+/* L130 */   flex-shrink: 0;
+/* L131 */   text-align: center;
+/* L132 */ }
+/* L133 */ 
+/* L134 */ .btn.danger {
+/* L135 */   background: rgba(244,63,94,0.3);
+/* L136 */   border-color: rgba(244,63,94,0.6);
+/* L137 */ }
+/* L138 */ 
+/* L139 */ .input-wrapper {
+/* L140 */   display: flex;
+/* L141 */   align-items: center;
+/* L142 */   gap: 6px;
+/* L143 */   background: rgba(255,255,255,0.1);
+/* L144 */   border: 1px solid var(--stroke);
+/* L145 */   border-radius: 12px;
+/* L146 */   padding: 6px 10px;
+/* L147 */   flex: 1;
+/* L148 */ }
+/* L149 */ 
+/* L150 */ .input {
+/* L151 */   flex: 1;
+/* L152 */   background: transparent;
+/* L153 */   border: none;
+/* L154 */   color: #fff;
+/* L155 */   outline: none;
+/* L156 */   font-size: 15px;
+/* L157 */ }
+/* L158 */ 
+/* L159 */ .icon {
+/* L160 */   display: flex;
+/* L161 */   align-items: center;
+/* L162 */   justify-content: center;
+/* L163 */   color: #fff;
+/* L164 */ }
+/* L165 */ 
+/* L166 */ /* 検索結果 */
+/* L167 */ .results {
+/* L168 */   margin-top: 10px;
+/* L169 */   display: flex;
+/* L170 */   flex-direction: column;
+/* L171 */   gap: 8px;
+/* L172 */ }
+/* L173 */ 
+/* L174 */ .result-item {
+/* L175 */   background: rgba(255,255,255,0.1);
+/* L176 */   border: 1px solid var(--stroke);
+/* L177 */   border-radius: 12px;
+/* L178 */   padding: 10px;
+/* L179 */   cursor: pointer;
+/* L180 */ }
+/* L181 */ 
+/* L182 */ /* ナビゲーション */
+/* L183 */ .nav-section {
+/* L184 */   margin-bottom: 12px;  /* ★余白を削減 */
+/* L185 */   padding-bottom: 10px;  /* ★余白を削減 */
+/* L186 */   border-bottom: 1px solid var(--stroke);
+/* L187 */ }
+/* L188 */ 
+/* L189 */ .nav-section:last-child {
+/* L190 */   margin-bottom: 0;  /* ★最後の要素は余白なし */
+/* L191 */   padding-bottom: 0;
+/* L192 */   border-bottom: none;
 /* L193 */ }
 /* L194 */ 
-/* L195 */ .weather-item {
-/* L196 */   display: flex;
-/* L197 */   justify-content: space-between;
-/* L198 */   padding: 8px 12px;
-/* L199 */   background: rgba(255,255,255,0.1);
-/* L200 */   border: 1px solid var(--stroke);
-/* L201 */   border-radius: 10px;
-/* L202 */   margin-bottom: 6px;
-/* L203 */ }
-/* L204 */ 
-/* L205 */ /* FAB */
-/* L206 */ .fab-stack {
-/* L207 */   position: absolute;
-/* L208 */   bottom: 20px;
-/* L209 */   right: 20px;
-/* L210 */   display: flex;
-/* L211 */   flex-direction: column;
-/* L212 */   gap: 10px;
-/* L213 */   z-index: 900;
+/* L195 */ .nav-section-title {
+/* L196 */   font-size: 12px;
+/* L197 */   font-weight: 600;
+/* L198 */   color: var(--muted);
+/* L199 */   margin-bottom: 6px;
+/* L200 */ }
+/* L201 */ 
+/* L202 */ .weather-item {
+/* L203 */   display: flex;
+/* L204 */   justify-content: space-between;
+/* L205 */   padding: 8px 12px;
+/* L206 */   background: rgba(255,255,255,0.1);
+/* L207 */   border: 1px solid var(--stroke);
+/* L208 */   border-radius: 10px;
+/* L209 */   margin-bottom: 6px;
+/* L210 */ }
+/* L211 */ 
+/* L212 */ .weather-item:last-child {
+/* L213 */   margin-bottom: 0;  /* ★最後の要素は余白なし */
 /* L214 */ }
 /* L215 */ 
-/* L216 */ .fab {
-/* L217 */   background: #fff;
-/* L218 */   color: #111;
-/* L219 */   padding: 12px 16px;
-/* L220 */   border-radius: 14px;
-/* L221 */   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-/* L222 */   font-size: 14px;
-/* L223 */   cursor: pointer;
-/* L224 */   user-select: none;
+/* L216 */ /* FAB */
+/* L217 */ .fab-stack {
+/* L218 */   position: absolute;
+/* L219 */   bottom: 20px;
+/* L220 */   right: 20px;
+/* L221 */   display: flex;
+/* L222 */   flex-direction: column;
+/* L223 */   gap: 10px;
+/* L224 */   z-index: 900;
 /* L225 */ }
 /* L226 */ 
-/* L227 */ /* ローディング */
-/* L228 */ .loading {
-/* L229 */   position: absolute;
-/* L230 */   inset: 0;
-/* L231 */   display: flex;
-/* L232 */   align-items: center;
-/* L233 */   justify-content: center;
-/* L234 */   background: rgba(0,0,0,0.6);
-/* L235 */   backdrop-filter: blur(6px);
-/* L236 */   z-index: 5000;
-/* L237 */   color: #fff;
-/* L238 */ }
-/* L239 */ 
-/* L240 */ .loading.hidden {
-/* L241 */   display: none;
-/* L242 */ }
-/* L243 */
-/* L244 */ /* キーボード表示時の対応（改善版） */
-/* L245 */ @supports (height: 100dvh) {
-/* L246 */   .panel {
-/* L247 */     max-height: 70dvh;
-/* L248 */   }
+/* L227 */ .fab {
+/* L228 */   background: #fff;
+/* L229 */   color: #111;
+/* L230 */   padding: 12px 16px;
+/* L231 */   border-radius: 14px;
+/* L232 */   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+/* L233 */   font-size: 14px;
+/* L234 */   cursor: pointer;
+/* L235 */   user-select: none;
+/* L236 */ }
+/* L237 */ 
+/* L238 */ /* ローディング */
+/* L239 */ .loading {
+/* L240 */   position: absolute;
+/* L241 */   inset: 0;
+/* L242 */   display: flex;
+/* L243 */   align-items: center;
+/* L244 */   justify-content: center;
+/* L245 */   background: rgba(0,0,0,0.6);
+/* L246 */   backdrop-filter: blur(6px);
+/* L247 */   z-index: 5000;
+/* L248 */   color: #fff;
 /* L249 */ }
-/* L250 */
-/* L251 */ /* iOS SafariのためのInputフォーカス時の調整 */
-/* L252 */ .input:focus {
-/* L253 */   -webkit-user-select: auto;
-/* L254 */ }
+/* L250 */ 
+/* L251 */ .loading.hidden {
+/* L252 */   display: none;
+/* L253 */ }
+/* L254 */
+/* L255 */ /* キーボード表示時の対応（改善版） */
+/* L256 */ @supports (height: 100dvh) {
+/* L257 */   .panel {
+/* L258 */     max-height: 70dvh;
+/* L259 */   }
+/* L260 */ }
+/* L261 */
+/* L262 */ /* iOS SafariのためのInputフォーカス時の調整 */
+/* L263 */ .input:focus {
+/* L264 */   -webkit-user-select: auto;
+/* L265 */ }
