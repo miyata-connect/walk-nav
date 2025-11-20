@@ -37,7 +37,8 @@ const appState = {
   currentHeading: 0,
   isSimulation: false,
   currentRouteData: null,
-  keyboardAdjusted: false
+  keyboardAdjusted: false,
+  unifiedHeight: null  // ★タブ高さを記憶
 };
 
 // ==========================================
@@ -58,28 +59,57 @@ function setText(id, text) {
 }
 
 // ==========================================
-// タブ切り替え（高さ統一機能追加）
+// タブ切り替え（高さ完全固定版）
 // ==========================================
 function unifyTabPaneHeights() {
   const panes = document.querySelectorAll('.tab-pane');
   if (panes.length === 0) return;
   
+  // ★すでに高さが確定している場合はスキップ
+  if (appState.unifiedHeight !== null) {
+    panes.forEach(pane => {
+      pane.style.minHeight = `${appState.unifiedHeight}px`;
+      pane.style.height = `${appState.unifiedHeight}px`;
+    });
+    return;
+  }
+  
   // 一時的にすべてのタブを表示して高さを測定
   let maxHeight = 0;
+  const originalStates = [];
+  
   panes.forEach(pane => {
-    const originalDisplay = pane.style.display;
+    originalStates.push({
+      element: pane,
+      display: pane.style.display
+    });
     pane.style.display = 'block';
-    const height = pane.scrollHeight;
-    if (height > maxHeight) maxHeight = height;
-    pane.style.display = originalDisplay;
+    pane.style.minHeight = 'auto';
+    pane.style.height = 'auto';
   });
   
-  // 最大高さをすべてのタブに適用
-  panes.forEach(pane => {
-    pane.style.minHeight = `${maxHeight}px`;
-  });
-  
-  console.log(`[TabHeight] Unified to ${maxHeight}px`);
+  // 高さを再計算
+  setTimeout(() => {
+    panes.forEach(pane => {
+      const height = pane.scrollHeight;
+      if (height > maxHeight) maxHeight = height;
+    });
+    
+    // ★高さを記憶して固定
+    appState.unifiedHeight = maxHeight;
+    
+    panes.forEach(pane => {
+      pane.style.minHeight = `${maxHeight}px`;
+      pane.style.height = `${maxHeight}px`;
+    });
+    
+    // 元の表示状態に戻す
+    originalStates.forEach(state => {
+      state.element.style.display = state.display;
+    });
+    
+    console.log(`[TabHeight] Fixed at ${maxHeight}px`);
+  }, 50);
 }
 
 function switchPanelTab(mode) {
@@ -97,9 +127,6 @@ function switchPanelTab(mode) {
     const active = btn.dataset.panelTab === target;
     btn.classList.toggle('active', active);
   });
-  
-  // タブ切り替え時に高さを再計算
-  setTimeout(unifyTabPaneHeights, 100);
 }
 
 // ==========================================
@@ -581,7 +608,7 @@ function displayResults(places, centerLat, centerLng) {
 }
 
 // ==========================================
-// UIバインディング(キーボード対応・累積バグ修正版)
+// UIバインディング
 // ==========================================
 function bindKeyboardWatch() {
   const searchInput = getEl('q');
@@ -727,7 +754,7 @@ function startApp() {
   acquireLocation();
   startCompassListener();
   
-  // ★初回タブ高さ統一
+  // ★初回タブ高さ統一（固定）
   setTimeout(unifyTabPaneHeights, 500);
 }
 
