@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>WalkNav</title>
 <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
@@ -20,13 +20,13 @@
 <div class="panel-tabs-body">
 <div class="tab-pane active" id="tabPaneSearch">
 <h2>近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
-<div class="row" style="margin-bottom:8px;justify-content:center;flex-wrap:wrap;">
+<div class="row" style="margin-bottom:8px;justify-content:center;">
 <button class="chip active" id="r10">10km</button>
 <button class="chip" id="r20">20km</button>
 <button class="chip" id="r30">30km</button>
 <button class="chip" id="btnPointSearch" style="flex-grow:1;min-width:120px;">📍 ポイント選択</button>
 </div>
-<div class="row" id="pointAddressBlock" style="font-size:13px;color:var(--muted);margin-bottom:8px;display:none;background:rgba(0,0,0,0.2);padding:8px;border-radius:8px;">
+<div class="row" id="pointAddressBlock" style="font-size:13px;color:var(--muted);margin-bottom:8px;display:none;background:rgba(0,0,0,0.2);padding:8px;border-radius:8px;flex-direction:column;">
 <div id="pointAddress" style="line-height:1.5;color:var(--warning);">ポイント：取得中...</div>
 <div id="pointCoords" style="line-height:1.5;"></div>
 </div>
@@ -55,7 +55,7 @@
 </div>
 </div>
 <div id="results" class="results" style="display:none"></div>
-<div class="row" style="margin-top:12px;gap:8px;">
+<div class="row" style="margin-top:12px;">
 <button id="btnReset" class="btn danger" style="flex:1">リセット</button>
 <button id="btnLocatePanel" class="btn" style="flex:1;background:var(--primary);color:#fff;font-weight:600;">現在地</button>
 <button id="btnClosePanel" class="btn" style="flex:1;background:rgba(255,255,255,0.1);">閉じる</button>
@@ -107,7 +107,7 @@
 </div>
 <div style="margin-bottom:16px;">
 <div style="font-size:14px;color:var(--muted);margin-bottom:8px;">タブの位置</div>
-<div class="row" style="justify-content:center;flex-wrap:wrap;gap:8px;">
+<div class="row" style="justify-content:center;">
 <button class="chip" data-pos="top">上</button>
 <button class="chip" data-pos="bottom">下</button>
 <button class="chip" data-pos="left">左</button>
@@ -116,7 +116,7 @@
 </div>
 <div id="routeControlSection" style="display:none;margin-bottom:16px;">
 <div style="font-size:14px;color:var(--muted);margin-bottom:8px;">ルート操作</div>
-<div class="row" style="flex-direction:column;gap:8px;">
+<div class="row" style="flex-direction:column;">
 <button id="btnPauseSettings" class="btn" style="width:100%;">⏸️ 一時停止</button>
 <button id="btnRerouteSettings" class="btn" style="width:100%;background:rgba(98,181,255,0.2);color:var(--primary);">🔄 リルート</button>
 <button id="btnStopRoute" class="btn danger" style="width:100%;">🛑 ルート終了</button>
