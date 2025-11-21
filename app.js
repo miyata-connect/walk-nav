@@ -41,7 +41,8 @@ const appState = {
   editingLocationIndex: null,
   isEditDialogOpen: false,
   mapMode: 'roadmap',
-  currentWeather: null
+  currentWeather: null,
+  routeMode: 'normal'
 };
 
 function getEl(id) {
@@ -595,6 +596,62 @@ function readLegDurationText(leg) {
   return leg?.localizedValues?.duration?.text || '--';
 }
 
+function getRouteDistanceMeters(route) {
+  if (!route) return Number.MAX_SAFE_INTEGER;
+  const leg = route.legs && route.legs[0];
+  if (leg) {
+    if (leg.distance && typeof leg.distance.value === 'number') return leg.distance.value;
+    if (typeof leg.distanceMeters === 'number') return leg.distanceMeters;
+    if (Array.isArray(leg.steps)) {
+      let sum = 0;
+      for (let i = 0; i < leg.steps.length; i++) {
+        const s = leg.steps[i];
+        if (s.distance && typeof s.distance.value === 'number') sum += s.distance.value;
+        else if (typeof s.distanceMeters === 'number') sum += s.distanceMeters;
+      }
+      if (sum > 0) return sum;
+    }
+  }
+  if (typeof route.distanceMeters === 'number') return route.distanceMeters;
+  return Number.MAX_SAFE_INTEGER;
+}
+
+function getRouteDurationSeconds(route) {
+  if (!route) return Number.MAX_SAFE_INTEGER;
+  const leg = route.legs && route.legs[0];
+  if (leg) {
+    if (leg.duration && typeof leg.duration.value === 'number') return leg.duration.value;
+    if (typeof leg.durationSeconds === 'number') return leg.durationSeconds;
+  }
+  if (typeof route.durationSeconds === 'number') return route.durationSeconds;
+  return Number.MAX_SAFE_INTEGER;
+}
+
+function chooseRouteByMode(routes) {
+  if (!routes || !routes.length) return null;
+  if (appState.routeMode !== 'ai_shortest') {
+    return routes[0];
+  }
+  let best = routes[0];
+  let bestDist = getRouteDistanceMeters(best);
+  let bestDur = getRouteDurationSeconds(best);
+  for (let i = 1; i < routes.length; i++) {
+    const r = routes[i];
+    const d = getRouteDistanceMeters(r);
+    const t = getRouteDurationSeconds(r);
+    if (d < bestDist) {
+      best = r;
+      bestDist = d;
+      bestDur = t;
+    } else if (d === bestDist && t < bestDur) {
+      best = r;
+      bestDist = d;
+      bestDur = t;
+    }
+  }
+  return best;
+}
+
 function drawRoutePolyline(route) {
   if (appState.currentPolyline) {
     appState.currentPolyline.setMap(null);
@@ -694,14 +751,16 @@ async function startNavigation(destination) {
         origin: `${originLat},${originLng}`,
         destination: `${destination.lat},${destination.lng}`,
         mode: 'walking',
-        language: 'ja'
+        language: 'ja',
+        alternatives: true
       })
     });
     if (!response.ok) throw new Error('Route API Error');
     const result = await response.json();
 
     if (result.routes && result.routes.length > 0) {
-      const r0 = result.routes[0];
+      const routes = result.routes;
+      const r0 = chooseRouteByMode(routes);
       const l0 = r0.legs ? r0.legs[0] : null;
 
       setText('destinationName', destination.name);
@@ -713,7 +772,7 @@ async function startNavigation(destination) {
       setDisplay('btnDestination', 'flex');
 
       const list = getEl('navPanelInstructions');
-      if (list && l0.steps) {
+      if (list && l0 && l0.steps) {
         list.innerHTML = '';
         l0.steps.forEach(step => {
           const d = document.createElement('div');
@@ -1169,6 +1228,21 @@ function bindUI() {
       r30.classList.add('active'); r10.classList.remove('active'); r20.classList.remove('active');
       setText('radiusLabel', '30km');
   };
+
+  const btnRouteNormal = getEl('btnRouteNormal');
+  const btnRouteAiShortest = getEl('btnRouteAiShortest');
+  if (btnRouteNormal && btnRouteAiShortest) {
+    btnRouteNormal.onclick = () => {
+      appState.routeMode = 'normal';
+      btnRouteNormal.classList.add('active');
+      btnRouteAiShortest.classList.remove('active');
+    };
+    btnRouteAiShortest.onclick = () => {
+      appState.routeMode = 'ai_shortest';
+      btnRouteAiShortest.classList.add('active');
+      btnRouteNormal.classList.remove('active');
+    };
+  }
 }
 
 function startApp() {
