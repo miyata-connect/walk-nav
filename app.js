@@ -13,6 +13,8 @@ const LOCATION_OPTIONS = {
 };
 const SAVED_LOCATIONS_KEY = 'walknav_saved_locations';
 const MAP_MODE_KEY = 'walknav_map_mode';
+const WEATHER_API_BASE = 'https://api.open-meteo.com/v1/forecast';
+const WEATHER_TIMEZONE = 'Asia/Tokyo';
 
 const appState = {
   map: null,
@@ -38,7 +40,8 @@ const appState = {
   savedLocations: [],
   editingLocationIndex: null,
   isEditDialogOpen: false,
-  mapMode: 'roadmap'
+  mapMode: 'roadmap',
+  currentWeather: null
 };
 
 function getEl(id) {
@@ -777,6 +780,7 @@ function acquireLocation() {
     }
     setUserMarker(latitude, longitude);
     fetchLocationNameGoogle(latitude, longitude);
+    fetchWeatherAndUpdateUI(latitude, longitude);
   };
 
   const onError = (error) => {
@@ -834,6 +838,141 @@ async function fetchPointAddress(lat, lng) {
         setText('pointAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
     }
   } catch(e) { setText('pointAddress', '取得エラー'); }
+}
+
+async function fetchWeatherAndUpdateUI(lat, lng) {
+  setText('weather3h', '--');
+  setText('weather6h', '--');
+  setText('weather9h', '--');
+
+  try {
+    const params = new URLSearchParams({
+      latitude: String(lat),
+      longitude: String(lng),
+      hourly: 'temperature_2m,precipitation,windspeed_10m',
+      forecast_days: '1',
+      timezone: WEATHER_TIMEZONE
+    });
+
+    const resp = await fetchWithRetry(`${WEATHER_API_BASE}?${params.toString()}`, {
+      method: 'GET'
+    });
+    if (!resp.ok) throw new Error(`Weather ${resp.status}`);
+
+    const data = await resp.json();
+    appState.currentWeather = data;
+
+    const offsets = [3, 6, 9];
+    const labels = ['weather3h', 'weather6h', 'weather9h'];
+    const forecasts = offsets.map(offset => extractForecastForOffset(data, offset));
+
+    forecasts.forEach((f, idx) => {
+      if (!f) {
+        setText(labels[idx], '--');
+      } else {
+        setText(labels[idx], buildWeatherLabel(f));
+      }
+    });
+
+    updateIncidentFromWeather(forecasts);
+  } catch (e) {
+    console.error('[Weather] fetch error:', e);
+    setText('weather3h', '取得エラー');
+    setText('weather6h', '取得エラー');
+    setText('weather9h', '取得エラー');
+    setDisplay('incidentSection', 'none');
+  }
+}
+
+function extractForecastForOffset(data, offsetHours) {
+  if (!data || !data.hourly || !Array.isArray(data.hourly.time)) return null;
+
+  const times = data.hourly.time;
+  const temps = data.hourly.temperature_2m || [];
+  const precs = data.hourly.precipitation || [];
+  const winds = data.hourly.windspeed_10m || [];
+
+  const now = Date.now();
+  let startIndex = 0;
+
+  for (let i = 0; i < times.length; i++) {
+    const t = new Date(times[i]).getTime();
+    if (t >= now) {
+      startIndex = i;
+      break;
+    }
+  }
+
+  let idx = startIndex + offsetHours;
+  if (idx >= times.length) idx = times.length - 1;
+  if (idx < 0) return null;
+
+  const tStr = times[idx];
+  const dt = new Date(tStr);
+
+  return {
+    time: tStr,
+    hour: dt.getHours(),
+    temperature: typeof temps[idx] === 'number' ? temps[idx] : null,
+    precipitation: typeof precs[idx] === 'number' ? precs[idx] : null,
+    windspeed: typeof winds[idx] === 'number' ? winds[idx] : null
+  };
+}
+
+function buildWeatherLabel(forecast) {
+  const parts = [];
+  parts.push(`${forecast.hour}時頃`);
+  if (typeof forecast.temperature === 'number') {
+    parts.push(`${Math.round(forecast.temperature)}℃`);
+  }
+  if (typeof forecast.precipitation === 'number') {
+    parts.push(`雨 ${forecast.precipitation.toFixed(1)}mm`);
+  }
+  if (typeof forecast.windspeed === 'number') {
+    parts.push(`風 ${forecast.windspeed.toFixed(1)}m/s`);
+  }
+  return parts.join(' / ');
+}
+
+function updateIncidentFromWeather(forecasts) {
+  const el = getEl('incidentText');
+  if (!el) return;
+
+  const valid = forecasts.filter(f => f);
+  if (!valid.length) {
+    setDisplay('incidentSection', 'none');
+    el.textContent = '';
+    return;
+  }
+
+  let severe = null;
+  let caution = null;
+
+  for (let i = 0; i < valid.length; i++) {
+    const f = valid[i];
+    const rain = typeof f.precipitation === 'number' ? f.precipitation : 0;
+    const wind = typeof f.windspeed === 'number' ? f.windspeed : 0;
+
+    if (rain >= 20 || wind >= 20) {
+      severe = f;
+      break;
+    }
+
+    if (rain >= 5 || wind >= 10) {
+      if (!caution) caution = f;
+    }
+  }
+
+  if (severe) {
+    el.textContent = `${severe.hour}時頃、非常に激しい雨または強風の予報があります。徒歩移動が危険になる可能性があります。`;
+    setDisplay('incidentSection', 'block');
+  } else if (caution) {
+    el.textContent = `${caution.hour}時頃、雨または風が強まる予報です。時間やルートを調整してください。`;
+    setDisplay('incidentSection', 'block');
+  } else {
+    setDisplay('incidentSection', 'none');
+    el.textContent = '';
+  }
 }
 
 async function performSearch(query) {
