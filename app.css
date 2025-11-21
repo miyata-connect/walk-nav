@@ -1,555 +1,468 @@
-/* L001 */ :root {
-/* L002 */   --primary: #2563eb;
-/* L003 */   --warning: #fbbf24;
-/* L004 */   --muted: #94a3b8;
-/* L005 */   --text: #111;
-/* L006 */   --bg: #f8fafc;
-/* L007 */   --panel-bg: rgba(30,30,30,0.85);
-/* L008 */   --stroke: rgba(255,255,255,0.12);
-/* L009 */ }
-/* L010 */ 
-/* L011 */ html, body {
-/* L012 */   margin: 0;
-/* L013 */   padding: 0;
-/* L014 */   height: 100%;
-/* L015 */   background: var(--bg);
-/* L016 */   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-/* L017 */                 "Hiragino Sans", "Noto Sans JP", "Helvetica Neue",
-/* L018 */                 Arial, sans-serif;
-/* L019 */   overflow-x: hidden;
-/* L020 */   width: 100%;
-/* L021 */ }
-/* L022 */ 
-/* L023 */ * {
-/* L024 */   box-sizing: border-box;
-/* L025 */ }
-/* L026 */ 
-/* L027 */ .app {
-/* L028 */   position: relative;
-/* L029 */   width: 100%;
-/* L030 */   height: 100%;
-/* L031 */   overflow: hidden;
-/* L032 */ }
-/* L033 */ 
-/* L034 */ /* 地図 */
-/* L035 */ #map {
-/* L036 */   position: absolute;
-/* L037 */   inset: 0;
-/* L038 */   width: 100%;
-/* L039 */   height: 100%;
-/* L040 */ }
-/* L041 */ 
-/* L042 */ /* パネル（余白最適化版 + タップ拡大防止 + 横スクロール防止） */
-/* L043 */ .panel {
-/* L044 */   position: fixed;
-/* L045 */   left: 0;
-/* L046 */   right: 0;
-/* L047 */   bottom: 0;
-/* L048 */   background: var(--panel-bg);
-/* L049 */   backdrop-filter: blur(18px);
-/* L050 */   padding: 16px 16px 12px 16px;
-/* L051 */   box-sizing: border-box;
-/* L052 */   border-top-left-radius: 20px;
-/* L053 */   border-top-right-radius: 20px;
-/* L054 */   color: #fff;
-/* L055 */   max-height: 70%;
-/* L056 */   overflow-y: auto;
-/* L057 */   overflow-x: hidden;
-/* L058 */   z-index: 1000;
-/* L059 */   transition: transform 0.3s ease-out;
-/* L060 */   will-change: transform;
-/* L061 */   touch-action: manipulation;
-/* L062 */   user-select: none;
-/* L063 */   -webkit-user-select: none;
-/* L064 */   -webkit-tap-highlight-color: transparent;
-/* L065 */   width: 100vw;
-/* L066 */   max-width: 100vw;
-/* L067 */ }
-/* L068 */ 
-/* L069 */ .panel-tabs-header {
-/* L070 */   display: flex;
-/* L071 */   gap: 8px;
-/* L072 */   margin-bottom: 10px;
-/* L073 */   justify-content: center;
-/* L074 */   width: 100%;
-/* L075 */ }
-/* L076 */ 
-/* L077 */ .panel-tabs-body {
-/* L078 */   width: 100%;
-/* L079 */   overflow-x: hidden;
-/* L080 */ }
-/* L081 */ 
-/* L082 */ .tab-btn {
-/* L083 */   flex: 1;
-/* L084 */   max-width: 120px;
-/* L085 */   padding: 8px 12px;
-/* L086 */   border-radius: 999px;
-/* L087 */   text-align: center;
-/* L088 */   cursor: pointer;
-/* L089 */   border: 1px solid var(--stroke);
-/* L090 */   background: rgba(255,255,255,0.15);
-/* L091 */   color: #fff;
-/* L092 */   font-size: 13px;
-/* L093 */   user-select: none;
-/* L094 */   outline: none;
-/* L095 */   -webkit-tap-highlight-color: transparent;
-/* L096 */   white-space: nowrap;
-/* L097 */ }
-/* L098 */ 
-/* L099 */ .tab-btn.active {
-/* L100 */   background: #fff;
-/* L101 */   color: #111;
-/* L102 */   border-color: #fff;
-/* L103 */   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-/* L104 */ }
-/* L105 */ 
-/* L106 */ .tab-btn:focus,
-/* L107 */ .tab-btn:focus-visible {
-/* L108 */   outline: none;
-/* L109 */ }
-/* L110 */ 
-/* L111 */ .tab-pane {
-/* L112 */   display: none;
-/* L113 */   width: 100%;
-/* L114 */   overflow-x: hidden;
-/* L115 */ }
-/* L116 */ 
-/* L117 */ .tab-pane.active {
-/* L118 */   display: block;
-/* L119 */ }
-/* L120 */ 
-/* L121 */ h2 {
-/* L122 */   margin-top: 0;
-/* L123 */   margin-bottom: 12px;
-/* L124 */   font-size: 18px;
-/* L125 */   font-weight: 600;
-/* L126 */   word-wrap: break-word;
-/* L127 */ }
-/* L128 */ 
-/* L129 */ .row {
-/* L130 */   display: flex;
-/* L131 */   gap: 8px;
-/* L132 */   align-items: center;
-/* L133 */   margin-bottom: 8px;
-/* L134 */   flex-wrap: wrap;
-/* L135 */   /* ↓↓↓ 横スライド防止のための修正コード ↓↓↓ */
-/* L136 */   width: calc(100% + 32px); /* .panelの左右パディング（16px+16px）を打ち消す */
-/* L137 */   margin-left: -16px;      /* 左パディングを相殺 */
-/* L138 */   margin-right: -16px;     /* 右パディングを相殺 */
-/* L139 */   padding: 0 16px;         /* .rowの子要素が元のパディング内に収まるようにパディングを再適用 */
-/* L140 */   /* ↑↑↑ 修正コード終わり ↑↑↑ */
-/* L141 */ }
-/* L142 */ 
-/* L143 */ .chip {
-/* L144 */   padding: 6px 14px;
-/* L145 */   border-radius: 999px;
-/* L146 */   background: rgba(255,255,255,0.15);
-/* L147 */   color: #fff;
-/* L148 */   border: 1px solid var(--stroke);
-/* L149 */   cursor: pointer;
-/* L150 */   font-size: 13px;
-/* L151 */   outline: none;
-/* L152 */   -webkit-tap-highlight-color: transparent;
-/* L153 */   flex-shrink: 1;
-/* L154 */   white-space: nowrap;
-/* L155 */ }
-/* L156 */ 
-/* L157 */ .chip.active {
-/* L158 */   background: #fff;
-/* L159 */   color: #111;
-/* L160 */ }
-/* L161 */ 
-/* L162 */ .chip:focus,
-/* L163 */ .chip:focus-visible {
-/* L164 */   outline: none;
-/* L165 */ }
-/* L166 */ 
-/* L167 */ .btn {
-/* L168 */   padding: 10px 12px;
-/* L169 */   border-radius: 12px;
-/* L170 */   font-size: 14px;
-/* L171 */   cursor: pointer;
-/* L172 */   background: rgba(255,255,255,0.2);
-/* L173 */   color: #fff;
-/* L174 */   border: 1px solid var(--stroke);
-/* L175 */   flex-shrink: 1;
-/* L176 */   text-align: center;
-/* L177 */   outline: none;
-/* L178 */   -webkit-tap-highlight-color: transparent;
-/* L179 */   white-space: nowrap;
-/* L180 */ }
-/* L181 */ 
-/* L182 */ .btn.danger {
-/* L183 */   background: rgba(244,63,94,0.3);
-/* L184 */   border-color: rgba(244,63,94,0.6);
-/* L185 */ }
-/* L186 */ 
-/* L187 */ .btn:focus,
-/* L188 */ .btn:focus-visible {
-/* L189 */   outline: none;
-/* L190 */ }
-/* L191 */ 
-/* L192 */ .input-wrapper {
-/* L193 */   display: flex;
-/* L194 */   align-items: center;
-/* L195 */   gap: 6px;
-/* L196 */   background: rgba(255,255,255,0.1);
-/* L197 */   border: 1px solid var(--stroke);
-/* L198 */   border-radius: 12px;
-/* L199 */   padding: 6px 10px;
-/* L200 */   flex: 1;
-/* L201 */   width: 100%;
-/* L202 */   min-width: 0;
-/* L203 */   box-sizing: border-box;
-/* L204 */ }
-/* L205 */ 
-/* L206 */ .input {
-/* L207 */   flex: 1;
-/* L208 */   background: transparent;
-/* L209 */   border: none;
-/* L210 */   color: #fff;
-/* L211 */   outline: none;
-/* L212 */   font-size: 15px;
-/* L213 */   min-width: 0;
-/* L214 */   width: 100%;
-/* L215 */ }
-/* L216 */ 
-/* L217 */ /* アイコン基本スタイル */
-/* L218 */ .icon {
-/* L219 */   display: flex;
-/* L220 */   align-items: center;
-/* L221 */   justify-content: center;
-/* L222 */   color: #fff;
-/* L223 */   cursor: pointer;
-/* L224 */   transition: opacity 0.2s ease;
-/* L225 */   outline: none;
-/* L226 */   -webkit-tap-highlight-color: transparent;
-/* L227 */   flex-shrink: 0;
-/* L228 */ }
-/* L229 */ 
-/* L230 */ .icon:hover {
-/* L231 */   opacity: 0.7;
-/* L232 */ }
-/* L233 */ 
-/* L234 */ .icon:focus,
-/* L235 */ .icon:focus-visible {
-/* L236 */   outline: none;
-/* L237 */ }
-/* L238 */ 
-/* L239 */ /* ★Gアイコン（Google） - カラフル */
-/* L240 */ .icon-g {
-/* L241 */   color: #4285f4;
-/* L242 */ }
-/* L243 */ 
-/* L244 */ .icon-g svg {
-/* L245 */   fill: #4285f4;
-/* L246 */ }
-/* L247 */ 
-/* L248 */ /* ★検索アイコン（虫眼鏡） - 青 */
-/* L249 */ .icon-search {
-/* L250 */   color: #3aa0ff;
-/* L251 */ }
-/* L252 */ 
-/* L253 */ .icon-search svg {
-/* L254 */   fill: #3aa0ff;
-/* L255 */ }
-/* L256 */ 
-/* L257 */ /* ★マイクアイコン - 赤 */
-/* L258 */ .icon-mic {
-/* L259 */   color: #ff6565;
-/* L260 */ }
-/* L261 */ 
-/* L262 */ .icon-mic svg {
-/* L263 */   fill: #ff6565;
-/* L264 */ }
-/* L265 */ 
-/* L266 */ /* 検索結果 */
-/* L267 */ .results {
-/* L268 */   margin-top: 10px;
-/* L269 */   display: flex;
-/* L270 */   flex-direction: column;
-/* L271 */   gap: 8px;
-/* L272 */   width: 100%;
-/* L273 */ }
-/* L274 */ 
-/* L275 */ .result-item {
-/* L276 */   background: rgba(255,255,255,0.1);
-/* L277 */   border: 1px solid var(--stroke);
-/* L278 */   border-radius: 12px;
-/* L279 */   padding: 10px;
-/* L280 */   cursor: pointer;
-/* L281 */   outline: none;
-/* L282 */   -webkit-tap-highlight-color: transparent;
-/* L283 */   word-wrap: break-word;
-/* L284 */   overflow-wrap: break-word;
-/* L285 */   width: 100%;
-/* L286 */ }
-/* L287 */ 
-/* L288 */ /* ナビゲーション */
-/* L289 */ .nav-section {
-/* L290 */   margin-bottom: 12px;
-/* L291 */   padding-bottom: 10px;
-/* L292 */   border-bottom: 1px solid var(--stroke);
-/* L293 */   width: 100%;
-/* L294 */ }
-/* L295 */ 
-/* L296 */ .nav-section:last-child {
-/* L297 */   margin-bottom: 0;
-/* L298 */   padding-bottom: 0;
-/* L299 */   border-bottom: none;
-/* L300 */ }
-/* L301 */ 
-/* L302 */ .nav-section-title {
-/* L303 */   font-size: 12px;
-/* L304 */   font-weight: 600;
-/* L305 */   color: var(--muted);
-/* L306 */   margin-bottom: 6px;
-/* L307 */ }
-/* L308 */ 
-/* L309 */ .weather-item {
-/* L310 */   display: flex;
-/* L311 */   justify-content: space-between;
-/* L312 */   padding: 8px 12px;
-/* L313 */   background: rgba(255,255,255,0.1);
-/* L314 */   border: 1px solid var(--stroke);
-/* L315 */   border-radius: 10px;
-/* L316 */   margin-bottom: 6px;
-/* L317 */ }
-/* L318 */ 
-/* L319 */ .weather-item:last-child {
-/* L320 */   margin-bottom: 0;
-/* L321 */ }
-/* L322 */ 
-/* L323 */ /* FAB */
-/* L324 */ .fab-stack {
-/* L325 */   position: absolute;
-/* L326 */   bottom: 20px;
-/* L327 */   right: 20px;
-/* L328 */   display: flex;
-/* L329 */   flex-direction: column;
-/* L330 */   gap: 10px;
-/* L331 */   z-index: 900;
-/* L332 */ }
-/* L333 */ 
-/* L334 */ .fab {
-/* L335 */   background: #fff;
-/* L336 */   color: #111;
-/* L337 */   padding: 12px 16px;
-/* L338 */   border-radius: 14px;
-/* L339 */   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-/* L340 */   font-size: 14px;
-/* L341 */   cursor: pointer;
-/* L342 */   user-select: none;
-/* L343 */   outline: none;
-/* L344 */   -webkit-tap-highlight-color: transparent;
-/* L345 */ }
-/* L346 */ 
-/* L347 */ /* ローディング */
-/* L348 */ .loading {
-/* L349 */   position: absolute;
-/* L350 */   inset: 0;
-/* L351 */   display: flex;
-/* L352 */   align-items: center;
-/* L353 */   justify-content: center;
-/* L354 */   background: rgba(0,0,0,0.6);
-/* L355 */   backdrop-filter: blur(6px);
-/* L356 */   z-index: 5000;
-/* L357 */   color: #fff;
-/* L358 */ }
-/* L359 */ 
-/* L360 */ .loading.hidden {
-/* L361 */   display: none;
-/* L362 */ }
-/* L363 */
-/* L364 */ /* キーボード表示時の対応（改善版） */
-/* L365 */ @supports (height: 100dvh) {
-/* L366 */   .panel {
-/* L367 */     max-height: 70dvh;
-/* L368 */   }
-/* L369 */ }
-/* L370 */
-/* L371 */ /* iOS SafariのためのInputフォーカス時の調整 */
-/* L372 */ .input:focus {
-/* L373 */   -webkit-user-select: auto;
-/* L374 */ }
-/* L375 */
-/* L376 */ /* 地図モード選択セクション */
-/* L377 */ .map-mode-section {
-/* L378 */   margin-bottom: 16px;
-/* L379 */   width: 100%;
-/* L380 */ }
-/* L381 */
-/* L382 */ .map-mode-label {
-/* L383 */   font-size: 14px;
-/* L384 */   font-weight: 600;
-/* L385 */   margin-bottom: 10px;
-/* L386 */   color: #fff;
-/* L387 */ }
-/* L388 */
-/* L389 */ .map-mode-buttons {
-/* L390 */   display: flex;
-/* L391 */   gap: 8px;
-/* L392 */   width: 100%;
-/* L393 */ }
-/* L394 */
-/* L395 */ .map-mode-btn {
-/* L396 */   flex: 1;
-/* L397 */   padding: 10px 12px;
-/* L398 */   border-radius: 12px;
-/* L399 */   font-size: 14px;
-/* L400 */   font-weight: 500;
-/* L401 */   cursor: pointer;
-/* L402 */   background: rgba(255,255,255,0.1);
-/* L403 */   color: #fff;
-/* L404 */   border: 1px solid var(--stroke);
-/* L405 */   text-align: center;
-/* L406 */   outline: none;
-/* L407 */   -webkit-tap-highlight-color: transparent;
-/* L408 */   transition: all 0.2s;
-/* L409 */   white-space: nowrap;
-/* L410 */ }
-/* L411 */
-/* L412 */ .map-mode-btn.active {
-/* L413 */   background: #3aa0ff;
-/* L414 */   border-color: #3aa0ff;
-/* L415 */   color: #fff;
-/* L416 */   box-shadow: 0 2px 8px rgba(58,160,255,0.4);
-/* L417 */ }
-/* L418 */
-/* L419 */ .map-mode-btn:active {
-/* L420 */   opacity: 0.7;
-/* L421 */ }
-/* L422 */
-/* L423 */ /* 編集ダイアログオーバーレイ */
-/* L424 */ .edit-dialog-overlay {
-/* L425 */   position: fixed;
-/* L426 */   inset: 0;
-/* L427 */   background: rgba(0,0,0,0.7);
-/* L428 */   z-index: 10000;
-/* L429 */   display: flex;
-/* L430 */   align-items: center;
-/* L431 */   justify-content: center;
-/* L432 */   padding: 20px;
-/* L433 */   touch-action: manipulation;
-/* L434 */ }
-/* L435 */
-/* L436 */ /* 編集ダイアログ本体 */
-/* L437 */ .edit-dialog {
-/* L438 */   background: #1e1e1e;
-/* L439 */   border-radius: 16px;
-/* L440 */   padding: 20px;
-/* L441 */   max-width: 500px;
-/* L442 */   width: 100%;
-/* L443 */   max-height: 70vh;
-/* L444 */   overflow-y: auto;
-/* L445 */   color: #fff;
-/* L446 */ }
-/* L447 */
-/* L448 */ /* ダイアログタイトル */
-/* L449 */ .edit-dialog h3 {
-/* L450 */   margin: 0 0 16px 0;
-/* L451 */   font-size: 18px;
-/* L452 */   font-weight: 600;
-/* L453 */ }
-/* L454 */
-/* L455 */ /* リストコンテナ */
-/* L456 */ .edit-dialog-list {
-/* L457 */   display: flex;
-/* L458 */   flex-direction: column;
-/* L459 */   gap: 8px;
-/* L460 */   margin-bottom: 16px;
-/* L461 */ }
-/* L462 */
-/* L463 */ /* リストアイテム */
-/* L464 */ .edit-dialog-item {
-/* L465 */   background: rgba(255,255,255,0.1);
-/* L466 */   border: 1px solid rgba(255,255,255,0.2);
-/* L467 */   border-radius: 12px;
-/* L468 */   padding: 12px;
-/* L469 */   cursor: pointer;
-/* L470 */   transition: background 0.2s;
-/* L471 */   outline: none;
-/* L472 */   -webkit-tap-highlight-color: transparent;
-/* L473 */ }
-/* L474 */
-/* L475 */ .edit-dialog-item:hover {
-/* L476 */   background: rgba(255,255,255,0.2);
-/* L477 */ }
-/* L478 */
-/* L479 */ .edit-dialog-item-title {
-/* L480 */   font-weight: 600;
-/* L481 */   margin-bottom: 4px;
-/* L482 */ }
-/* L483 */
-/* L484 */ .edit-dialog-item-subtitle {
-/* L485 */   font-size: 13px;
-/* L486 */   opacity: 0.7;
-/* L487 */ }
-/* L488 */
-/* L489 */ /* ボタン共通スタイル */
-/* L490 */ .edit-dialog-btn {
-/* L491 */   width: 100%;
-/* L492 */   padding: 14px;
-/* L493 */   border-radius: 12px;
-/* L494 */   font-size: 16px;
-/* L495 */   font-weight: 600;
-/* L496 */   cursor: pointer;
-/* L497 */   border: none;
-/* L498 */   outline: none;
-/* L499 */   transition: opacity 0.2s;
-/* L500 */   -webkit-tap-highlight-color: transparent;
-/* L501 */ }
-/* L502 */
-/* L503 */ .edit-dialog-btn:active {
-/* L504 */   opacity: 0.8;
-/* L505 */ }
-/* L506 */
-/* L507 */ /* ボタンバリエーション */
-/* L508 */ .edit-dialog-btn-primary {
-/* L509 */   background: #25d07a;
-/* L510 */   color: #fff;
-/* L511 */   margin-bottom: 8px;
-/* L512 */ }
-/* L513 */
-/* L514 */ .edit-dialog-btn-danger {
-/* L515 */   background: #ff6565;
-/* L516 */   color: #fff;
-/* L517 */   margin-bottom: 8px;
-/* L518 */ }
-/* L519 */
-/* L520 */ .edit-dialog-btn-secondary {
-/* L521 */   background: rgba(255,255,255,0.1);
-/* L522 */   color: #fff;
-/* L523 */   border: 1px solid rgba(255,255,255,0.2);
-/* L524 */ }
-/* L525 */
-/* L526 */ /* 確認ダイアログボタングループ */
-/* L527 */ .edit-dialog-btn-group {
-/* L528 */   display: flex;
-/* L529 */   gap: 8px;
-/* L530 */   margin-top: 16px;
-/* L531 */ }
-/* L532 */
-/* L533 */ .edit-dialog-btn-group .edit-dialog-btn {
-/* L534 */   flex: 1;
-/* L535 */   margin-bottom: 0;
-/* L536 */ }
-/* L537 */
-/* L538 */ /* 修正フォーム用input */
-/* L539 */ .edit-dialog-input {
-/* L540 */   width: 100%;
-/* L541 */   padding: 12px;
-/* L542 */   border-radius: 12px;
-/* L543 */   background: rgba(255,255,255,0.1);
-/* L544 */   border: 1px solid rgba(255,255,255,0.2);
-/* L545 */   color: #fff;
-/* L546 */   font-size: 16px;
-/* L547 */   margin-bottom: 16px;
-/* L548 */   outline: none;
-/* L549 */   box-sizing: border-box;
-/* L550 */ }
-/* L551 */
-/* L552 */ .edit-dialog-input:focus {
-/* L553 */   border-color: #25d07a;
-/* L554 */   background: rgba(255,255,255,0.15);
-/* L555 */ }
+/* 横スクロール完全防止CSS - 最強版 */
+
+/* ============================================
+
+1. グローバルリセット
+   ============================================ */
+
+- {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  /* 全要素の最大幅を画面幅に制限 */
+  max-width: 100%;
+  }
+
+/* ============================================
+2. HTML/BODYレベルの根本対策
+============================================ */
+html {
+/* 画面に固定 */
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+/* オーバーフロー完全禁止 */
+overflow: hidden !important;
+overflow-x: hidden !important;
+overflow-y: hidden !important;
+/* スクロール禁止 */
+scroll-behavior: auto;
+-webkit-overflow-scrolling: auto;
+/* タッチ操作制限 */
+touch-action: none;
+}
+
+body {
+/* 画面に固定 */
+position: fixed !important;
+top: 0 !important;
+left: 0 !important;
+width: 100% !important;
+height: 100% !important;
+/* オーバーフロー完全禁止 */
+overflow: hidden !important;
+overflow-x: hidden !important;
+overflow-y: hidden !important;
+/* マージン/パディング除去 */
+margin: 0 !important;
+padding: 0 !important;
+/* スクロール動作無効化 */
+overscroll-behavior: none !important;
+overscroll-behavior-x: none !important;
+overscroll-behavior-y: none !important;
+/* タッチ操作制限（縦スクロールとピンチズームのみ許可） */
+touch-action: pan-y pinch-zoom !important;
+/* ユーザー選択無効化（スクロール誤作動防止） */
+-webkit-user-select: none;
+-moz-user-select: none;
+-ms-user-select: none;
+user-select: none;
+}
+
+/* ============================================
+3. メインアプリコンテナ
+============================================ */
+#app {
+/* 画面全体に固定 */
+position: fixed !important;
+top: 0 !important;
+left: 0 !important;
+width: 100vw !important;
+height: 100vh !important;
+height: 100dvh !important; /* 動的ビューポート対応 */
+/* オーバーフロー禁止 */
+overflow: hidden !important;
+overflow-x: hidden !important;
+overflow-y: hidden !important;
+/* 最大幅制限 */
+max-width: 100vw !important;
+/* タッチ操作 */
+touch-action: manipulation !important;
+/* 変形の起点 */
+transform-origin: 0 0;
+/* 3D変形の無効化（予期しない動作防止） */
+transform-style: flat !important;
+/* スクロールスナップ無効化 */
+scroll-snap-type: none !important;
+}
+
+/* ============================================
+4. トップバー/サイドバーの固定
+============================================ */
+.topbar {
+/* 位置固定 */
+position: fixed !important;
+/* 幅制限 */
+width: 100% !important;
+max-width: 100vw !important;
+/* オーバーフロー制御 */
+overflow: hidden !important;
+overflow-x: hidden !important;
+/* フレックスコンテナ設定 */
+display: flex;
+flex-wrap: nowrap !important;
+/* 子要素の収縮を許可 */
+flex-shrink: 1;
+}
+
+/* タブコンテナ */
+.tabs {
+/* フレックス設定 */
+display: flex;
+flex: 1 1 auto;
+min-width: 0 !important;
+/* オーバーフロー禁止 */
+overflow: hidden !important;
+overflow-x: hidden !important;
+overflow-y: hidden !important;
+/* 最大幅制限 */
+max-width: 100% !important;
+/* スクロール無効化 */
+scrollbar-width: none !important;
+-ms-overflow-style: none !important;
+}
+
+.tabs::-webkit-scrollbar {
+display: none !important;
+}
+
+/* 個別タブ */
+.tab {
+/* フレックスアイテム設定 */
+flex: 0 1 auto !important;
+/* 最小・最大幅 */
+min-width: 0 !important;
+max-width: min(150px, 30vw) !important;
+/* テキスト制御 */
+white-space: nowrap !important;
+overflow: hidden !important;
+text-overflow: ellipsis !important;
+/* インラインサイズ制限 */
+contain: inline-size;
+}
+
+/* ============================================
+5. コンテンツエリア
+============================================ */
+.content {
+/* 位置固定 */
+position: fixed !important;
+/* サイズ指定 */
+width: 100% !important;
+max-width: 100vw !important;
+/* オーバーフロー禁止 */
+overflow: hidden !important;
+overflow-x: hidden !important;
+overflow-y: hidden !important;
+}
+
+/* iframe/埋め込みコンテンツ */
+.view,
+iframe {
+/* 位置とサイズ */
+position: absolute !important;
+top: 0 !important;
+left: 0 !important;
+width: 100% !important;
+height: 100% !important;
+/* 最大幅制限 */
+max-width: 100vw !important;
+/* ボーダー除去 */
+border: none !important;
+/* オーバーフロー禁止 */
+overflow: hidden !important;
+/* ポインターイベント */
+pointer-events: auto;
+}
+
+/* ============================================
+6. パネル要素
+============================================ */
+.panel {
+/* 位置固定 */
+position: fixed !important;
+left: 0 !important;
+right: 0 !important;
+/* 幅制限 */
+width: 100vw !important;
+max-width: 100vw !important;
+/* ボックスサイジング */
+box-sizing: border-box !important;
+/* オーバーフロー制御 */
+overflow-x: hidden !important;
+overflow-y: auto;
+/* タッチ制御 */
+touch-action: pan-y !important;
+/* スクロールバー非表示 */
+scrollbar-width: thin;
+}
+
+.panel * {
+/* 全子要素の幅制限 */
+max-width: 100% !important;
+box-sizing: border-box !important;
+}
+
+/* ============================================
+7. フォーム要素の制御
+============================================ */
+input,
+textarea,
+select,
+button {
+/* 幅制限 */
+max-width: 100% !important;
+width: auto !important;
+/* ボックスサイジング */
+box-sizing: border-box !important;
+/* 最小タッチターゲットサイズ */
+min-height: 44px;
+/* マージン制御 */
+margin-left: 0 !important;
+margin-right: 0 !important;
+}
+
+/* ============================================
+8. メディア要素の制御
+============================================ */
+img,
+video,
+canvas,
+svg,
+picture,
+embed,
+object {
+/* 最大幅制限 */
+max-width: 100% !important;
+/* 高さ自動調整 */
+height: auto !important;
+/* ディスプレイ */
+display: block;
+/* オブジェクトフィット */
+object-fit: contain;
+}
+
+/* ============================================
+9. テーブル要素の制御
+============================================ */
+table {
+/* レイアウト固定 */
+table-layout: fixed !important;
+/* 幅制限 */
+width: 100% !important;
+max-width: 100% !important;
+/* ボーダー折りたたみ */
+border-collapse: collapse;
+/* ワード処理 */
+word-break: break-word;
+}
+
+td,
+th {
+/* オーバーフロー制御 */
+overflow: hidden !important;
+/* テキスト省略 */
+text-overflow: ellipsis !important;
+/* ワード処理 */
+word-break: break-word !important;
+}
+
+/* ============================================
+10. テキスト要素の制御
+============================================ */
+p,
+div,
+span,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+a,
+li,
+label,
+article,
+section,
+header,
+footer,
+nav,
+aside {
+/* ワードブレーク設定 */
+word-wrap: break-word !important;
+overflow-wrap: break-word !important;
+word-break: break-word !important;
+/* ハイフネーション */
+-webkit-hyphens: auto;
+-moz-hyphens: auto;
+-ms-hyphens: auto;
+hyphens: auto;
+/* 最大幅制限 */
+max-width: 100% !important;
+/* オーバーフロー制御 */
+overflow-x: hidden !important;
+}
+
+/* ============================================
+11. フレックス/グリッドコンテナ
+============================================ */
+.row,
+.flex-container,
+[class*=“flex”] {
+/* フレックス設定 */
+display: flex !important;
+flex-wrap: wrap !important;
+/* 幅制限 */
+max-width: 100% !important;
+/* オーバーフロー制御 */
+overflow-x: hidden !important;
+}
+
+.grid-container,
+[class*=“grid”] {
+/* グリッド設定 */
+display: grid;
+/* 幅制限 */
+max-width: 100% !important;
+/* オーバーフロー制御 */
+overflow-x: hidden !important;
+/* グリッドテンプレート制限 */
+grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+}
+
+/* ============================================
+12. スクロール可能要素（例外）
+============================================ */
+.scrollable-y {
+/* 縦スクロールのみ許可 */
+overflow-y: auto !important;
+overflow-x: hidden !important;
+/* スクロール動作 */
+-webkit-overflow-scrolling: touch;
+/* 最大高さ設定 */
+max-height: 100vh;
+max-height: 100dvh;
+/* タッチ操作 */
+touch-action: pan-y !important;
+}
+
+/* ============================================
+13. iOS/Android特有の対策
+============================================ */
+/* iOS Safari対策 */
+@supports (-webkit-touch-callout: none) {
+body {
+/* iOS固有の設定 */
+-webkit-touch-callout: none;
+-webkit-text-size-adjust: 100%;
+}
+
+#app {
+/* Safe Area対応 */
+padding-left: env(safe-area-inset-left);
+padding-right: env(safe-area-inset-right);
+padding-top: env(safe-area-inset-top);
+padding-bottom: env(safe-area-inset-bottom);
+}
+}
+
+/* Android Chrome対策 */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+body {
+/* オーバースクロール動作無効化 */
+overscroll-behavior: none !important;
+}
+}
+
+/* ============================================
+14. 横向き時の追加対策
+============================================ */
+@media screen and (orientation: landscape) {
+html,
+body,
+#app {
+/* 横向き時も固定 */
+position: fixed !important;
+overflow: hidden !important;
+width: 100vw !important;
+max-width: 100vw !important;
+}
+}
+
+/* ============================================
+15. 小画面デバイス対策
+============================================ */
+@media screen and (max-width: 480px) {
+/* より厳格な制限 */
+
+- {
+  max-width: 100vw !important;
+  }
+
+.tab {
+/* タブ幅をさらに制限 */
+max-width: 25vw !important;
+}
+
+.panel {
+/* パディング調整 */
+padding-left: 12px !important;
+padding-right: 12px !important;
+}
+}
+
+/* ============================================
+16. デバッグ用（開発時のみ使用）
+============================================ */
+/*
+.debug-overflow * {
+outline: 1px solid rgba(255, 0, 0, 0.2) !important;
+}
+
+.debug-overflow *:hover {
+outline: 2px solid rgba(255, 0, 0, 0.8) !important;
+background: rgba(255, 0, 0, 0.1) !important;
+}
+*/
+
+/* ============================================
+17. カスタムスクロールバー（見た目調整）
+============================================ */
+::-webkit-scrollbar {
+width: 6px;
+height: 6px;
+}
+
+::-webkit-scrollbar-track {
+background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+background: rgba(0, 0, 0, 0.2);
+border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+background: rgba(0, 0, 0, 0.3);
+}
+
+/* 横スクロールバーは完全非表示 */
+::-webkit-scrollbar:horizontal {
+display: none !important;
+}
+
+/* ============================================
+18. 印刷時の対策
+============================================ */
+@media print {
+html,
+body,
+#app {
+position: static !important;
+overflow: visible !important;
+width: auto !important;
+height: auto !important;
+}
+}
