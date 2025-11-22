@@ -8,7 +8,7 @@
   --stroke: rgba(255,255,255,0.12);
 }
 
-/* 画面全体を 1 レイヤーに固定 */
+/* ビューポートと完全一致させる */
 html {
   margin: 0;
   padding: 0;
@@ -27,28 +27,25 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
                "Hiragino Sans", "Noto Sans JP", "Helvetica Neue",
                Arial, sans-serif;
-  overflow: hidden;          /* 全体スクロール禁止 */
-  overscroll-behavior: none; /* バウンス連鎖防止 */
-  position: fixed;           /* ビューポートに固定 */
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  overflow: hidden;          /* ページ全体のスクロール禁止 */
+  overscroll-behavior: none; /* ビューポートのバウンス連鎖防止 */
+  position: relative;
 }
 
 * {
   box-sizing: border-box;
 }
 
-/* ルートコンテナ：画面と完全一致 */
+/* 画面全体を覆うレイヤー */
 .app {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   width: 100%;
   height: 100%;
+  max-width: 100%;
   overflow: hidden;
 }
 
@@ -61,7 +58,10 @@ body {
 /* 地図 */
 #map {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
   height: 100%;
 }
@@ -71,10 +71,10 @@ body {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: env(safe-area-inset-bottom, 0px);
   background: var(--panel-bg);
   backdrop-filter: blur(18px);
-  padding: 16px 16px calc(12px + env(safe-area-inset-bottom, 0px)) 16px;
+  padding: 16px 16px 12px 16px;
   box-sizing: border-box;
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
@@ -83,13 +83,13 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   z-index: 1000;
-  transition: none;              /* transform アニメーション無効化 */
+  transition: none;              /* transform で動かさない */
   will-change: auto;
   touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
-  width: 100%;                   /* ← 100vw を使わない */
+  width: 100%;                   /* 100vw は使わない */
   max-width: 100%;
   overscroll-behavior: contain;  /* パネル内スクロールを閉じ込める */
   -webkit-overflow-scrolling: touch;
