@@ -16,21 +16,21 @@
 /* L016 */   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
 /* L017 */                 "Hiragino Sans", "Noto Sans JP", "Helvetica Neue",
 /* L018 */                 Arial, sans-serif;
-/* L019 */   overflow-x: hidden;
-/* L020 */   overflow-y: hidden;            /* ページ自体の上下スクロール禁止 */
-/* L021 */   overscroll-behavior: none;    /* ビヨン抑止 */
-/* L022 */   width: 100%;
-/* L023 */ }
-/* L024 */ 
-/* L025 */ * {
-/* L026 */   box-sizing: border-box;
-/* L027 */ }
-/* L028 */ 
-/* L029 */ .app {
-/* L030 */   position: relative;
+/* L019 */   overflow: hidden;              /* ページ自体を一切スクロールさせない */
+/* L020 */   overscroll-behavior: none;    /* ビヨン抑止 */
+/* L021 */   width: 100%;
+/* L022 */ }
+/* L023 */ 
+/* L024 */ * {
+/* L025 */   box-sizing: border-box;
+/* L026 */ }
+/* L027 */ 
+/* L028 */ .app {
+/* L029 */   position: fixed;               /* 画面全体に固定 */
+/* L030 */   inset: 0;
 /* L031 */   width: 100%;
 /* L032 */   height: 100%;
-/* L033 */   overflow: hidden;
+/* L033 */   overflow: hidden;              /* 内側もはみ出さない */
 /* L034 */ }
 /* L035 */ 
 /* L036 */ /* 地図 */
@@ -41,7 +41,7 @@
 /* L041 */   height: 100%;
 /* L042 */ }
 /* L043 */ 
-/* L044 */ /* パネル */
+/* L044 */ /* パネル（余白最適化版 + タップ拡大防止 + 横スクロール防止） */
 /* L045 */ .panel {
 /* L046 */   position: fixed;
 /* L047 */   left: 0;
@@ -211,322 +211,342 @@
 /* L211 */   width: 100%;
 /* L212 */ }
 /* L213 */ 
-/* L214 */ .icon {
-/* L215 */   display: flex;
-/* L216 */   align-items: center;
-/* L217 */   justify-content: center;
-/* L218 */   color: #fff;
-/* L219 */   cursor: pointer;
-/* L220 */   transition: opacity 0.2s ease;
-/* L221 */   outline: none;
-/* L222 */   -webkit-tap-highlight-color: transparent;
-/* L223 */   flex-shrink: 0;
-/* L224 */ }
-/* L225 */ 
-/* L226 */ .icon:hover {
-/* L227 */   opacity: 0.7;
-/* L228 */ }
-/* L229 */ 
-/* L230 */ .icon:focus,
-/* L231 */ .icon:focus-visible {
-/* L232 */   outline: none;
-/* L233 */ }
-/* L234 */ 
-/* L235 */ .icon-g {
-/* L236 */   color: #4285f4;
-/* L237 */ }
-/* L238 */ 
-/* L239 */ .icon-g svg {
-/* L240 */   fill: #4285f4;
-/* L241 */ }
-/* L242 */ 
-/* L243 */ .icon-search {
-/* L244 */   color: #3aa0ff;
-/* L245 */ }
-/* L246 */ 
-/* L247 */ .icon-search svg {
-/* L248 */   fill: #3aa0ff;
-/* L249 */ }
-/* L250 */ 
-/* L251 */ .icon-mic {
-/* L252 */   color: #ff6565;
-/* L253 */ }
-/* L254 */ 
-/* L255 */ .icon-mic svg {
-/* L256 */   fill: #ff6565;
+/* L214 */ /* アイコン基本スタイル */
+/* L215 */ .icon {
+/* L216 */   display: flex;
+/* L217 */   align-items: center;
+/* L218 */   justify-content: center;
+/* L219 */   color: #fff;
+/* L220 */   cursor: pointer;
+/* L221 */   transition: opacity 0.2s ease;
+/* L222 */   outline: none;
+/* L223 */   -webkit-tap-highlight-color: transparent;
+/* L224 */   flex-shrink: 0;
+/* L225 */ }
+/* L226 */ 
+/* L227 */ .icon:hover {
+/* L228 */   opacity: 0.7;
+/* L229 */ }
+/* L230 */ 
+/* L231 */ .icon:focus,
+/* L232 */ .icon:focus-visible {
+/* L233 */   outline: none;
+/* L234 */ }
+/* L235 */ 
+/* L236 */ /* ★Gアイコン（Google） - カラフル */
+/* L237 */ .icon-g {
+/* L238 */   color: #4285f4;
+/* L239 */ }
+/* L240 */ 
+/* L241 */ .icon-g svg {
+/* L242 */   fill: #4285f4;
+/* L243 */ }
+/* L244 */ 
+/* L245 */ /* ★検索アイコン（虫眼鏡） - 青 */
+/* L246 */ .icon-search {
+/* L247 */   color: #3aa0ff;
+/* L248 */ }
+/* L249 */ 
+/* L250 */ .icon-search svg {
+/* L251 */   fill: #3aa0ff;
+/* L252 */ }
+/* L253 */ 
+/* L254 */ /* ★マイクアイコン - 赤 */
+/* L255 */ .icon-mic {
+/* L256 */   color: #ff6565;
 /* L257 */ }
 /* L258 */ 
-/* L259 */ .results {
-/* L260 */   margin-top: 10px;
-/* L261 */   display: flex;
-/* L262 */   flex-direction: column;
-/* L263 */   gap: 8px;
-/* L264 */   width: 100%;
-/* L265 */ }
-/* L266 */ 
-/* L267 */ .result-item {
-/* L268 */   background: rgba(255,255,255,0.1);
-/* L269 */   border: 1px solid var(--stroke);
-/* L270 */   border-radius: 12px;
-/* L271 */   padding: 10px;
-/* L272 */   cursor: pointer;
-/* L273 */   outline: none;
-/* L274 */   -webkit-tap-highlight-color: transparent;
-/* L275 */   word-wrap: break-word;
-/* L276 */   overflow-wrap: break-word;
-/* L277 */   width: 100%;
-/* L278 */ }
-/* L279 */ 
-/* L280 */ .nav-section {
-/* L281 */   margin-bottom: 12px;
-/* L282 */   padding-bottom: 10px;
-/* L283 */   border-bottom: 1px solid var(--stroke);
-/* L284 */   width: 100%;
-/* L285 */ }
-/* L286 */ 
-/* L287 */ .nav-section:last-child {
-/* L288 */   margin-bottom: 0;
-/* L289 */   padding-bottom: 0;
-/* L290 */   border-bottom: none;
+/* L259 */ .icon-mic svg {
+/* L260 */   fill: #ff6565;
+/* L261 */ }
+/* L262 */ 
+/* L263 */ /* 検索結果 */
+/* L264 */ .results {
+/* L265 */   margin-top: 10px;
+/* L266 */   display: flex;
+/* L267 */   flex-direction: column;
+/* L268 */   gap: 8px;
+/* L269 */   width: 100%;
+/* L270 */ }
+/* L271 */ 
+/* L272 */ .result-item {
+/* L273 */   background: rgba(255,255,255,0.1);
+/* L274 */   border: 1px solid var(--stroke);
+/* L275 */   border-radius: 12px;
+/* L276 */   padding: 10px;
+/* L277 */   cursor: pointer;
+/* L278 */   outline: none;
+/* L279 */   -webkit-tap-highlight-color: transparent;
+/* L280 */   word-wrap: break-word;
+/* L281 */   overflow-wrap: break-word;
+/* L282 */   width: 100%;
+/* L283 */ }
+/* L284 */ 
+/* L285 */ /* ナビゲーション */
+/* L286 */ .nav-section {
+/* L287 */   margin-bottom: 12px;
+/* L288 */   padding-bottom: 10px;
+/* L289 */   border-bottom: 1px solid var(--stroke);
+/* L290 */   width: 100%;
 /* L291 */ }
 /* L292 */ 
-/* L293 */ .nav-section-title {
-/* L294 */   font-size: 12px;
-/* L295 */   font-weight: 600;
-/* L296 */   color: var(--muted);
-/* L297 */   margin-bottom: 6px;
-/* L298 */ }
-/* L299 */ 
-/* L300 */ .weather-item {
-/* L301 */   display: flex;
-/* L302 */   justify-content: space-between;
-/* L303 */   padding: 8px 12px;
-/* L304 */   background: rgba(255,255,255,0.1);
-/* L305 */   border: 1px solid var(--stroke);
-/* L306 */   border-radius: 10px;
-/* L307 */   margin-bottom: 6px;
-/* L308 */ }
-/* L309 */ 
-/* L310 */ .weather-item:last-child {
-/* L311 */   margin-bottom: 0;
-/* L312 */ }
-/* L313 */ 
-/* L314 */ .fab-stack {
-/* L315 */   position: absolute;
-/* L316 */   bottom: 20px;
-/* L317 */   right: 20px;
-/* L318 */   display: flex;
-/* L319 */   flex-direction: column;
-/* L320 */   gap: 10px;
-/* L321 */   z-index: 900;
-/* L322 */ }
-/* L323 */ 
-/* L324 */ .fab {
-/* L325 */   background: #fff;
-/* L326 */   color: #111;
-/* L327 */   padding: 12px 16px;
-/* L328 */   border-radius: 14px;
-/* L329 */   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-/* L330 */   font-size: 14px;
-/* L331 */   cursor: pointer;
-/* L332 */   user-select: none;
-/* L333 */   outline: none;
-/* L334 */   -webkit-tap-highlight-color: transparent;
-/* L335 */ }
-/* L336 */ 
-/* L337 */ .loading {
-/* L338 */   position: absolute;
-/* L339 */   inset: 0;
-/* L340 */   display: flex;
-/* L341 */   align-items: center;
-/* L342 */   justify-content: center;
-/* L343 */   background: rgba(0,0,0,0.6);
-/* L344 */   backdrop-filter: blur(6px);
-/* L345 */   z-index: 5000;
-/* L346 */   color: #fff;
-/* L347 */ }
-/* L348 */ 
-/* L349 */ .loading.hidden {
-/* L350 */   display: none;
-/* L351 */ }
-/* L352 */ 
-/* L353 */ @supports (height: 100dvh) {
-/* L354 */   .panel {
-/* L355 */     max-height: 70dvh;
-/* L356 */   }
-/* L357 */ }
-/* L358 */ 
-/* L359 */ .input:focus {
-/* L360 */   -webkit-user-select: auto;
-/* L361 */ }
-/* L362 */ 
-/* L363 */ .map-mode-section {
-/* L364 */   margin-bottom: 16px;
-/* L365 */   width: 100%;
+/* L293 */ .nav-section:last-child {
+/* L294 */   margin-bottom: 0;
+/* L295 */   padding-bottom: 0;
+/* L296 */   border-bottom: none;
+/* L297 */ }
+/* L298 */ 
+/* L299 */ .nav-section-title {
+/* L300 */   font-size: 12px;
+/* L301 */   font-weight: 600;
+/* L302 */   color: var(--muted);
+/* L303 */   margin-bottom: 6px;
+/* L304 */ }
+/* L305 */ 
+/* L306 */ .weather-item {
+/* L307 */   display: flex;
+/* L308 */   justify-content: space-between;
+/* L309 */   padding: 8px 12px;
+/* L310 */   background: rgba(255,255,255,0.1);
+/* L311 */   border: 1px solid var(--stroke);
+/* L312 */   border-radius: 10px;
+/* L313 */   margin-bottom: 6px;
+/* L314 */ }
+/* L315 */ 
+/* L316 */ .weather-item:last-child {
+/* L317 */   margin-bottom: 0;
+/* L318 */ }
+/* L319 */ 
+/* L320 */ /* FAB */
+/* L321 */ .fab-stack {
+/* L322 */   position: absolute;
+/* L323 */   bottom: 20px;
+/* L324 */   right: 20px;
+/* L325 */   display: flex;
+/* L326 */   flex-direction: column;
+/* L327 */   gap: 10px;
+/* L328 */   z-index: 900;
+/* L329 */ }
+/* L330 */ 
+/* L331 */ .fab {
+/* L332 */   background: #fff;
+/* L333 */   color: #111;
+/* L334 */   padding: 12px 16px;
+/* L335 */   border-radius: 14px;
+/* L336 */   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+/* L337 */   font-size: 14px;
+/* L338 */   cursor: pointer;
+/* L339 */   user-select: none;
+/* L340 */   outline: none;
+/* L341 */   -webkit-tap-highlight-color: transparent;
+/* L342 */ }
+/* L343 */ 
+/* L344 */ /* ローディング */
+/* L345 */ .loading {
+/* L346 */   position: absolute;
+/* L347 */   inset: 0;
+/* L348 */   display: flex;
+/* L349 */   align-items: center;
+/* L350 */   justify-content: center;
+/* L351 */   background: rgba(0,0,0,0.6);
+/* L352 */   backdrop-filter: blur(6px);
+/* L353 */   z-index: 5000;
+/* L354 */   color: #fff;
+/* L355 */ }
+/* L356 */ 
+/* L357 */ .loading.hidden {
+/* L358 */   display: none;
+/* L359 */ }
+/* L360 */
+/* L361 */ /* キーボード表示時の対応（改善版） */
+/* L362 */ @supports (height: 100dvh) {
+/* L363 */   .panel {
+/* L364 */     max-height: 70dvh;
+/* L365 */   }
 /* L366 */ }
-/* L367 */ 
-/* L368 */ .map-mode-label {
-/* L369 */   font-size: 14px;
-/* L370 */   font-weight: 600;
-/* L371 */   margin-bottom: 10px;
-/* L372 */   color: #fff;
-/* L373 */ }
-/* L374 */ 
-/* L375 */ .map-mode-buttons {
-/* L376 */   display: flex;
-/* L377 */   gap: 8px;
-/* L378 */   width: 100%;
-/* L379 */ }
-/* L380 */ 
-/* L381 */ .map-mode-btn {
-/* L382 */   flex: 1;
-/* L383 */   padding: 10px 12px;
-/* L384 */   border-radius: 12px;
-/* L385 */   font-size: 14px;
-/* L386 */   font-weight: 500;
-/* L387 */   cursor: pointer;
-/* L388 */   background: rgba(255,255,255,0.1);
-/* L389 */   color: #fff;
-/* L390 */   border: 1px solid var(--stroke);
-/* L391 */   text-align: center;
-/* L392 */   outline: none;
-/* L393 */   -webkit-tap-highlight-color: transparent;
-/* L394 */   transition: all 0.2s;
-/* L395 */   white-space: nowrap;
-/* L396 */ }
-/* L397 */ 
-/* L398 */ .map-mode-btn.active {
-/* L399 */   background: #3aa0ff;
-/* L400 */   border-color: #3aa0ff;
-/* L401 */   color: #fff;
-/* L402 */   box-shadow: 0 2px 8px rgba(58,160,255,0.4);
-/* L403 */ }
-/* L404 */ 
-/* L405 */ .map-mode-btn:active {
-/* L406 */   opacity: 0.7;
+/* L367 */
+/* L368 */ /* iOS SafariのためのInputフォーカス時の調整 */
+/* L369 */ .input:focus {
+/* L370 */   -webkit-user-select: auto;
+/* L371 */ }
+/* L372 */
+/* L373 */ /* 地図モード選択セクション */
+/* L374 */ .map-mode-section {
+/* L375 */   margin-bottom: 16px;
+/* L376 */   width: 100%;
+/* L377 */ }
+/* L378 */
+/* L379 */ .map-mode-label {
+/* L380 */   font-size: 14px;
+/* L381 */   font-weight: 600;
+/* L382 */   margin-bottom: 10px;
+/* L383 */   color: #fff;
+/* L384 */ }
+/* L385 */
+/* L386 */ .map-mode-buttons {
+/* L387 */   display: flex;
+/* L388 */   gap: 8px;
+/* L389 */   width: 100%;
+/* L390 */ }
+/* L391 */
+/* L392 */ .map-mode-btn {
+/* L393 */   flex: 1;
+/* L394 */   padding: 10px 12px;
+/* L395 */   border-radius: 12px;
+/* L396 */   font-size: 14px;
+/* L397 */   font-weight: 500;
+/* L398 */   cursor: pointer;
+/* L399 */   background: rgba(255,255,255,0.1);
+/* L400 */   color: #fff;
+/* L401 */   border: 1px solid var(--stroke);
+/* L402 */   text-align: center;
+/* L403 */   outline: none;
+/* L404 */   -webkit-tap-highlight-color: transparent;
+/* L405 */   transition: all 0.2s;
+/* L406 */   white-space: nowrap;
 /* L407 */ }
-/* L408 */ 
-/* L409 */ .edit-dialog-overlay {
-/* L410 */   position: fixed;
-/* L411 */   inset: 0;
-/* L412 */   background: rgba(0,0,0,0.7);
-/* L413 */   z-index: 10000;
-/* L414 */   display: flex;
-/* L415 */   align-items: center;
-/* L416 */   justify-content: center;
-/* L417 */   padding: 20px;
-/* L418 */   touch-action: manipulation;
-/* L419 */ }
-/* L420 */ 
-/* L421 */ .edit-dialog {
-/* L422 */   background: #1e1e1e;
-/* L423 */   border-radius: 16px;
-/* L424 */   padding: 20px;
-/* L425 */   max-width: 500px;
-/* L426 */   width: 100%;
-/* L427 */   max-height: 70vh;
-/* L428 */   overflow-y: auto;
-/* L429 */   color: #fff;
-/* L430 */ }
-/* L431 */ 
-/* L432 */ .edit-dialog h3 {
-/* L433 */   margin: 0 0 16px 0;
-/* L434 */   font-size: 18px;
-/* L435 */   font-weight: 600;
-/* L436 */ }
-/* L437 */ 
-/* L438 */ .edit-dialog-list {
-/* L439 */   display: flex;
-/* L440 */   flex-direction: column;
-/* L441 */   gap: 8px;
-/* L442 */   margin-bottom: 16px;
+/* L408 */
+/* L409 */ .map-mode-btn.active {
+/* L410 */   background: #3aa0ff;
+/* L411 */   border-color: #3aa0ff;
+/* L412 */   color: #fff;
+/* L413 */   box-shadow: 0 2px 8px rgba(58,160,255,0.4);
+/* L414 */ }
+/* L415 */
+/* L416 */ .map-mode-btn:active {
+/* L417 */   opacity: 0.7;
+/* L418 */ }
+/* L419 */
+/* L420 */ /* 編集ダイアログオーバーレイ */
+/* L421 */ .edit-dialog-overlay {
+/* L422 */   position: fixed;
+/* L423 */   inset: 0;
+/* L424 */   background: rgba(0,0,0,0.7);
+/* L425 */   z-index: 10000;
+/* L426 */   display: flex;
+/* L427 */   align-items: center;
+/* L428 */   justify-content: center;
+/* L429 */   padding: 20px;
+/* L430 */   touch-action: manipulation;
+/* L431 */ }
+/* L432 */
+/* L433 */ /* 編集ダイアログ本体 */
+/* L434 */ .edit-dialog {
+/* L435 */   background: #1e1e1e;
+/* L436 */   border-radius: 16px;
+/* L437 */   padding: 20px;
+/* L438 */   max-width: 500px;
+/* L439 */   width: 100%;
+/* L440 */   max-height: 70vh;
+/* L441 */   overflow-y: auto;
+/* L442 */   color: #fff;
 /* L443 */ }
-/* L444 */ 
-/* L445 */ .edit-dialog-item {
-/* L446 */   background: rgba(255,255,255,0.1);
-/* L447 */   border: 1px solid rgba(255,255,255,0.2);
-/* L448 */   border-radius: 12px;
-/* L449 */   padding: 12px;
-/* L450 */   cursor: pointer;
-/* L451 */   transition: background 0.2s;
-/* L452 */   outline: none;
-/* L453 */   -webkit-tap-highlight-color: transparent;
-/* L454 */ }
-/* L455 */ 
-/* L456 */ .edit-dialog-item:hover {
-/* L457 */   background: rgba(255,255,255,0.2);
+/* L444 */
+/* L445 */ /* ダイアログタイトル */
+/* L446 */ .edit-dialog h3 {
+/* L447 */   margin: 0 0 16px 0;
+/* L448 */   font-size: 18px;
+/* L449 */   font-weight: 600;
+/* L450 */ }
+/* L451 */
+/* L452 */ /* リストコンテナ */
+/* L453 */ .edit-dialog-list {
+/* L454 */   display: flex;
+/* L455 */   flex-direction: column;
+/* L456 */   gap: 8px;
+/* L457 */   margin-bottom: 16px;
 /* L458 */ }
-/* L459 */ 
-/* L460 */ .edit-dialog-item-title {
-/* L461 */   font-weight: 600;
-/* L462 */   margin-bottom: 4px;
-/* L463 */ }
-/* L464 */ 
-/* L465 */ .edit-dialog-item-subtitle {
-/* L466 */   font-size: 13px;
-/* L467 */   opacity: 0.7;
-/* L468 */ }
-/* L469 */ 
-/* L470 */ .edit-dialog-btn {
-/* L471 */   width: 100%;
-/* L472 */   padding: 14px;
-/* L473 */   border-radius: 12px;
-/* L474 */   font-size: 16px;
-/* L475 */   font-weight: 600;
-/* L476 */   cursor: pointer;
-/* L477 */   border: none;
-/* L478 */   outline: none;
-/* L479 */   transition: opacity 0.2s;
-/* L480 */   -webkit-tap-highlight-color: transparent;
-/* L481 */ }
-/* L482 */ 
-/* L483 */ .edit-dialog-btn:active {
-/* L484 */   opacity: 0.8;
-/* L485 */ }
-/* L486 */ 
-/* L487 */ .edit-dialog-btn-primary {
-/* L488 */   background: #25d07a;
-/* L489 */   color: #fff;
-/* L490 */   margin-bottom: 8px;
-/* L491 */ }
-/* L492 */ 
-/* L493 */ .edit-dialog-btn-danger {
-/* L494 */   background: #ff6565;
-/* L495 */   color: #fff;
-/* L496 */   margin-bottom: 8px;
-/* L497 */ }
-/* L498 */ 
-/* L499 */ .edit-dialog-btn-secondary {
-/* L500 */   background: rgba(255,255,255,0.1);
-/* L501 */   color: #fff;
-/* L502 */   border: 1px solid rgba(255,255,255,0.2);
-/* L503 */ }
-/* L504 */ 
-/* L505 */ .edit-dialog-btn-group {
-/* L506 */   display: flex;
-/* L507 */   gap: 8px;
-/* L508 */   margin-top: 16px;
+/* L459 */
+/* L460 */ /* リストアイテム */
+/* L461 */ .edit-dialog-item {
+/* L462 */   background: rgba(255,255,255,0.1);
+/* L463 */   border: 1px solid rgba(255,255,255,0.2);
+/* L464 */   border-radius: 12px;
+/* L465 */   padding: 12px;
+/* L466 */   cursor: pointer;
+/* L467 */   transition: background 0.2s;
+/* L468 */   outline: none;
+/* L469 */   -webkit-tap-highlight-color: transparent;
+/* L470 */ }
+/* L471 */
+/* L472 */ .edit-dialog-item:hover {
+/* L473 */   background: rgba(255,255,255,0.2);
+/* L474 */ }
+/* L475 */
+/* L476 */ .edit-dialog-item-title {
+/* L477 */   font-weight: 600;
+/* L478 */   margin-bottom: 4px;
+/* L479 */ }
+/* L480 */
+/* L481 */ .edit-dialog-item-subtitle {
+/* L482 */   font-size: 13px;
+/* L483 */   opacity: 0.7;
+/* L484 */ }
+/* L485 */
+/* L486 */ /* ボタン共通スタイル */
+/* L487 */ .edit-dialog-btn {
+/* L488 */   width: 100%;
+/* L489 */   padding: 14px;
+/* L490 */   border-radius: 12px;
+/* L491 */   font-size: 16px;
+/* L492 */   font-weight: 600;
+/* L493 */   cursor: pointer;
+/* L494 */   border: none;
+/* L495 */   outline: none;
+/* L496 */   transition: opacity 0.2s;
+/* L497 */   -webkit-tap-highlight-color: transparent;
+/* L498 */ }
+/* L499 */
+/* L500 */ .edit-dialog-btn:active {
+/* L501 */   opacity: 0.8;
+/* L502 */ }
+/* L503 */
+/* L504 */ /* ボタンバリエーション */
+/* L505 */ .edit-dialog-btn-primary {
+/* L506 */   background: #25d07a;
+/* L507 */   color: #fff;
+/* L508 */   margin-bottom: 8px;
 /* L509 */ }
-/* L510 */ 
-/* L511 */ .edit-dialog-btn-group .edit-dialog-btn {
-/* L512 */   flex: 1;
-/* L513 */   margin-bottom: 0;
-/* L514 */ }
-/* L515 */ 
-/* L516 */ .edit-dialog-input {
-/* L517 */   width: 100%;
-/* L518 */   padding: 12px;
-/* L519 */   border-radius: 12px;
-/* L520 */   background: rgba(255,255,255,0.1);
-/* L521 */   border: 1px solid rgba(255,255,255,0.2);
-/* L522 */   color: #fff;
-/* L523 */   font-size: 16px;
-/* L524 */   margin-bottom: 16px;
-/* L525 */   outline: none;
-/* L526 */   box-sizing: border-box;
-/* L527 */ }
-/* L528 */ 
-/* L529 */ .edit-dialog-input:focus {
-/* L530 */   border-color: #25d07a;
-/* L531 */   background: rgba(255,255,255,0.15);
-/* L532 */ }
+/* L510 */
+/* L511 */ .edit-dialog-btn-danger {
+/* L512 */   background: #ff6565;
+/* L513 */   color: #fff;
+/* L514 */   margin-bottom: 8px;
+/* L515 */ }
+/* L516 */
+/* L517 */ .edit-dialog-btn-secondary {
+/* L518 */   background: rgba(255,255,255,0.1);
+/* L519 */   color: #fff;
+/* L520 */   border: 1px solid rgba(255,255,255,0.2);
+/* L521 */ }
+/* L522 */
+/* L523 */ /* 確認ダイアログボタングループ */
+/* L524 */ .edit-dialog-btn-group {
+/* L525 */   display: flex;
+/* L526 */   gap: 8px;
+/* L527 */   margin-top: 16px;
+/* L528 */ }
+/* L529 */
+/* L530 */ .edit-dialog-btn-group .edit-dialog-btn {
+/* L531 */   flex: 1;
+/* L532 */   margin-bottom: 0;
+/* L533 */ }
+/* L534 */
+/* L535 */ /* 修正フォーム用input */
+/* L536 */ .edit-dialog-input {
+/* L537 */   width: 100%;
+/* L538 */   padding: 12px;
+/* L539 */   border-radius: 12px;
+/* L540 */   background: rgba(255,255,255,0.1);
+/* L541 */   border: 1px solid rgba(255,255,255,0.2);
+/* L542 */   color: #fff;
+/* L543 */   font-size: 16px;
+/* L544 */   margin-bottom: 16px;
+/* L545 */   outline: none;
+/* L546 */   box-sizing: border-box;
+/* L547 */ }
+/* L548 */
+/* L549 */ .edit-dialog-input:focus {
+/* L550 */   border-color: #25d07a;
+/* L551 */   background: rgba(255,255,255,0.15);
+/* L552 */ }
