@@ -449,11 +449,13 @@ async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
 async function placesTextSearch(payload, fieldMask) {
   try {
     payload.languageCode = 'ja';
+    if (fieldMask) {
+      payload.fieldMask = fieldMask;
+    }
     const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        ...(fieldMask ? { 'X-Goog-FieldMask': fieldMask } : {})
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
     });
@@ -468,11 +470,13 @@ async function placesTextSearch(payload, fieldMask) {
 async function placesNearby(payload, fieldMask) {
   try {
     payload.languageCode = 'ja';
+    if (fieldMask) {
+      payload.fieldMask = fieldMask;
+    }
     const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchNearby`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        ...(fieldMask ? { 'X-Goog-FieldMask': fieldMask } : {})
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
     });
