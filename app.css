@@ -16,205 +16,517 @@
 /* L016 */   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
 /* L017 */                 "Hiragino Sans", "Noto Sans JP", "Helvetica Neue",
 /* L018 */                 Arial, sans-serif;
-/* L019 */   overflow: hidden;              /* ← ここを overflow-x から変更 */
-/* L020 */   width: 100%;
-/* L021 */ }
-/* L022 */ 
-/* L023 */ * {
-/* L024 */   box-sizing: border-box;
-/* L025 */ }
-/* L026 */ 
-/* L027 */ .app {
-/* L028 */   position: relative;
-/* L029 */   width: 100%;
-/* L030 */   height: 100%;
-/* L031 */   overflow: hidden;
-/* L032 */ }
-/* L033 */ 
-/* L034 */ /* 地図 */
-/* L035 */ #map {
-/* L036 */   position: absolute;
-/* L037 */   inset: 0;
-/* L038 */   width: 100%;
-/* L039 */   height: 100%;
-/* L040 */ }
-/* L041 */ 
-/* L042 */ /* パネル（余白最適化版 + タップ拡大防止 + 横スクロール防止） */
-/* L043 */ .panel {
-/* L044 */   position: fixed;
-/* L045 */   left: 0;
-/* L046 */   right: 0;
-/* L047 */   bottom: 0;
-/* L048 */   background: var(--panel-bg);
-/* L049 */   backdrop-filter: blur(18px);
-/* L050 */   padding: 16px 16px 12px 16px;
-/* L051 */   box-sizing: border-box;
-/* L052 */   border-top-left-radius: 20px;
-/* L053 */   border-top-right-radius: 20px;
-/* L054 */   color: #fff;
-/* L055 */   max-height: 70%;
-/* L056 */   overflow-y: auto;
-/* L057 */   overflow-x: hidden;
-/* L058 */   z-index: 1000;
-/* L059 */   transition: transform 0.3s ease-out;
-/* L060 */   will-change: transform;
-/* L061 */   touch-action: manipulation;
-/* L062 */   user-select: none;
-/* L063 */   -webkit-user-select: none;
-/* L064 */   -webkit-tap-highlight-color: transparent;
-/* L065 */   width: 100vw;
-/* L066 */   max-width: 100vw;
-/* L067 */ }
-/* L068 */ 
-/* L069 */ .panel-tabs-header {
-/* L070 */   display: flex;
-/* L071 */   gap: 8px;
-/* L072 */   margin-bottom: 10px;
-/* L073 */   justify-content: center;
-/* L074 */   width: 100%;
-/* L075 */ }
-/* L076 */ 
-/* L077 */ .panel-tabs-body {
-/* L078 */   width: 100%;
-/* L079 */   overflow-x: hidden;
-/* L080 */ }
-/* L081 */ 
-/* L082 */ .tab-btn {
-/* L083 */   flex: 1;
-/* L084 */   max-width: 120px;
-/* L085 */   padding: 8px 12px;
-/* L086 */   border-radius: 999px;
-/* L087 */   text-align: center;
-/* L088 */   cursor: pointer;
-/* L089 */   border: 1px solid var(--stroke);
-/* L090 */   background: rgba(255,255,255,0.15);
-/* L091 */   color: #fff;
-/* L092 */   font-size: 13px;
-/* L093 */   user-select: none;
-/* L094 */   outline: none;
-/* L095 */   -webkit-tap-highlight-color: transparent;
-/* L096 */   white-space: nowrap;
-/* L097 */ }
-/* L098 */ 
-/* L099 */ .tab-btn.active {
-/* L100 */   background: #fff;
-/* L101 */   color: #111;
-/* L102 */   border-color: #fff;
-/* L103 */   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-/* L104 */ }
-/* L105 */ 
-/* L106 */ .tab-btn:focus,
-/* L107 */ .tab-btn:focus-visible {
-/* L108 */   outline: none;
-/* L109 */ }
-/* L110 */ 
-/* L111 */ .tab-pane {
-/* L112 */   display: none;
-/* L113 */   width: 100%;
-/* L114 */   overflow-x: hidden;
-/* L115 */ }
-/* L116 */ 
-/* L117 */ .tab-pane.active {
-/* L118 */   display: block;
-/* L119 */ }
-/* L120 */ 
-/* L121 */ h2 {
-/* L122 */   margin-top: 0;
-/* L123 */   margin-bottom: 12px;
-/* L124 */   font-size: 18px;
-/* L125 */   font-weight: 600;
-/* L126 */   word-wrap: break-word;
-/* L127 */ }
-/* L128 */ 
-/* L129 */ .row {
-/* L130 */   display: flex;
-/* L131 */   gap: 8px;
-/* L132 */   align-items: center;
-/* L133 */   margin-bottom: 8px;
-/* L134 */   flex-wrap: wrap;
-/* L135 */   width: 100%;
-/* L136 */ }
-/* L137 */ 
-/* L138 */ .chip {
-/* L139 */   padding: 6px 14px;
-/* L140 */   border-radius: 999px;
-/* L141 */   background: rgba(255,255,255,0.15);
-/* L142 */   color: #fff;
-/* L143 */   border: 1px solid var(--stroke);
-/* L144 */   cursor: pointer;
-/* L145 */   font-size: 13px;
-/* L146 */   outline: none;
-/* L147 */   -webkit-tap-highlight-color: transparent;
-/* L148 */   flex-shrink: 1;
-/* L149 */   white-space: nowrap;
-/* L150 */ }
-/* L151 */ 
-/* L152 */ .chip.active {
-/* L153 */   background: #fff;
-/* L154 */   color: #111;
-/* L155 */ }
-/* L156 */ 
-/* L157 */ .chip:focus,
-/* L158 */ .chip:focus-visible {
-/* L159 */   outline: none;
-/* L160 */ }
-/* L161 */ 
-/* L162 */ .btn {
-/* L163 */   padding: 10px 12px;
-/* L164 */   border-radius: 12px;
-/* L165 */   font-size: 14px;
-/* L166 */   cursor: pointer;
-/* L167 */   background: rgba(255,255,255,0.2);
-/* L168 */   color: #fff;
-/* L169 */   border: 1px solid var(--stroke);
-/* L170 */   flex-shrink: 1;
-/* L171 */   text-align: center;
-/* L172 */   outline: none;
-/* L173 */   -webkit-tap-highlight-color: transparent;
-/* L174 */   white-space: nowrap;
-/* L175 */ }
-/* L176 */ 
-/* L177 */ .btn.danger {
-/* L178 */   background: rgba(244,63,94,0.3);
-/* L179 */   border-color: rgba(244,63,94,0.6);
-/* L180 */ }
-/* L181 */ 
-/* L182 */ .btn:focus,
-/* L183 */ .btn:focus-visible {
-/* L184 */   outline: none;
-/* L185 */ }
-/* L186 */ 
-/* L187 */ .input-wrapper {
-/* L188 */   display: flex;
-/* L189 */   align-items: center;
-/* L190 */   gap: 6px;
-/* L191 */   background: rgba(255,255,255,0.1);
-/* L192 */   border: 1px solid var(--stroke);
-/* L193 */   border-radius: 12px;
-/* L194 */   padding: 6px 10px;
-/* L195 */   flex: 1;
-/* L196 */   width: 100%;
-/* L197 */   min-width: 0;
-/* L198 */   box-sizing: border-box;
-/* L199 */ }
-/* L200 */ 
-/* L201 */ .input {
-/* L202 */   flex: 1;
-/* L203 */   background: transparent;
-/* L204 */   border: none;
-/* L205 */   color: #fff;
-/* L206 */   outline: none;
-/* L207 */   font-size: 15px;
-/* L208 */   min-width: 0;
-/* L209 */   width: 100%;
-/* L210 */ }
-/* L211 */ 
-/* L212 */ /* アイコン基本スタイル */
-/* L213 */ .icon {
-/* L214 */   display: flex;
-/* L215 */   align-items: center;
-/* L216 */   justify-content: center;
-/* L217 */   color: #fff;
-/* L218 */   cursor: pointer;
-/* L219 */   transition: opacity 0.2s ease;
-/* L220 */   outline: none
+/* L019 */   overflow-x: hidden;
+/* L020 */   overflow-y: hidden;            /* ページ自体の上下スクロール禁止 */
+/* L021 */   overscroll-behavior: none;    /* ビヨン抑止 */
+/* L022 */   width: 100%;
+/* L023 */ }
+/* L024 */ 
+/* L025 */ * {
+/* L026 */   box-sizing: border-box;
+/* L027 */ }
+/* L028 */ 
+/* L029 */ .app {
+/* L030 */   position: relative;
+/* L031 */   width: 100%;
+/* L032 */   height: 100%;
+/* L033 */   overflow: hidden;
+/* L034 */ }
+/* L035 */ 
+/* L036 */ /* 地図 */
+/* L037 */ #map {
+/* L038 */   position: absolute;
+/* L039 */   inset: 0;
+/* L040 */   width: 100%;
+/* L041 */   height: 100%;
+/* L042 */ }
+/* L043 */ 
+/* L044 */ /* パネル */
+/* L045 */ .panel {
+/* L046 */   position: fixed;
+/* L047 */   left: 0;
+/* L048 */   right: 0;
+/* L049 */   bottom: 0;
+/* L050 */   background: var(--panel-bg);
+/* L051 */   backdrop-filter: blur(18px);
+/* L052 */   padding: 16px 16px 12px 16px;
+/* L053 */   box-sizing: border-box;
+/* L054 */   border-top-left-radius: 20px;
+/* L055 */   border-top-right-radius: 20px;
+/* L056 */   color: #fff;
+/* L057 */   max-height: 70%;
+/* L058 */   overflow-y: auto;
+/* L059 */   overflow-x: hidden;
+/* L060 */   z-index: 1000;
+/* L061 */   transition: transform 0.3s ease-out;
+/* L062 */   will-change: transform;
+/* L063 */   touch-action: manipulation;
+/* L064 */   user-select: none;
+/* L065 */   -webkit-user-select: none;
+/* L066 */   -webkit-tap-highlight-color: transparent;
+/* L067 */   width: 100vw;
+/* L068 */   max-width: 100vw;
+/* L069 */ }
+/* L070 */ 
+/* L071 */ .panel-tabs-header {
+/* L072 */   display: flex;
+/* L073 */   gap: 8px;
+/* L074 */   margin-bottom: 10px;
+/* L075 */   justify-content: center;
+/* L076 */   width: 100%;
+/* L077 */ }
+/* L078 */ 
+/* L079 */ .panel-tabs-body {
+/* L080 */   width: 100%;
+/* L081 */   overflow-x: hidden;
+/* L082 */ }
+/* L083 */ 
+/* L084 */ .tab-btn {
+/* L085 */   flex: 1;
+/* L086 */   max-width: 120px;
+/* L087 */   padding: 8px 12px;
+/* L088 */   border-radius: 999px;
+/* L089 */   text-align: center;
+/* L090 */   cursor: pointer;
+/* L091 */   border: 1px solid var(--stroke);
+/* L092 */   background: rgba(255,255,255,0.15);
+/* L093 */   color: #fff;
+/* L094 */   font-size: 13px;
+/* L095 */   user-select: none;
+/* L096 */   outline: none;
+/* L097 */   -webkit-tap-highlight-color: transparent;
+/* L098 */   white-space: nowrap;
+/* L099 */ }
+/* L100 */ 
+/* L101 */ .tab-btn.active {
+/* L102 */   background: #fff;
+/* L103 */   color: #111;
+/* L104 */   border-color: #fff;
+/* L105 */   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+/* L106 */ }
+/* L107 */ 
+/* L108 */ .tab-btn:focus,
+/* L109 */ .tab-btn:focus-visible {
+/* L110 */   outline: none;
+/* L111 */ }
+/* L112 */ 
+/* L113 */ .tab-pane {
+/* L114 */   display: none;
+/* L115 */   width: 100%;
+/* L116 */   overflow-x: hidden;
+/* L117 */ }
+/* L118 */ 
+/* L119 */ .tab-pane.active {
+/* L120 */   display: block;
+/* L121 */ }
+/* L122 */ 
+/* L123 */ h2 {
+/* L124 */   margin-top: 0;
+/* L125 */   margin-bottom: 12px;
+/* L126 */   font-size: 18px;
+/* L127 */   font-weight: 600;
+/* L128 */   word-wrap: break-word;
+/* L129 */ }
+/* L130 */ 
+/* L131 */ .row {
+/* L132 */   display: flex;
+/* L133 */   gap: 8px;
+/* L134 */   align-items: center;
+/* L135 */   margin-bottom: 8px;
+/* L136 */   flex-wrap: wrap;
+/* L137 */   width: 100%;
+/* L138 */ }
+/* L139 */ 
+/* L140 */ .chip {
+/* L141 */   padding: 6px 14px;
+/* L142 */   border-radius: 999px;
+/* L143 */   background: rgba(255,255,255,0.15);
+/* L144 */   color: #fff;
+/* L145 */   border: 1px solid var(--stroke);
+/* L146 */   cursor: pointer;
+/* L147 */   font-size: 13px;
+/* L148 */   outline: none;
+/* L149 */   -webkit-tap-highlight-color: transparent;
+/* L150 */   flex-shrink: 1;
+/* L151 */   white-space: nowrap;
+/* L152 */ }
+/* L153 */ 
+/* L154 */ .chip.active {
+/* L155 */   background: #fff;
+/* L156 */   color: #111;
+/* L157 */ }
+/* L158 */ 
+/* L159 */ .chip:focus,
+/* L160 */ .chip:focus-visible {
+/* L161 */   outline: none;
+/* L162 */ }
+/* L163 */ 
+/* L164 */ .btn {
+/* L165 */   padding: 10px 12px;
+/* L166 */   border-radius: 12px;
+/* L167 */   font-size: 14px;
+/* L168 */   cursor: pointer;
+/* L169 */   background: rgba(255,255,255,0.2);
+/* L170 */   color: #fff;
+/* L171 */   border: 1px solid var(--stroke);
+/* L172 */   flex-shrink: 1;
+/* L173 */   text-align: center;
+/* L174 */   outline: none;
+/* L175 */   -webkit-tap-highlight-color: transparent;
+/* L176 */   white-space: nowrap;
+/* L177 */ }
+/* L178 */ 
+/* L179 */ .btn.danger {
+/* L180 */   background: rgba(244,63,94,0.3);
+/* L181 */   border-color: rgba(244,63,94,0.6);
+/* L182 */ }
+/* L183 */ 
+/* L184 */ .btn:focus,
+/* L185 */ .btn:focus-visible {
+/* L186 */   outline: none;
+/* L187 */ }
+/* L188 */ 
+/* L189 */ .input-wrapper {
+/* L190 */   display: flex;
+/* L191 */   align-items: center;
+/* L192 */   gap: 6px;
+/* L193 */   background: rgba(255,255,255,0.1);
+/* L194 */   border: 1px solid var(--stroke);
+/* L195 */   border-radius: 12px;
+/* L196 */   padding: 6px 10px;
+/* L197 */   flex: 1;
+/* L198 */   width: 100%;
+/* L199 */   min-width: 0;
+/* L200 */   box-sizing: border-box;
+/* L201 */ }
+/* L202 */ 
+/* L203 */ .input {
+/* L204 */   flex: 1;
+/* L205 */   background: transparent;
+/* L206 */   border: none;
+/* L207 */   color: #fff;
+/* L208 */   outline: none;
+/* L209 */   font-size: 15px;
+/* L210 */   min-width: 0;
+/* L211 */   width: 100%;
+/* L212 */ }
+/* L213 */ 
+/* L214 */ .icon {
+/* L215 */   display: flex;
+/* L216 */   align-items: center;
+/* L217 */   justify-content: center;
+/* L218 */   color: #fff;
+/* L219 */   cursor: pointer;
+/* L220 */   transition: opacity 0.2s ease;
+/* L221 */   outline: none;
+/* L222 */   -webkit-tap-highlight-color: transparent;
+/* L223 */   flex-shrink: 0;
+/* L224 */ }
+/* L225 */ 
+/* L226 */ .icon:hover {
+/* L227 */   opacity: 0.7;
+/* L228 */ }
+/* L229 */ 
+/* L230 */ .icon:focus,
+/* L231 */ .icon:focus-visible {
+/* L232 */   outline: none;
+/* L233 */ }
+/* L234 */ 
+/* L235 */ .icon-g {
+/* L236 */   color: #4285f4;
+/* L237 */ }
+/* L238 */ 
+/* L239 */ .icon-g svg {
+/* L240 */   fill: #4285f4;
+/* L241 */ }
+/* L242 */ 
+/* L243 */ .icon-search {
+/* L244 */   color: #3aa0ff;
+/* L245 */ }
+/* L246 */ 
+/* L247 */ .icon-search svg {
+/* L248 */   fill: #3aa0ff;
+/* L249 */ }
+/* L250 */ 
+/* L251 */ .icon-mic {
+/* L252 */   color: #ff6565;
+/* L253 */ }
+/* L254 */ 
+/* L255 */ .icon-mic svg {
+/* L256 */   fill: #ff6565;
+/* L257 */ }
+/* L258 */ 
+/* L259 */ .results {
+/* L260 */   margin-top: 10px;
+/* L261 */   display: flex;
+/* L262 */   flex-direction: column;
+/* L263 */   gap: 8px;
+/* L264 */   width: 100%;
+/* L265 */ }
+/* L266 */ 
+/* L267 */ .result-item {
+/* L268 */   background: rgba(255,255,255,0.1);
+/* L269 */   border: 1px solid var(--stroke);
+/* L270 */   border-radius: 12px;
+/* L271 */   padding: 10px;
+/* L272 */   cursor: pointer;
+/* L273 */   outline: none;
+/* L274 */   -webkit-tap-highlight-color: transparent;
+/* L275 */   word-wrap: break-word;
+/* L276 */   overflow-wrap: break-word;
+/* L277 */   width: 100%;
+/* L278 */ }
+/* L279 */ 
+/* L280 */ .nav-section {
+/* L281 */   margin-bottom: 12px;
+/* L282 */   padding-bottom: 10px;
+/* L283 */   border-bottom: 1px solid var(--stroke);
+/* L284 */   width: 100%;
+/* L285 */ }
+/* L286 */ 
+/* L287 */ .nav-section:last-child {
+/* L288 */   margin-bottom: 0;
+/* L289 */   padding-bottom: 0;
+/* L290 */   border-bottom: none;
+/* L291 */ }
+/* L292 */ 
+/* L293 */ .nav-section-title {
+/* L294 */   font-size: 12px;
+/* L295 */   font-weight: 600;
+/* L296 */   color: var(--muted);
+/* L297 */   margin-bottom: 6px;
+/* L298 */ }
+/* L299 */ 
+/* L300 */ .weather-item {
+/* L301 */   display: flex;
+/* L302 */   justify-content: space-between;
+/* L303 */   padding: 8px 12px;
+/* L304 */   background: rgba(255,255,255,0.1);
+/* L305 */   border: 1px solid var(--stroke);
+/* L306 */   border-radius: 10px;
+/* L307 */   margin-bottom: 6px;
+/* L308 */ }
+/* L309 */ 
+/* L310 */ .weather-item:last-child {
+/* L311 */   margin-bottom: 0;
+/* L312 */ }
+/* L313 */ 
+/* L314 */ .fab-stack {
+/* L315 */   position: absolute;
+/* L316 */   bottom: 20px;
+/* L317 */   right: 20px;
+/* L318 */   display: flex;
+/* L319 */   flex-direction: column;
+/* L320 */   gap: 10px;
+/* L321 */   z-index: 900;
+/* L322 */ }
+/* L323 */ 
+/* L324 */ .fab {
+/* L325 */   background: #fff;
+/* L326 */   color: #111;
+/* L327 */   padding: 12px 16px;
+/* L328 */   border-radius: 14px;
+/* L329 */   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+/* L330 */   font-size: 14px;
+/* L331 */   cursor: pointer;
+/* L332 */   user-select: none;
+/* L333 */   outline: none;
+/* L334 */   -webkit-tap-highlight-color: transparent;
+/* L335 */ }
+/* L336 */ 
+/* L337 */ .loading {
+/* L338 */   position: absolute;
+/* L339 */   inset: 0;
+/* L340 */   display: flex;
+/* L341 */   align-items: center;
+/* L342 */   justify-content: center;
+/* L343 */   background: rgba(0,0,0,0.6);
+/* L344 */   backdrop-filter: blur(6px);
+/* L345 */   z-index: 5000;
+/* L346 */   color: #fff;
+/* L347 */ }
+/* L348 */ 
+/* L349 */ .loading.hidden {
+/* L350 */   display: none;
+/* L351 */ }
+/* L352 */ 
+/* L353 */ @supports (height: 100dvh) {
+/* L354 */   .panel {
+/* L355 */     max-height: 70dvh;
+/* L356 */   }
+/* L357 */ }
+/* L358 */ 
+/* L359 */ .input:focus {
+/* L360 */   -webkit-user-select: auto;
+/* L361 */ }
+/* L362 */ 
+/* L363 */ .map-mode-section {
+/* L364 */   margin-bottom: 16px;
+/* L365 */   width: 100%;
+/* L366 */ }
+/* L367 */ 
+/* L368 */ .map-mode-label {
+/* L369 */   font-size: 14px;
+/* L370 */   font-weight: 600;
+/* L371 */   margin-bottom: 10px;
+/* L372 */   color: #fff;
+/* L373 */ }
+/* L374 */ 
+/* L375 */ .map-mode-buttons {
+/* L376 */   display: flex;
+/* L377 */   gap: 8px;
+/* L378 */   width: 100%;
+/* L379 */ }
+/* L380 */ 
+/* L381 */ .map-mode-btn {
+/* L382 */   flex: 1;
+/* L383 */   padding: 10px 12px;
+/* L384 */   border-radius: 12px;
+/* L385 */   font-size: 14px;
+/* L386 */   font-weight: 500;
+/* L387 */   cursor: pointer;
+/* L388 */   background: rgba(255,255,255,0.1);
+/* L389 */   color: #fff;
+/* L390 */   border: 1px solid var(--stroke);
+/* L391 */   text-align: center;
+/* L392 */   outline: none;
+/* L393 */   -webkit-tap-highlight-color: transparent;
+/* L394 */   transition: all 0.2s;
+/* L395 */   white-space: nowrap;
+/* L396 */ }
+/* L397 */ 
+/* L398 */ .map-mode-btn.active {
+/* L399 */   background: #3aa0ff;
+/* L400 */   border-color: #3aa0ff;
+/* L401 */   color: #fff;
+/* L402 */   box-shadow: 0 2px 8px rgba(58,160,255,0.4);
+/* L403 */ }
+/* L404 */ 
+/* L405 */ .map-mode-btn:active {
+/* L406 */   opacity: 0.7;
+/* L407 */ }
+/* L408 */ 
+/* L409 */ .edit-dialog-overlay {
+/* L410 */   position: fixed;
+/* L411 */   inset: 0;
+/* L412 */   background: rgba(0,0,0,0.7);
+/* L413 */   z-index: 10000;
+/* L414 */   display: flex;
+/* L415 */   align-items: center;
+/* L416 */   justify-content: center;
+/* L417 */   padding: 20px;
+/* L418 */   touch-action: manipulation;
+/* L419 */ }
+/* L420 */ 
+/* L421 */ .edit-dialog {
+/* L422 */   background: #1e1e1e;
+/* L423 */   border-radius: 16px;
+/* L424 */   padding: 20px;
+/* L425 */   max-width: 500px;
+/* L426 */   width: 100%;
+/* L427 */   max-height: 70vh;
+/* L428 */   overflow-y: auto;
+/* L429 */   color: #fff;
+/* L430 */ }
+/* L431 */ 
+/* L432 */ .edit-dialog h3 {
+/* L433 */   margin: 0 0 16px 0;
+/* L434 */   font-size: 18px;
+/* L435 */   font-weight: 600;
+/* L436 */ }
+/* L437 */ 
+/* L438 */ .edit-dialog-list {
+/* L439 */   display: flex;
+/* L440 */   flex-direction: column;
+/* L441 */   gap: 8px;
+/* L442 */   margin-bottom: 16px;
+/* L443 */ }
+/* L444 */ 
+/* L445 */ .edit-dialog-item {
+/* L446 */   background: rgba(255,255,255,0.1);
+/* L447 */   border: 1px solid rgba(255,255,255,0.2);
+/* L448 */   border-radius: 12px;
+/* L449 */   padding: 12px;
+/* L450 */   cursor: pointer;
+/* L451 */   transition: background 0.2s;
+/* L452 */   outline: none;
+/* L453 */   -webkit-tap-highlight-color: transparent;
+/* L454 */ }
+/* L455 */ 
+/* L456 */ .edit-dialog-item:hover {
+/* L457 */   background: rgba(255,255,255,0.2);
+/* L458 */ }
+/* L459 */ 
+/* L460 */ .edit-dialog-item-title {
+/* L461 */   font-weight: 600;
+/* L462 */   margin-bottom: 4px;
+/* L463 */ }
+/* L464 */ 
+/* L465 */ .edit-dialog-item-subtitle {
+/* L466 */   font-size: 13px;
+/* L467 */   opacity: 0.7;
+/* L468 */ }
+/* L469 */ 
+/* L470 */ .edit-dialog-btn {
+/* L471 */   width: 100%;
+/* L472 */   padding: 14px;
+/* L473 */   border-radius: 12px;
+/* L474 */   font-size: 16px;
+/* L475 */   font-weight: 600;
+/* L476 */   cursor: pointer;
+/* L477 */   border: none;
+/* L478 */   outline: none;
+/* L479 */   transition: opacity 0.2s;
+/* L480 */   -webkit-tap-highlight-color: transparent;
+/* L481 */ }
+/* L482 */ 
+/* L483 */ .edit-dialog-btn:active {
+/* L484 */   opacity: 0.8;
+/* L485 */ }
+/* L486 */ 
+/* L487 */ .edit-dialog-btn-primary {
+/* L488 */   background: #25d07a;
+/* L489 */   color: #fff;
+/* L490 */   margin-bottom: 8px;
+/* L491 */ }
+/* L492 */ 
+/* L493 */ .edit-dialog-btn-danger {
+/* L494 */   background: #ff6565;
+/* L495 */   color: #fff;
+/* L496 */   margin-bottom: 8px;
+/* L497 */ }
+/* L498 */ 
+/* L499 */ .edit-dialog-btn-secondary {
+/* L500 */   background: rgba(255,255,255,0.1);
+/* L501 */   color: #fff;
+/* L502 */   border: 1px solid rgba(255,255,255,0.2);
+/* L503 */ }
+/* L504 */ 
+/* L505 */ .edit-dialog-btn-group {
+/* L506 */   display: flex;
+/* L507 */   gap: 8px;
+/* L508 */   margin-top: 16px;
+/* L509 */ }
+/* L510 */ 
+/* L511 */ .edit-dialog-btn-group .edit-dialog-btn {
+/* L512 */   flex: 1;
+/* L513 */   margin-bottom: 0;
+/* L514 */ }
+/* L515 */ 
+/* L516 */ .edit-dialog-input {
+/* L517 */   width: 100%;
+/* L518 */   padding: 12px;
+/* L519 */   border-radius: 12px;
+/* L520 */   background: rgba(255,255,255,0.1);
+/* L521 */   border: 1px solid rgba(255,255,255,0.2);
+/* L522 */   color: #fff;
+/* L523 */   font-size: 16px;
+/* L524 */   margin-bottom: 16px;
+/* L525 */   outline: none;
+/* L526 */   box-sizing: border-box;
+/* L527 */ }
+/* L528 */ 
+/* L529 */ .edit-dialog-input:focus {
+/* L530 */   border-color: #25d07a;
+/* L531 */   background: rgba(255,255,255,0.15);
+/* L532 */ }
