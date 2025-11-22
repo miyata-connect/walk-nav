@@ -1093,70 +1093,15 @@ function displayResults(places, centerLat, centerLng) {
   });
 }
 
+/**
+ * パネルのキーボード連動を完全に停止する版
+ * transform を一切変更しないことで、iOS Safari での勝手なスライドを防ぐ
+ */
 function bindKeyboardWatch() {
-  const searchInput = getEl('q');
   const searchPanel = getEl('searchPanel');
-
-  if (!searchInput || !searchPanel) return;
-
-  const adjustPanelPosition = () => {
-    if (!window.visualViewport) return;
-    if (!appState.keyboardActive) return;
-
-    const viewportHeight = window.visualViewport.height;
-    const windowHeight = window.innerHeight;
-    const keyboardHeight = windowHeight - viewportHeight;
-
-    if (keyboardHeight > 150) {
-      if (appState.keyboardAdjusted) return;
-      
-      searchPanel.style.transform = 'translateY(0)';
-      const inputRect = searchInput.getBoundingClientRect();
-      const inputBottom = inputRect.bottom;
-      
-      const targetY = viewportHeight * 0.4;
-      let moveAmount = Math.max(0, inputBottom - targetY);
-      
-      const panelHeight = searchPanel.offsetHeight;
-      const maxMove = Math.min(panelHeight * 0.3, 200);
-      moveAmount = Math.min(moveAmount, maxMove);
-      
-      searchPanel.style.transition = 'transform 0.25s ease-out';
-      searchPanel.style.transform = `translateY(-${moveAmount}px)`;
-      
-      appState.keyboardAdjusted = true;
-      console.log(`[Keyboard] Show - keyboard:${keyboardHeight}px, move:${moveAmount}px`);
-      
-    } else {
-      if (!appState.keyboardAdjusted) return;
-      
-      searchPanel.style.transition = 'transform 0.25s ease-out';
-      searchPanel.style.transform = 'translateY(0)';
-      
-      appState.keyboardAdjusted = false;
-      console.log('[Keyboard] Hide');
-    }
-  };
-
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', adjustPanelPosition);
-  }
-
-  searchInput.addEventListener('focus', () => {
-    appState.keyboardActive = true;
-    setTimeout(adjustPanelPosition, 300);
-  });
-
-  searchInput.addEventListener('blur', () => {
-    appState.keyboardActive = false;
-    setTimeout(() => {
-      if (document.activeElement !== searchInput) {
-        searchPanel.style.transition = 'transform 0.25s ease-out';
-        searchPanel.style.transform = 'translateY(0)';
-        appState.keyboardAdjusted = false;
-      }
-    }, 100);
-  });
+  if (!searchPanel) return;
+  // 念のため初期化だけ
+  searchPanel.style.transform = 'translateY(0)';
 }
 
 function bindUI() {
