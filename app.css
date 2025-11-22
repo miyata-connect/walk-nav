@@ -8,29 +8,39 @@
   --stroke: rgba(255,255,255,0.12);
 }
 
+/* 画面全体を 1 レイヤーに固定 */
 html,
 body {
   margin: 0;
   padding: 0;
   height: 100%;
+  width: 100%;
   background: var(--bg);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
                "Hiragino Sans", "Noto Sans JP", "Helvetica Neue",
                Arial, sans-serif;
-  overflow: hidden;               /* ← ページ全体のスクロールを禁止 */
-  width: 100%;
-  overscroll-behavior: none;      /* ← バウンス/スクロール連鎖を防ぐ */
+  overflow: hidden;               /* 全体スクロール禁止 */
+  overscroll-behavior: none;      /* バウンス連鎖防止 */
 }
 
+/* ルートレイヤー */
 * {
   box-sizing: border-box;
 }
 
 .app {
-  position: relative;
+  position: fixed;                /* viewport に固定 */
+  inset: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
+}
+
+/* 端末によっては 100dvh を優先して高さを合わせる */
+@supports (height: 100dvh) {
+  .app {
+    height: 100dvh;
+  }
 }
 
 /* 地図 */
@@ -41,12 +51,12 @@ body {
   height: 100%;
 }
 
-/* パネル */
+/* パネル：.app 内で絶対配置＋下固定 */
 .panel {
-  position: absolute;                 /* ← fixed から absolute に変更 */
+  position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: env(safe-area-inset-bottom, 0px);
   background: var(--panel-bg);
   backdrop-filter: blur(18px);
   padding: 16px 16px 12px 16px;
@@ -58,15 +68,16 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   z-index: 1000;
-  transition: transform 0.3s ease-out;
-  will-change: transform;
+  /* transform アニメーションを切って勝手な移動を防ぐ */
+  transition: none;
+  will-change: auto;
   touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
   width: 100vw;
   max-width: 100vw;
-  overscroll-behavior: contain;       /* ← パネル内スクロールを閉じ込める */
+  overscroll-behavior: contain;       /* パネル内スクロールを閉じ込める */
   -webkit-overflow-scrolling: touch;
 }
 
@@ -213,7 +224,7 @@ h2 {
   width: 100%;
 }
 
-/* アイコン基本スタイル */
+/* アイコン */
 .icon {
   display: flex;
   align-items: center;
@@ -235,7 +246,6 @@ h2 {
   outline: none;
 }
 
-/* Gアイコン */
 .icon-g {
   color: #4285f4;
 }
@@ -244,7 +254,6 @@ h2 {
   fill: #4285f4;
 }
 
-/* 検索アイコン */
 .icon-search {
   color: #3aa0ff;
 }
@@ -253,7 +262,6 @@ h2 {
   fill: #3aa0ff;
 }
 
-/* マイクアイコン */
 .icon-mic {
   color: #ff6565;
 }
@@ -360,14 +368,14 @@ h2 {
   display: none;
 }
 
-/* キーボード表示時の対応（高さのみ） */
+/* 100dvh 環境ではパネルの高さだけ追従させる */
 @supports (height: 100dvh) {
   .panel {
     max-height: 70dvh;
   }
 }
 
-/* iOS Safari inputフォーカス */
+/* iOS Safari input フォーカス */
 .input:focus {
   -webkit-user-select: auto;
 }
@@ -419,7 +427,7 @@ h2 {
   opacity: 0.7;
 }
 
-/* 編集ダイアログオーバーレイ */
+/* 編集ダイアログ関連 */
 .edit-dialog-overlay {
   position: fixed;
   inset: 0;
@@ -432,7 +440,6 @@ h2 {
   touch-action: manipulation;
 }
 
-/* 編集ダイアログ本体 */
 .edit-dialog {
   background: #1e1e1e;
   border-radius: 16px;
@@ -444,14 +451,12 @@ h2 {
   color: #fff;
 }
 
-/* ダイアログタイトル */
 .edit-dialog h3 {
   margin: 0 0 16px 0;
   font-size: 18px;
   font-weight: 600;
 }
 
-/* リストコンテナ */
 .edit-dialog-list {
   display: flex;
   flex-direction: column;
@@ -459,7 +464,6 @@ h2 {
   margin-bottom: 16px;
 }
 
-/* リストアイテム */
 .edit-dialog-item {
   background: rgba(255,255,255,0.1);
   border: 1px solid rgba(255,255,255,0.2);
@@ -485,7 +489,6 @@ h2 {
   opacity: 0.7;
 }
 
-/* ボタン共通スタイル */
 .edit-dialog-btn {
   width: 100%;
   padding: 14px;
@@ -503,7 +506,6 @@ h2 {
   opacity: 0.8;
 }
 
-/* ボタンバリエーション */
 .edit-dialog-btn-primary {
   background: #25d07a;
   color: #fff;
@@ -522,7 +524,6 @@ h2 {
   border: 1px solid rgba(255,255,255,0.2);
 }
 
-/* 確認ダイアログボタングループ */
 .edit-dialog-btn-group {
   display: flex;
   gap: 8px;
@@ -534,7 +535,6 @@ h2 {
   margin-bottom: 0;
 }
 
-/* 修正フォーム用input */
 .edit-dialog-input {
   width: 100%;
   padding: 12px;
