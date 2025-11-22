@@ -4,88 +4,88 @@
 /* L004 */   --muted: #94a3b8;
 /* L005 */   --text: #111;
 /* L006 */   --bg: #f8fafc;
-/* L007 */   --panel-bg: rgba(30,30,30,0.9); /* 少し濃くして視認性向上 */
+/* L007 */   --panel-bg: rgba(30,30,30,0.9);
 /* L008 */   --stroke: rgba(255,255,255,0.12);
 /* L009 */ }
 /* L010 */ 
 /* L011 */ html {
-/* L012 */   height: 100%;
-/* L013 */   width: 100%;
-/* L014 */   overflow: hidden; /* 大元のスクロール禁止 */
-/* L015 */   position: fixed;  /* ★画面全体をブラウザ枠に固定 */
-/* L016 */   inset: 0;         /* 上下左右0 */
-/* L017 */ }
-/* L018 */ 
-/* L019 */ body {
-/* L020 */   margin: 0;
-/* L021 */   padding: 0;
-/* L022 */   width: 100%;
-/* L023 */   height: 100%;
-/* L024 */   background: var(--bg);
-/* L025 */   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-/* L026 */                 "Hiragino Sans", "Noto Sans JP", "Helvetica Neue",
-/* L027 */                 Arial, sans-serif;
-/* L028 */   overflow: hidden;
-/* L029 */   overscroll-behavior: none;
-/* L030 */   touch-action: none; /* 画面全体のズーム・移動禁止 */
-/* L031 */   position: fixed;    /* bodyも固定 */
-/* L032 */   inset: 0;
-/* L033 */ }
-/* L034 */ 
-/* L035 */ * {
-/* L036 */   box-sizing: border-box;
-/* L037 */   -webkit-tap-highlight-color: transparent;
-/* L038 */ }
-/* L039 */ 
-/* L040 */ .app {
-/* L041 */   position: absolute;
-/* L042 */   top: 0;
-/* L043 */   left: 0;
-/* L044 */   width: 100%;
-/* L045 */   height: 100%;     /* ★dvhをやめ、固定されたbodyに追従させる */
-/* L046 */   overflow: hidden;
-/* L047 */   z-index: 0;
-/* L048 */ }
-/* L049 */ 
-/* L050 */ /* 地図 */
-/* L051 */ #map {
-/* L052 */   position: absolute;
-/* L053 */   inset: 0;
-/* L054 */   width: 100%;
-/* L055 */   height: 100%;
-/* L056 */   z-index: 1;
-/* L057 */ }
-/* L058 */ 
-/* L059 */ /* パネル */
-/* L060 */ .panel {
-/* L061 */   position: absolute; /* fixedではなくabsoluteにしてapp内に閉じ込める */
-/* L062 */   left: 0;
-/* L063 */   right: 0;
-/* L064 */   bottom: 0;
-/* L065 */   background: var(--panel-bg);
-/* L066 */   backdrop-filter: blur(18px);
-/* L067 */   
-/* L068 */   /* ★iPhone下部のバー対策: paddingにセーフエリアを追加 */
-/* L069 */   padding: 16px 16px calc(12px + env(safe-area-inset-bottom)) 16px;
-/* L070 */   
-/* L071 */   box-sizing: border-box;
-/* L072 */   border-top-left-radius: 20px;
-/* L073 */   border-top-right-radius: 20px;
-/* L074 */   color: #fff;
-/* L075 */   
-/* L076 */   max-height: 80%;
-/* L077 */   overflow-y: auto;
-/* L078 */   overflow-x: hidden;
-/* L079 */   z-index: 1000;
-/* L080 */   transition: transform 0.3s ease-out;
-/* L081 */   will-change: transform;
-/* L082 */   user-select: none;
-/* L083 */   -webkit-user-select: none;
-/* L084 */   
-/* L085 */   /* スクロール制御の強化 */
-/* L086 */   overscroll-behavior: none;      /* ★連鎖完全禁止 */
+/* L012 */   /* ★iOS Safari対策 */
+/* L013 */   height: 100%;
+/* L014 */   min-height: -webkit-fill-available;
+/* L015 */   width: 100%;
+/* L016 */   overflow: hidden;
+/* L017 */   overscroll-behavior: none;
+/* L018 */ }
+/* L019 */ 
+/* L020 */ body {
+/* L021 */   margin: 0;
+/* L022 */   padding: 0;
+/* L023 */   width: 100%;
+/* L024 */   /* 画面高に追従しつつ、iOSのsafe-areaにも対応 */
+/* L025 */   min-height: 100vh;
+/* L026 */   min-height: -webkit-fill-available;
+/* L027 */   background: var(--bg);
+/* L028 */   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+/* L029 */                 "Hiragino Sans", "Noto Sans JP", "Helvetica Neue",
+/* L030 */                 Arial, sans-serif;
+/* L031 */   overflow: hidden;
+/* L032 */   overscroll-behavior: none;
+/* L033 */   touch-action: manipulation;
+/* L034 */   position: relative;
+/* L035 */   inset: auto;
+/* L036 */ }
+/* L037 */ 
+/* L038 */ * {
+/* L039 */   box-sizing: border-box;
+/* L040 */   -webkit-tap-highlight-color: transparent;
+/* L041 */ }
+/* L042 */ 
+/* L043 */ .app {
+/* L044 */   position: fixed;
+/* L045 */   inset: 0;
+/* L046 */   width: 100%;
+/* L047 */   height: 100%;
+/* L048 */   overflow: hidden;
+/* L049 */   z-index: 0;
+/* L050 */ }
+/* L051 */ 
+/* L052 */ /* 地図 */
+/* L053 */ #map {
+/* L054 */   position: absolute;
+/* L055 */   inset: 0;
+/* L056 */   width: 100%;
+/* L057 */   height: 100%;
+/* L058 */   z-index: 1;
+/* L059 */ }
+/* L060 */ 
+/* L061 */ /* パネル */
+/* L062 */ .panel {
+/* L063 */   position: fixed;
+/* L064 */   left: 0;
+/* L065 */   right: 0;
+/* L066 */   bottom: 0;
+/* L067 */   background: var(--panel-bg);
+/* L068 */   backdrop-filter: blur(18px);
+/* L069 */ 
+/* L070 */   /* ★下部のセーフエリア（ホームバー）分だけ余白を確保 */
+/* L071 */   padding: 16px 16px calc(20px + env(safe-area-inset-bottom)) 16px;
+/* L072 */ 
+/* L073 */   box-sizing: border-box;
+/* L074 */   border-top-left-radius: 20px;
+/* L075 */   border-top-right-radius: 20px;
+/* L076 */   color: #fff;
+/* L077 */ 
+/* L078 */   max-height: 80%;
+/* L079 */   overflow-y: auto;
+/* L080 */   overflow-x: hidden;
+/* L081 */   z-index: 1000;
+/* L082 */   transition: transform 0.3s ease-out;
+/* L083 */   will-change: transform;
+/* L084 */ 
+/* L085 */   /* バウンス防止 */
+/* L086 */   overscroll-behavior: none;
 /* L087 */   -webkit-overflow-scrolling: touch;
-/* L088 */   touch-action: pan-y;            /* 縦スクロールのみ許可 */
+/* L088 */   touch-action: pan-y;
 /* L089 */ }
 /* L090 */ 
 /* L091 */ .panel-tabs-header {
@@ -317,7 +317,7 @@
 /* L317 */ /* FAB */
 /* L318 */ .fab-stack {
 /* L319 */   position: absolute;
-/* L320 */   bottom: calc(20px + env(safe-area-inset-bottom)); /* FABも少し上げる */
+/* L320 */   bottom: calc(20px + env(safe-area-inset-bottom));
 /* L321 */   right: 20px;
 /* L322 */   display: flex;
 /* L323 */   flex-direction: column;
@@ -353,31 +353,31 @@
 /* L353 */ .loading.hidden {
 /* L354 */   display: none;
 /* L355 */ }
-/* L356 */
+/* L356 */ 
 /* L357 */ /* Inputフォーカス調整 */
 /* L358 */ .input:focus {
 /* L359 */   -webkit-user-select: auto;
 /* L360 */ }
-/* L361 */
+/* L361 */ 
 /* L362 */ /* 地図モード選択 */
 /* L363 */ .map-mode-section {
 /* L364 */   margin-bottom: 16px;
 /* L365 */   width: 100%;
 /* L366 */ }
-/* L367 */
+/* L367 */ 
 /* L368 */ .map-mode-label {
 /* L369 */   font-size: 14px;
 /* L370 */   font-weight: 600;
 /* L371 */   margin-bottom: 10px;
 /* L372 */   color: #fff;
 /* L373 */ }
-/* L374 */
+/* L374 */ 
 /* L375 */ .map-mode-buttons {
 /* L376 */   display: flex;
 /* L377 */   gap: 8px;
 /* L378 */   width: 100%;
 /* L379 */ }
-/* L380 */
+/* L380 */ 
 /* L381 */ .map-mode-btn {
 /* L382 */   flex: 1;
 /* L383 */   padding: 10px 12px;
@@ -393,18 +393,18 @@
 /* L393 */   transition: all 0.2s;
 /* L394 */   white-space: nowrap;
 /* L395 */ }
-/* L396 */
+/* L396 */ 
 /* L397 */ .map-mode-btn.active {
 /* L398 */   background: #3aa0ff;
 /* L399 */   border-color: #3aa0ff;
 /* L400 */   color: #fff;
 /* L401 */   box-shadow: 0 2px 8px rgba(58,160,255,0.4);
 /* L402 */ }
-/* L403 */
+/* L403 */ 
 /* L404 */ .map-mode-btn:active {
 /* L405 */   opacity: 0.7;
 /* L406 */ }
-/* L407 */
+/* L407 */ 
 /* L408 */ /* 編集ダイアログ */
 /* L409 */ .edit-dialog-overlay {
 /* L410 */   position: fixed;
@@ -417,31 +417,31 @@
 /* L417 */   padding: 20px;
 /* L418 */   touch-action: manipulation;
 /* L419 */ }
-/* L420 */
+/* L420 */ 
 /* L421 */ .edit-dialog {
 /* L422 */   background: #1e1e1e;
 /* L423 */   border-radius: 16px;
 /* L424 */   padding: 20px;
 /* L425 */   max-width: 500px;
 /* L426 */   width: 100%;
-/* L427 */   max-height: 80%; /* ダイアログも少し余裕を持たせる */
+/* L427 */   max-height: 80%;
 /* L428 */   overflow-y: auto;
 /* L429 */   color: #fff;
 /* L430 */ }
-/* L431 */
+/* L431 */ 
 /* L432 */ .edit-dialog h3 {
 /* L433 */   margin: 0 0 16px 0;
 /* L434 */   font-size: 18px;
 /* L435 */   font-weight: 600;
 /* L436 */ }
-/* L437 */
+/* L437 */ 
 /* L438 */ .edit-dialog-list {
 /* L439 */   display: flex;
 /* L440 */   flex-direction: column;
 /* L441 */   gap: 8px;
 /* L442 */   margin-bottom: 16px;
 /* L443 */ }
-/* L444 */
+/* L444 */ 
 /* L445 */ .edit-dialog-item {
 /* L446 */   background: rgba(255,255,255,0.1);
 /* L447 */   border: 1px solid rgba(255,255,255,0.2);
@@ -451,21 +451,21 @@
 /* L451 */   transition: background 0.2s;
 /* L452 */   outline: none;
 /* L453 */ }
-/* L454 */
+/* L454 */ 
 /* L455 */ .edit-dialog-item:hover {
 /* L456 */   background: rgba(255,255,255,0.2);
 /* L457 */ }
-/* L458 */
+/* L458 */ 
 /* L459 */ .edit-dialog-item-title {
 /* L460 */   font-weight: 600;
 /* L461 */   margin-bottom: 4px;
 /* L462 */ }
-/* L463 */
+/* L463 */ 
 /* L464 */ .edit-dialog-item-subtitle {
 /* L465 */   font-size: 13px;
 /* L466 */   opacity: 0.7;
 /* L467 */ }
-/* L468 */
+/* L468 */ 
 /* L469 */ .edit-dialog-btn {
 /* L470 */   width: 100%;
 /* L471 */   padding: 14px;
@@ -477,40 +477,40 @@
 /* L477 */   outline: none;
 /* L478 */   transition: opacity 0.2s;
 /* L479 */ }
-/* L480 */
+/* L480 */ 
 /* L481 */ .edit-dialog-btn:active {
 /* L482 */   opacity: 0.8;
 /* L483 */ }
-/* L484 */
+/* L484 */ 
 /* L485 */ .edit-dialog-btn-primary {
 /* L486 */   background: #25d07a;
 /* L487 */   color: #fff;
 /* L488 */   margin-bottom: 8px;
 /* L489 */ }
-/* L490 */
+/* L490 */ 
 /* L491 */ .edit-dialog-btn-danger {
 /* L492 */   background: #ff6565;
 /* L493 */   color: #fff;
 /* L494 */   margin-bottom: 8px;
 /* L495 */ }
-/* L496 */
+/* L496 */ 
 /* L497 */ .edit-dialog-btn-secondary {
 /* L498 */   background: rgba(255,255,255,0.1);
 /* L499 */   color: #fff;
 /* L500 */   border: 1px solid rgba(255,255,255,0.2);
 /* L501 */ }
-/* L502 */
+/* L502 */ 
 /* L503 */ .edit-dialog-btn-group {
 /* L504 */   display: flex;
 /* L505 */   gap: 8px;
 /* L506 */   margin-top: 16px;
 /* L507 */ }
-/* L508 */
+/* L508 */ 
 /* L509 */ .edit-dialog-btn-group .edit-dialog-btn {
 /* L510 */   flex: 1;
 /* L511 */   margin-bottom: 0;
 /* L512 */ }
-/* L513 */
+/* L513 */ 
 /* L514 */ .edit-dialog-input {
 /* L515 */   width: 100%;
 /* L516 */   padding: 12px;
@@ -523,7 +523,7 @@
 /* L523 */   outline: none;
 /* L524 */   box-sizing: border-box;
 /* L525 */ }
-/* L526 */
+/* L526 */ 
 /* L527 */ .edit-dialog-input:focus {
 /* L528 */   border-color: #25d07a;
 /* L529 */   background: rgba(255,255,255,0.15);
