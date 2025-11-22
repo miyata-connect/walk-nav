@@ -36,6 +36,7 @@ const appState = {
   isSimulation: false,
   currentRouteData: null,
   keyboardAdjusted: false,
+  keyboardActive: false,
   unifiedHeight: null,
   savedLocations: [],
   editingLocationIndex: null,
@@ -1100,6 +1101,7 @@ function bindKeyboardWatch() {
 
   const adjustPanelPosition = () => {
     if (!window.visualViewport) return;
+    if (!appState.keyboardActive) return;
 
     const viewportHeight = window.visualViewport.height;
     const windowHeight = window.innerHeight;
@@ -1138,14 +1140,15 @@ function bindKeyboardWatch() {
 
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', adjustPanelPosition);
-    window.visualViewport.addEventListener('scroll', adjustPanelPosition);
   }
 
   searchInput.addEventListener('focus', () => {
+    appState.keyboardActive = true;
     setTimeout(adjustPanelPosition, 300);
   });
 
   searchInput.addEventListener('blur', () => {
+    appState.keyboardActive = false;
     setTimeout(() => {
       if (document.activeElement !== searchInput) {
         searchPanel.style.transition = 'transform 0.25s ease-out';
