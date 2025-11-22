@@ -13,8 +13,6 @@ const LOCATION_OPTIONS = {
 };
 const SAVED_LOCATIONS_KEY = 'walknav_saved_locations';
 const MAP_MODE_KEY = 'walknav_map_mode';
-const WEATHER_API_BASE = 'https://api.open-meteo.com/v1/forecast';
-const WEATHER_TIMEZONE = 'Asia/Tokyo';
 
 const appState = {
   map: null,
@@ -36,14 +34,11 @@ const appState = {
   isSimulation: false,
   currentRouteData: null,
   keyboardAdjusted: false,
-  keyboardActive: false,
   unifiedHeight: null,
   savedLocations: [],
   editingLocationIndex: null,
   isEditDialogOpen: false,
-  mapMode: 'roadmap',
-  currentWeather: null,
-  routeMode: 'normal'
+  mapMode: 'roadmap'
 };
 
 function getEl(id) {
@@ -450,13 +445,11 @@ async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
 async function placesTextSearch(payload, fieldMask) {
   try {
     payload.languageCode = 'ja';
-    if (fieldMask) {
-      payload.fieldMask = fieldMask;
-    }
     const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...(fieldMask ? { 'X-Goog-FieldMask': fieldMask } : {})
       },
       body: JSON.stringify(payload)
     });
@@ -471,13 +464,11 @@ async function placesTextSearch(payload, fieldMask) {
 async function placesNearby(payload, fieldMask) {
   try {
     payload.languageCode = 'ja';
-    if (fieldMask) {
-      payload.fieldMask = fieldMask;
-    }
     const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchNearby`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...(fieldMask ? { 'X-Goog-FieldMask': fieldMask } : {})
       },
       body: JSON.stringify(payload)
     });
@@ -601,62 +592,6 @@ function readLegDurationText(leg) {
   return leg?.localizedValues?.duration?.text || '--';
 }
 
-function getRouteDistanceMeters(route) {
-  if (!route) return Number.MAX_SAFE_INTEGER;
-  const leg = route.legs && route.legs[0];
-  if (leg) {
-    if (leg.distance && typeof leg.distance.value === 'number') return leg.distance.value;
-    if (typeof leg.distanceMeters === 'number') return leg.distanceMeters;
-    if (Array.isArray(leg.steps)) {
-      let sum = 0;
-      for (let i = 0; i < leg.steps.length; i++) {
-        const s = leg.steps[i];
-        if (s.distance && typeof s.distance.value === 'number') sum += s.distance.value;
-        else if (typeof s.distanceMeters === 'number') sum += s.distanceMeters;
-      }
-      if (sum > 0) return sum;
-    }
-  }
-  if (typeof route.distanceMeters === 'number') return route.distanceMeters;
-  return Number.MAX_SAFE_INTEGER;
-}
-
-function getRouteDurationSeconds(route) {
-  if (!route) return Number.MAX_SAFE_INTEGER;
-  const leg = route.legs && route.legs[0];
-  if (leg) {
-    if (leg.duration && typeof leg.duration.value === 'number') return leg.duration.value;
-    if (typeof leg.durationSeconds === 'number') return leg.durationSeconds;
-  }
-  if (typeof route.durationSeconds === 'number') return route.durationSeconds;
-  return Number.MAX_SAFE_INTEGER;
-}
-
-function chooseRouteByMode(routes) {
-  if (!routes || !routes.length) return null;
-  if (appState.routeMode !== 'ai_shortest') {
-    return routes[0];
-  }
-  let best = routes[0];
-  let bestDist = getRouteDistanceMeters(best);
-  let bestDur = getRouteDurationSeconds(best);
-  for (let i = 1; i < routes.length; i++) {
-    const r = routes[i];
-    const d = getRouteDistanceMeters(r);
-    const t = getRouteDurationSeconds(r);
-    if (d < bestDist) {
-      best = r;
-      bestDist = d;
-      bestDur = t;
-    } else if (d === bestDist && t < bestDur) {
-      best = r;
-      bestDist = d;
-      bestDur = t;
-    }
-  }
-  return best;
-}
-
 function drawRoutePolyline(route) {
   if (appState.currentPolyline) {
     appState.currentPolyline.setMap(null);
@@ -756,16 +691,14 @@ async function startNavigation(destination) {
         origin: `${originLat},${originLng}`,
         destination: `${destination.lat},${destination.lng}`,
         mode: 'walking',
-        language: 'ja',
-        alternatives: true
+        language: 'ja'
       })
     });
     if (!response.ok) throw new Error('Route API Error');
     const result = await response.json();
 
     if (result.routes && result.routes.length > 0) {
-      const routes = result.routes;
-      const r0 = chooseRouteByMode(routes);
+      const r0 = result.routes[0];
       const l0 = r0.legs ? r0.legs[0] : null;
 
       setText('destinationName', destination.name);
@@ -777,7 +710,7 @@ async function startNavigation(destination) {
       setDisplay('btnDestination', 'flex');
 
       const list = getEl('navPanelInstructions');
-      if (list && l0 && l0.steps) {
+      if (list && l0.steps) {
         list.innerHTML = '';
         l0.steps.forEach(step => {
           const d = document.createElement('div');
@@ -844,7 +777,6 @@ function acquireLocation() {
     }
     setUserMarker(latitude, longitude);
     fetchLocationNameGoogle(latitude, longitude);
-    fetchWeatherAndUpdateUI(latitude, longitude);
   };
 
   const onError = (error) => {
@@ -904,141 +836,6 @@ async function fetchPointAddress(lat, lng) {
   } catch(e) { setText('pointAddress', '取得エラー'); }
 }
 
-async function fetchWeatherAndUpdateUI(lat, lng) {
-  setText('weather3h', '--');
-  setText('weather6h', '--');
-  setText('weather9h', '--');
-
-  try {
-    const params = new URLSearchParams({
-      latitude: String(lat),
-      longitude: String(lng),
-      hourly: 'temperature_2m,precipitation,windspeed_10m',
-      forecast_days: '1',
-      timezone: WEATHER_TIMEZONE
-    });
-
-    const resp = await fetchWithRetry(`${WEATHER_API_BASE}?${params.toString()}`, {
-      method: 'GET'
-    });
-    if (!resp.ok) throw new Error(`Weather ${resp.status}`);
-
-    const data = await resp.json();
-    appState.currentWeather = data;
-
-    const offsets = [3, 6, 9];
-    const labels = ['weather3h', 'weather6h', 'weather9h'];
-    const forecasts = offsets.map(offset => extractForecastForOffset(data, offset));
-
-    forecasts.forEach((f, idx) => {
-      if (!f) {
-        setText(labels[idx], '--');
-      } else {
-        setText(labels[idx], buildWeatherLabel(f));
-      }
-    });
-
-    updateIncidentFromWeather(forecasts);
-  } catch (e) {
-    console.error('[Weather] fetch error:', e);
-    setText('weather3h', '取得エラー');
-    setText('weather6h', '取得エラー');
-    setText('weather9h', '取得エラー');
-    setDisplay('incidentSection', 'none');
-  }
-}
-
-function extractForecastForOffset(data, offsetHours) {
-  if (!data || !data.hourly || !Array.isArray(data.hourly.time)) return null;
-
-  const times = data.hourly.time;
-  const temps = data.hourly.temperature_2m || [];
-  const precs = data.hourly.precipitation || [];
-  const winds = data.hourly.windspeed_10m || [];
-
-  const now = Date.now();
-  let startIndex = 0;
-
-  for (let i = 0; i < times.length; i++) {
-    const t = new Date(times[i]).getTime();
-    if (t >= now) {
-      startIndex = i;
-      break;
-    }
-  }
-
-  let idx = startIndex + offsetHours;
-  if (idx >= times.length) idx = times.length - 1;
-  if (idx < 0) return null;
-
-  const tStr = times[idx];
-  const dt = new Date(tStr);
-
-  return {
-    time: tStr,
-    hour: dt.getHours(),
-    temperature: typeof temps[idx] === 'number' ? temps[idx] : null,
-    precipitation: typeof precs[idx] === 'number' ? precs[idx] : null,
-    windspeed: typeof winds[idx] === 'number' ? winds[idx] : null
-  };
-}
-
-function buildWeatherLabel(forecast) {
-  const parts = [];
-  parts.push(`${forecast.hour}時頃`);
-  if (typeof forecast.temperature === 'number') {
-    parts.push(`${Math.round(forecast.temperature)}℃`);
-  }
-  if (typeof forecast.precipitation === 'number') {
-    parts.push(`雨 ${forecast.precipitation.toFixed(1)}mm`);
-  }
-  if (typeof forecast.windspeed === 'number') {
-    parts.push(`風 ${forecast.windspeed.toFixed(1)}m/s`);
-  }
-  return parts.join(' / ');
-}
-
-function updateIncidentFromWeather(forecasts) {
-  const el = getEl('incidentText');
-  if (!el) return;
-
-  const valid = forecasts.filter(f => f);
-  if (!valid.length) {
-    setDisplay('incidentSection', 'none');
-    el.textContent = '';
-    return;
-  }
-
-  let severe = null;
-  let caution = null;
-
-  for (let i = 0; i < valid.length; i++) {
-    const f = valid[i];
-    const rain = typeof f.precipitation === 'number' ? f.precipitation : 0;
-    const wind = typeof f.windspeed === 'number' ? f.windspeed : 0;
-
-    if (rain >= 20 || wind >= 20) {
-      severe = f;
-      break;
-    }
-
-    if (rain >= 5 || wind >= 10) {
-      if (!caution) caution = f;
-    }
-  }
-
-  if (severe) {
-    el.textContent = `${severe.hour}時頃、非常に激しい雨または強風の予報があります。徒歩移動が危険になる可能性があります。`;
-    setDisplay('incidentSection', 'block');
-  } else if (caution) {
-    el.textContent = `${caution.hour}時頃、雨または風が強まる予報です。時間やルートを調整してください。`;
-    setDisplay('incidentSection', 'block');
-  } else {
-    setDisplay('incidentSection', 'none');
-    el.textContent = '';
-  }
-}
-
 async function performSearch(query) {
   if (!query) return;
   console.log('Search:', query);
@@ -1093,15 +890,68 @@ function displayResults(places, centerLat, centerLng) {
   });
 }
 
-/**
- * パネルのキーボード連動を完全に停止する版
- * transform を一切変更しないことで、iOS Safari での勝手なスライドを防ぐ
- */
 function bindKeyboardWatch() {
+  const searchInput = getEl('q');
   const searchPanel = getEl('searchPanel');
-  if (!searchPanel) return;
-  // 念のため初期化だけ
-  searchPanel.style.transform = 'translateY(0)';
+
+  if (!searchInput || !searchPanel) return;
+
+  const adjustPanelPosition = () => {
+    if (!window.visualViewport) return;
+
+    const viewportHeight = window.visualViewport.height;
+    const windowHeight = window.innerHeight;
+    const keyboardHeight = windowHeight - viewportHeight;
+
+    if (keyboardHeight > 150) {
+      if (appState.keyboardAdjusted) return;
+      
+      searchPanel.style.transform = 'translateY(0)';
+      const inputRect = searchInput.getBoundingClientRect();
+      const inputBottom = inputRect.bottom;
+      
+      const targetY = viewportHeight * 0.4;
+      let moveAmount = Math.max(0, inputBottom - targetY);
+      
+      const panelHeight = searchPanel.offsetHeight;
+      const maxMove = Math.min(panelHeight * 0.3, 200);
+      moveAmount = Math.min(moveAmount, maxMove);
+      
+      searchPanel.style.transition = 'transform 0.25s ease-out';
+      searchPanel.style.transform = `translateY(-${moveAmount}px)`;
+      
+      appState.keyboardAdjusted = true;
+      console.log(`[Keyboard] Show - keyboard:${keyboardHeight}px, move:${moveAmount}px`);
+      
+    } else {
+      if (!appState.keyboardAdjusted) return;
+      
+      searchPanel.style.transition = 'transform 0.25s ease-out';
+      searchPanel.style.transform = 'translateY(0)';
+      
+      appState.keyboardAdjusted = false;
+      console.log('[Keyboard] Hide');
+    }
+  };
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', adjustPanelPosition);
+    window.visualViewport.addEventListener('scroll', adjustPanelPosition);
+  }
+
+  searchInput.addEventListener('focus', () => {
+    setTimeout(adjustPanelPosition, 300);
+  });
+
+  searchInput.addEventListener('blur', () => {
+    setTimeout(() => {
+      if (document.activeElement !== searchInput) {
+        searchPanel.style.transition = 'transform 0.25s ease-out';
+        searchPanel.style.transform = 'translateY(0)';
+        appState.keyboardAdjusted = false;
+      }
+    }, 100);
+  });
 }
 
 function bindUI() {
@@ -1180,21 +1030,6 @@ function bindUI() {
       r30.classList.add('active'); r10.classList.remove('active'); r20.classList.remove('active');
       setText('radiusLabel', '30km');
   };
-
-  const btnRouteNormal = getEl('btnRouteNormal');
-  const btnRouteAiShortest = getEl('btnRouteAiShortest');
-  if (btnRouteNormal && btnRouteAiShortest) {
-    btnRouteNormal.onclick = () => {
-      appState.routeMode = 'normal';
-      btnRouteNormal.classList.add('active');
-      btnRouteAiShortest.classList.remove('active');
-    };
-    btnRouteAiShortest.onclick = () => {
-      appState.routeMode = 'ai_shortest';
-      btnRouteAiShortest.classList.add('active');
-      btnRouteNormal.classList.remove('active');
-    };
-  }
 }
 
 function startApp() {
