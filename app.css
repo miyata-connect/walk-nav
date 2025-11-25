@@ -63,8 +63,6 @@ html, body {
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
-  width: 100vw;
-  max-width: 100vw;
 }
 
 .panel-tabs-header {
@@ -232,7 +230,7 @@ h2 {
   outline: none;
 }
 
-/* Gアイコン（Google） */
+/* Gアイコン(Google) */
 .icon-g {
   color: #4285f4;
 }
@@ -241,7 +239,7 @@ h2 {
   fill: #4285f4;
 }
 
-/* 検索アイコン（虫眼鏡） */
+/* 検索アイコン(虫眼鏡) */
 .icon-search {
   color: #3aa0ff;
 }
@@ -357,7 +355,7 @@ h2 {
   display: none;
 }
 
-/* 100dvh 対応（iOS Safari 用） */
+/* 100dvh 対応(iOS Safari 用) */
 @supports (height: 100dvh) {
   html, body {
     height: 100dvh;
