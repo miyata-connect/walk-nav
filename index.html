@@ -598,12 +598,21 @@
     async function fetchCurrentAddress(lat, lng) {
       const el = document.getElementById("locAddress");
       try {
-        const url = `${WORKER_ORIGIN}/geocode?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`;
+        const latlng = `${lat},${lng}`;
+        const url = `${WORKER_ORIGIN}/geocode?latlng=${encodeURIComponent(latlng)}`;
         const res = await fetch(url, { method: "GET", credentials: "omit" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        const raw = data?.formattedAddress || "";
-        const clean = raw.replace(/^日本、\s*/, "");
+        
+        // Google Geocoding API のレスポンス形式に対応
+        let formattedAddress = "";
+        if (data?.results && data.results.length > 0) {
+          formattedAddress = data.results[0].formatted_address || "";
+        } else if (data?.formattedAddress) {
+          formattedAddress = data.formattedAddress;
+        }
+        
+        const clean = formattedAddress.replace(/^日本、\s*/, "");
         if (clean) {
           if (el) el.textContent = `現在地：${clean} 付近`;
           console.log("[ReverseGeocode] OK:", clean);
@@ -1170,35 +1179,70 @@
     function acquireLocation(retry = 0) {
       const MAX_RETRY = 3;
       const RETRY_DELAY_MS = 1500 * Math.max(1, retry + 1);
+      
       const onSuccess = (pos) => {
         const { latitude, longitude } = pos.coords;
-        document.getElementById('loading')?.remove();
+        const loadingEl = document.getElementById('loading');
+        if (loadingEl) loadingEl.remove();
+        
         if (!appState.map) {
           initMap({ lat: latitude, lng: longitude });
         }
         appState.map.setCenter({ lat: latitude, lng: longitude });
         setUserMarker(latitude, longitude);
         showToast('現在地を取得しました', 'success');
+        console.log('[WalkNav] Location acquired:', { lat: latitude, lng: longitude });
       };
+      
       const onError = (err) => {
-        console.log('[WalkNav] geolocation error', err?.message || err);
-        // CoreLocation の一時的な不明（kCLErrorLocationUnknown 相当）や POSITION_UNAVAILABLE はリトライ対象
+        console.error('[WalkNav] geolocation error', {
+          code: err?.code,
+          message: err?.message,
+          retry: retry
+        });
+        
+        // エラーコード: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT
         const code = err?.code;
         const TEMP_UNAVAILABLE =
           code === 2 /* POSITION_UNAVAILABLE */ ||
+          code === 3 /* TIMEOUT */ ||
           /LocationUnknown/i.test(err?.message || '');
+        
         if (TEMP_UNAVAILABLE && retry < MAX_RETRY) {
-          showToast('位置情報の取得を再試行します…', 'info');
+          showToast(`位置情報の取得を再試行します (${retry + 1}/${MAX_RETRY})`, 'info');
           setTimeout(() => acquireLocation(retry + 1), RETRY_DELAY_MS);
           return;
         }
-        // 初期化されていなければ適当な中心で地図だけ出す
+        
+        // 初期化されていなければデフォルト位置で地図を表示
         if (!appState.map) {
-          initMap({ lat: 35.0, lng: 135.0 });
+          const defaultCenter = { lat: 35.6812, lng: 139.7671 }; // 東京駅
+          initMap(defaultCenter);
+          console.log('[WalkNav] Map initialized with default center');
         }
-        document.getElementById('loading')?.remove();
-        showToast('現在地の取得に失敗しました', 'error');
+        
+        const loadingEl = document.getElementById('loading');
+        if (loadingEl) loadingEl.remove();
+        
+        if (code === 1) {
+          showToast('位置情報の使用が許可されていません', 'error');
+        } else {
+          showToast('現在地の取得に失敗しました', 'error');
+        }
       };
+      
+      // Geolocation API が利用可能かチェック
+      if (!navigator.geolocation) {
+        console.error('[WalkNav] Geolocation API not supported');
+        showToast('お使いのブラウザは位置情報に対応していません', 'error');
+        if (!appState.map) {
+          initMap({ lat: 35.6812, lng: 139.7671 });
+        }
+        const loadingEl = document.getElementById('loading');
+        if (loadingEl) loadingEl.remove();
+        return;
+      }
+      
       try {
         // まずは通常の一発取得
         navigator.geolocation.getCurrentPosition(onSuccess, onError, {
@@ -1206,27 +1250,41 @@
           timeout: 15000,
           maximumAge: 0
         });
-        // 併走のフォールバック（先に成功した方を採用し、もう一方は停止）
+        
+        // 併走のフォールバック（先に成功した方を採用）
         let watchId = null;
+        let watchSucceeded = false;
+        
         const watchSuccess = (pos) => {
-          if (watchId != null) navigator.geolocation.clearWatch(watchId);
-          onSuccess(pos);
+          if (watchId != null && !watchSucceeded) {
+            navigator.geolocation.clearWatch(watchId);
+            watchSucceeded = true;
+            onSuccess(pos);
+          }
         };
+        
         const watchError = (err) => {
-          if (watchId != null) navigator.geolocation.clearWatch(watchId);
-          // watch が失敗でも getCurrentPosition 側が成功する可能性があるので、ここでは黙っておく
+          if (watchId != null) {
+            navigator.geolocation.clearWatch(watchId);
+          }
           console.log('[WalkNav] watchPosition error', err?.message || err);
         };
+        
         watchId = navigator.geolocation.watchPosition(watchSuccess, watchError, {
           enableHighAccuracy: true,
-          maximumAge: 0
+          maximumAge: 0,
+          timeout: 15000
         });
-        // 念のため20秒でwatchを打ち切る
+        
+        // 20秒でwatchを打ち切る
         setTimeout(() => {
-          if (watchId != null) navigator.geolocation.clearWatch(watchId);
+          if (watchId != null && !watchSucceeded) {
+            navigator.geolocation.clearWatch(watchId);
+            console.log('[WalkNav] watchPosition timeout');
+          }
         }, 20000);
       } catch (e) {
-        console.log('[WalkNav] geolocation exception', e);
+        console.error('[WalkNav] geolocation exception', e);
         onError(e);
       }
     }
