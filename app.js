@@ -2,7 +2,7 @@
 
 const ISSUE_ID = 'idx20251119_fix_loc_tsurugi_v5';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
-const WORKER_ORIGIN = '[https://ors-proxy.miyata-connect-jp.workers.dev](https://ors-proxy.miyata-connect-jp.workers.dev)';
+const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
 const RETRY_DELAY = 1000;
