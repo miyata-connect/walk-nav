@@ -1,4 +1,4 @@
-‘use strict’;
+'use strict';
 
 const ISSUE_ID = ‘idx20251119_fix_loc_tsurugi_v5’;
 const API_KEY = ‘AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0’;
