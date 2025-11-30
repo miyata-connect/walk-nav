@@ -1,6 +1,6 @@
 /* ==========================================================================
-   WalkNav - 超コンパクト版
-   v16.0 - 緊急修正：パネル高を徹底的に削減
+   WalkNav - ボタンはみ出し修正版
+   v16.1 - ボタン幅とレイアウト調整
    ========================================================================== */
 
 :root {
@@ -55,10 +55,6 @@ html, body {
   touch-action: none;
   background: #1a1a1a;
 }
-
-/* ==========================================================================
-   パネル：最小高45dvh（地図55%表示）
-   ========================================================================== */
 
 .panel {
   position: absolute;
@@ -138,19 +134,19 @@ html, body {
   overscroll-behavior: contain;
   touch-action: pan-y;
   padding: 8px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .tab-pane {
   display: none;
+  width: 100%;
+  max-width: 100%;
 }
 
 .tab-pane.active {
   display: block;
 }
-
-/* ==========================================================================
-   タイポグラフィ：極小
-   ========================================================================== */
 
 h2, .section-title {
   font-size: 14px;
@@ -169,7 +165,7 @@ h2, .section-title {
 }
 
 /* ==========================================================================
-   ボタン・チップ：最小サイズ
+   チップ：はみ出し防止
    ========================================================================== */
 
 .chip {
@@ -187,6 +183,10 @@ h2, .section-title {
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chip:active {
@@ -206,11 +206,21 @@ h2, .section-title {
   padding: 0 8px;
 }
 
+.chip.point-select {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+/* ==========================================================================
+   ボタン：幅制御強化
+   ========================================================================== */
+
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 100%;
+  max-width: 100%;
   height: 34px;
   padding: 0 12px;
   font-size: 12px;
@@ -222,6 +232,10 @@ h2, .section-title {
   cursor: pointer;
   transition: all 0.15s;
   margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .btn:active {
@@ -254,7 +268,7 @@ h2, .section-title {
 }
 
 /* ==========================================================================
-   レイアウト：間隔4px
+   レイアウト行：はみ出し防止
    ========================================================================== */
 
 .filter-chips-row, .action-buttons-row, .bottom-actions-row,
@@ -263,20 +277,22 @@ h2, .section-title {
   gap: 4px;
   margin-bottom: 6px;
   flex-wrap: wrap;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .action-buttons-row .btn,
 .bottom-actions-row .btn {
   flex: 1;
-  min-width: 70px;
+  min-width: 0;
+  max-width: calc(50% - 2px);
 }
-
-/* ==========================================================================
-   検索ボックス
-   ========================================================================== */
 
 .search-box-container {
   margin-bottom: 6px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .input-wrapper {
@@ -289,6 +305,9 @@ h2, .section-title {
   border: 1px solid var(--stroke);
   border-radius: 8px;
   transition: all 0.2s;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .input-wrapper:focus-within {
@@ -306,6 +325,7 @@ h2, .section-title {
   font-size: 13px;
   min-width: 0;
   padding: 0 4px;
+  width: 100%;
 }
 
 .input::placeholder {
@@ -318,6 +338,7 @@ h2, .section-title {
   justify-content: center;
   width: 24px;
   height: 24px;
+  flex-shrink: 0;
   border-radius: 50%;
   cursor: pointer;
   transition: background 0.2s;
@@ -338,10 +359,6 @@ h2, .section-title {
 .icon-search { color: var(--primary); }
 .icon-mic { color: var(--danger); }
 
-/* ==========================================================================
-   住所カード・結果
-   ========================================================================== */
-
 .address-card {
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--stroke-soft);
@@ -350,17 +367,27 @@ h2, .section-title {
   margin-bottom: 6px;
   font-size: 11px;
   line-height: 1.3;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .address-title {
   color: #fbbf24;
   font-weight: 600;
   margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .address-coords {
   color: var(--text-sub);
   font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .results-list {
@@ -368,16 +395,16 @@ h2, .section-title {
   flex-direction: column;
   gap: 4px;
   margin: 6px 0;
+  width: 100%;
+  max-width: 100%;
 }
-
-/* ==========================================================================
-   ナビゲーション
-   ========================================================================== */
 
 .nav-section {
   padding-bottom: 8px;
   margin-bottom: 8px;
   border-bottom: 1px solid var(--stroke-soft);
+  width: 100%;
+  max-width: 100%;
 }
 
 .nav-section:last-child {
@@ -389,22 +416,31 @@ h2, .section-title {
 .location-info {
   font-size: 12px;
   line-height: 1.4;
+  width: 100%;
+  overflow: hidden;
 }
 
 .loc-coords {
   color: #fbbf24;
   margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .loc-address {
   color: var(--text-sub);
   font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .weather-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 4px;
+  width: 100%;
 }
 
 .weather-card {
@@ -415,6 +451,7 @@ h2, .section-title {
   background: var(--surface);
   border-radius: 6px;
   font-size: 12px;
+  min-width: 0;
 }
 
 .weather-card span:first-child {
@@ -432,12 +469,18 @@ h2, .section-title {
   border-radius: 8px;
   padding: 8px;
   margin-bottom: 6px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .route-dest {
   font-size: 12px;
   color: var(--text-sub);
   margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .route-stats {
@@ -466,20 +509,22 @@ h2, .section-title {
   font-size: 11px;
   line-height: 1.3;
   color: #fca5a5;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .instructions-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  width: 100%;
 }
-
-/* ==========================================================================
-   設定
-   ========================================================================== */
 
 .settings-group {
   margin-bottom: 12px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .map-mode-buttons {
@@ -488,6 +533,7 @@ h2, .section-title {
   background: rgba(0,0,0,0.3);
   padding: 3px;
   border-radius: 10px;
+  width: 100%;
 }
 
 .map-mode-btn {
@@ -504,6 +550,7 @@ h2, .section-title {
   border-radius: 7px;
   cursor: pointer;
   transition: all 0.2s;
+  min-width: 0;
 }
 
 .map-mode-btn.active {
@@ -515,6 +562,7 @@ h2, .section-title {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  width: 100%;
 }
 
 .app-version {
@@ -524,10 +572,6 @@ h2, .section-title {
   margin-top: 8px;
   opacity: 0.5;
 }
-
-/* ==========================================================================
-   FAB
-   ========================================================================== */
 
 .fab-container {
   position: absolute;
@@ -563,10 +607,6 @@ h2, .section-title {
   background: var(--primary);
   color: #fff;
 }
-
-/* ==========================================================================
-   ローディング
-   ========================================================================== */
 
 .loading-overlay {
   position: absolute;
