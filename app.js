@@ -33,7 +33,6 @@ const appState = {
     currentHeading: 0,
     isSimulation: false,
     currentRouteData: null,
-    keyboardAdjusted: false,
     unifiedHeight: null,
     savedLocations: [],
     editingLocationIndex: null,
@@ -1006,74 +1005,6 @@ function displayResults(places, centerLat, centerLng) {
     });
 }
 
-function bindKeyboardWatch() {
-    const searchInput = getEl('q');
-    const searchPanel = getEl('searchPanel');
-
-    if (!searchInput || !searchPanel) return;
-
-    let isInputFocused = false;
-
-    const adjustPanelPosition = () => {
-        if (!window.visualViewport) return;
-        if (!isInputFocused) return;
-
-        const viewportHeight = window.visualViewport.height;
-        const windowHeight = window.innerHeight;
-        const keyboardHeight = windowHeight - viewportHeight;
-
-        if (keyboardHeight > 200 && isInputFocused) {
-            if (appState.keyboardAdjusted) return;
-
-            searchPanel.style.transform = 'translateY(0)';
-            const inputRect = searchInput.getBoundingClientRect();
-            const inputBottom = inputRect.bottom;
-
-            const targetY = viewportHeight * 0.4;
-            let moveAmount = Math.max(0, inputBottom - targetY);
-
-            const panelHeight = searchPanel.offsetHeight;
-            const maxMove = Math.min(panelHeight * 0.3, 200);
-            moveAmount = Math.min(moveAmount, maxMove);
-
-            searchPanel.style.transition = 'transform 0.25s ease-out';
-            searchPanel.style.transform = `translateY(-${moveAmount}px)`;
-
-            appState.keyboardAdjusted = true;
-            console.log(`[Keyboard] Show - keyboard:${keyboardHeight}px, move:${moveAmount}px`);
-
-        } else if (!isInputFocused || keyboardHeight <= 200) {
-            if (!appState.keyboardAdjusted) return;
-
-            searchPanel.style.transition = 'transform 0.25s ease-out';
-            searchPanel.style.transform = 'translateY(0)';
-
-            appState.keyboardAdjusted = false;
-            console.log('[Keyboard] Hide');
-        }
-
-    };
-
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', adjustPanelPosition);
-        window.visualViewport.addEventListener('scroll', adjustPanelPosition);
-    }
-
-    searchInput.addEventListener('focus', () => {
-        isInputFocused = true;
-        setTimeout(adjustPanelPosition, 300);
-    });
-
-    searchInput.addEventListener('blur', () => {
-        isInputFocused = false;
-        setTimeout(() => {
-            searchPanel.style.transition = 'transform 0.25s ease-out';
-            searchPanel.style.transform = 'translateY(0)';
-            appState.keyboardAdjusted = false;
-        }, 100);
-    });
-}
-
 function bindUI() {
     const btnSearch = getEl('btnSearchIcon');
     const inputQ = getEl('q');
@@ -1084,8 +1015,6 @@ function bindUI() {
     const btnStop = getEl('btnStopRoute');
     const btnSaveLocation = getEl('btnSaveLocation');
     const btnEditLocation = getEl('btnEditLocation');
-
-    bindKeyboardWatch();
 
     if (btnSearch) btnSearch.onclick = () => performSearch(inputQ.value);
     if (inputQ) inputQ.onkeypress = (e) => {
@@ -1158,14 +1087,6 @@ function bindUI() {
         r20.classList.remove('active');
         setText('radiusLabel', '30km');
     };
-    
-    const searchPanel = getEl('searchPanel');
-    if (searchPanel) {
-        searchPanel.style.maxWidth = '100vw';
-        searchPanel.style.paddingLeft = '10px';
-        searchPanel.style.paddingRight = '10px';
-        searchPanel.style.boxSizing = 'border-box';
-    }
 }
 
 function startApp() {
