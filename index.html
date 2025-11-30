@@ -7,8 +7,35 @@
 <title>WalkNav</title>
 <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-<!-- CSS のバージョンを v=7 に変更（キャッシュ対策） -->
 <link rel="stylesheet" href="app.css?v=7" />
+<style>
+  html, body {
+    width: 100%;
+    height: 100%;
+    height: 100dvh; /* アドレスバーの影響を受けない動的な高さ */
+    overflow: hidden; /* 画面全体のスクロールを禁止 */
+    overscroll-behavior: none; /* iOSのバウンスエフェクトを無効化 */
+    position: fixed; /* 画面を完全に固定 */
+    top: 0;
+    left: 0;
+    touch-action: none; /* 基本的なタッチ操作を無効化（地図やパネル内は別途有効化） */
+  }
+
+  /* パネル内のスクロールは許可しつつ、親要素への連鎖を防ぐ */
+  .panel-tabs-body {
+    overscroll-behavior: contain;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* iOSでの慣性スクロール */
+    touch-action: pan-y; /* 縦スクロールのみ許可 */
+  }
+
+  /* 地図自体のタッチ操作はAPIが制御するため干渉しないように設定 */
+  #map {
+    height: 100%;
+    width: 100%;
+    touch-action: none;
+  }
+</style>
 </head>
 <body id="appBody">
 <div class="app">
