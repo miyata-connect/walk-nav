@@ -1,35 +1,41 @@
 /* ==========================================================================
-   WalkNav Application Stylesheet - Full Revision
-   v11.0 - Layout Fix & Bounce Prevention
+   WalkNav Application Stylesheet - Ultimate Polish
+   v12.0 - High-Fidelity UI & Robust Fixes
    ========================================================================== */
 
 :root {
-  /* Color Palette */
-  --primary: #2563eb;         /* Action Blue */
-  --primary-hover: #1d4ed8;
-  --primary-light: rgba(37, 99, 235, 0.1);
+  /* --- Color Palette (Refined Dark Mode) --- */
+  --primary: #3b82f6;         /* A more vibrant, modern blue */
+  --primary-gradient: linear-gradient(135deg, #3b82f6, #2563eb);
+  --primary-pressed: #1d4ed8;
   
-  --warning: #f59e0b;         /* Alert Orange */
-  --danger: #ef4444;          /* Destructive Red */
-  --danger-bg: rgba(239, 68, 68, 0.2);
+  --danger: #ef4444;
+  --danger-gradient: linear-gradient(135deg, #ef4444, #dc2626);
   
   --text-main: #ffffff;
-  --text-sub: #94a3b8;
+  --text-sub: #a1a1aa;        /* Softer subtitle color */
   
-  --bg-app: #000000;          /* Base background */
-  --panel-bg: rgba(28, 28, 30, 0.92); /* iOS style blur bg */
+  --bg-app: #000000;
+  /* More sophisticated panel background */
+  --panel-bg: rgba(30, 30, 35, 0.85);
   
-  --stroke: rgba(255, 255, 255, 0.15);
-  --stroke-light: rgba(255, 255, 255, 0.08);
+  /* --- Subtle Details --- */
+  --stroke: rgba(255, 255, 255, 0.12);
+  --stroke-soft: rgba(255, 255, 255, 0.06);
+  --surface-highlight: rgba(255, 255, 255, 0.08);
   
-  /* Layout Variables */
-  --header-height: 60px;
-  --panel-radius: 24px;
-  --safe-area-bottom: env(safe-area-inset-bottom, 20px);
+  /* --- Layout & Effects --- */
+  --panel-radius: 28px;       /* Slightly rounder corners */
+  --safe-area-bottom: env(safe-area-inset-bottom, 24px);
+  --shadow-panel: 
+    0 -10px 40px rgba(0, 0, 0, 0.5),
+    0 -2px 12px rgba(0, 0, 0, 0.3),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1); /* Top rim highlight */
+  --shadow-button: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 /* ==========================================================================
-   1. Base Reset & Layout Lock (iOS Fixes)
+   1. Base Reset & Core Layout Lock
    ========================================================================== */
 
 *, *::before, *::after {
@@ -37,39 +43,30 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-html {
+html, body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
   height: 100dvh; /* Dynamic Viewport Height */
-  overflow: hidden;
-  -webkit-text-size-adjust: 100%;
-}
-
-body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  height: 100dvh;
   
-  /* CRITICAL: Lock the body to prevent page bounce */
+  /* CRITICAL: Physical Body Lock */
   position: fixed;
   top: 0;
   left: 0;
   
   background-color: var(--bg-app);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--text-main);
   
   overflow: hidden;
   overscroll-behavior: none;
   touch-action: none;
+  -webkit-text-size-adjust: 100%;
+  font-synthesis: none; /* Improves font rendering */
 }
 
-/* Application Container */
-.app {
+.app, #map {
   position: absolute;
   top: 0;
   left: 0;
@@ -79,20 +76,13 @@ body {
   z-index: 1;
 }
 
-/* Map Container */
 #map {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  touch-action: none; /* Let Google Maps handle touch */
-  background: #e5e7eb; /* Placeholder color */
+  touch-action: none;
+  background: #222; /* Dark placeholder */
 }
 
 /* ==========================================================================
-   2. Sliding Panel (The Core UI)
+   2. The Glass Panel (High-Fidelity Style)
    ========================================================================== */
 
 .panel {
@@ -102,83 +92,86 @@ body {
   bottom: 0;
   width: 100%;
   
-  /* Constraints */
-  max-height: 90dvh; /* Allow panel to grow tall but leave map peek */
-  min-height: 200px;
+  /* Constraints for natural feel */
+  max-height: 88dvh;
+  min-height: 240px;
   
   display: flex;
   flex-direction: column;
   
-  /* Styling */
+  /* --- The "Beautiful" Part --- */
   background: var(--panel-bg);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
+  /* iOS-style vibrant blur */
+  backdrop-filter: saturate(180%) blur(30px);
+  -webkit-backdrop-filter: saturate(180%) blur(30px);
   
   border-top-left-radius: var(--panel-radius);
   border-top-right-radius: var(--panel-radius);
-  box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-panel);
   
-  /* Transitions */
-  transition: transform 0.35s cubic-bezier(0.165, 0.84, 0.44, 1);
+  /* Subtle border rendering */
+  border-top: 1px solid var(--stroke-soft);
+  
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
   will-change: transform;
   z-index: 1000;
   
-  /* Safety spacing */
   padding-bottom: var(--safe-area-bottom);
 }
 
-/* Panel Header (Fixed part) */
+/* Header (Fixed) */
 .panel-tabs-header {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   
   width: 100%;
-  padding: 16px 20px 12px 20px;
+  padding: 18px 24px 14px 24px;
   
-  border-bottom: 1px solid var(--stroke-light);
+  /* Subtle separation */
+  background: rgba(0,0,0,0.1);
+  border-bottom: 1px solid var(--stroke-soft);
 }
 
-/* Panel Body (Scrollable part) */
+/* Body (Scrollable) */
 .panel-tabs-body {
   flex: 1;
   width: 100%;
   position: relative;
   
-  /* Scroll handling */
   overflow-y: auto;
   overflow-x: hidden;
   
-  /* iOS momentum scrolling & bounce containment */
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   touch-action: pan-y;
   
-  padding: 16px 20px 24px 20px;
+  padding: 20px 24px 32px 24px;
 }
 
 /* ==========================================================================
-   3. Tab Navigation
+   3. Refined UI Components
    ========================================================================== */
 
+/* --- Tab Navigation --- */
 .tab-btn {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   
-  height: 36px;
+  height: 38px;
   padding: 0 16px;
   
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   
-  border-radius: 18px;
+  border-radius: 19px;
   border: 1px solid var(--stroke);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-highlight);
   color: var(--text-sub);
   
   cursor: pointer;
@@ -187,127 +180,119 @@ body {
 }
 
 .tab-btn:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
+  background: rgba(255,255,255,0.12);
 }
 
 .tab-btn.active {
   background: var(--text-main);
   color: #000;
-  border-color: var(--text-main);
-  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.2);
+  border-color: transparent;
+  box-shadow: var(--shadow-button);
 }
 
-/* Tab Content Panes */
-.tab-pane {
-  display: none;
-  width: 100%;
-  animation: fadeIn 0.3s ease;
-}
-
-.tab-pane.active {
-  display: block;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ==========================================================================
-   4. UI Components: Typography & Layout
-   ========================================================================== */
-
+/* --- Typography & Layout --- */
 h2 {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-main);
-  margin: 0 0 16px 0;
-  line-height: 1.3;
+  margin: 0 0 18px 0;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 
-/* Flex Row Helper */
 .row {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   width: 100%;
   flex-wrap: wrap;
 }
 
-/* Chips (Distance selectors) */
+/* --- Chips (Improved Depth) --- */
 .chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   
-  height: 32px;
-  padding: 0 14px;
+  height: 34px;
+  padding: 0 16px;
   
   font-size: 13px;
   font-weight: 500;
   
-  border-radius: 16px;
+  border-radius: 17px;
   border: 1px solid var(--stroke);
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-highlight);
   color: var(--text-main);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .chip:active {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255,255,255,0.15);
+  transform: scale(0.98);
 }
 
 .chip.active {
   background: var(--text-main);
   color: #000;
-  border-color: var(--text-main);
+  border-color: transparent;
   font-weight: 700;
+  box-shadow: var(--shadow-button);
 }
 
-/* Buttons */
+/* --- Buttons (Polished) --- */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   
-  width: 100%; /* Default full width in flex container */
-  height: 44px;
-  padding: 0 16px;
+  width: 100%;
+  height: 46px;
+  padding: 0 20px;
   
   font-size: 15px;
   font-weight: 600;
   
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid var(--stroke);
-  background: rgba(60, 60, 60, 0.6);
+  /* Subtle gradient for depth */
+  background: linear-gradient(180deg, rgba(70,70,70,0.6), rgba(50,50,50,0.6));
   color: var(--text-main);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.05);
   
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.1s ease;
+  transition: all 0.15s ease;
 }
 
 .btn:active {
   transform: scale(0.98);
-  background: rgba(80, 80, 80, 0.8);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .btn.primary {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--primary-gradient);
+  border: none;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+.btn.primary:active {
+  background: var(--primary-pressed);
 }
 
 .btn.danger {
-  background: var(--danger-bg);
-  border-color: var(--danger);
-  color: #ff8a8a;
+  background: var(--danger-gradient);
+  border: none;
+  color: white;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3), inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
 /* ==========================================================================
-   5. Search & Input Elements
+   4. Inputs & Search (Refined)
    ========================================================================== */
 
 .input-wrapper {
@@ -315,19 +300,21 @@ h2 {
   display: flex;
   align-items: center;
   width: 100%;
-  height: 48px;
+  height: 50px;
   
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--stroke);
-  border-radius: 14px;
-  padding: 0 12px;
+  border-radius: 16px;
+  padding: 0 14px;
   
-  transition: border-color 0.2s;
+  transition: all 0.2s;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .input-wrapper:focus-within {
   border-color: var(--primary);
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2), inset 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .input {
@@ -337,295 +324,156 @@ h2 {
   outline: none;
   
   color: var(--text-main);
-  font-size: 16px; /* Prevents iOS zoom */
+  font-size: 16px;
   line-height: 1.5;
   
   min-width: 0;
-  padding: 0 8px;
+  padding: 0 10px;
 }
 
 .input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.35);
 }
 
-/* Icons within Input */
 .icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   cursor: pointer;
   transition: background 0.2s;
+  color: var(--text-sub);
 }
-
-.icon:active {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.icon svg {
-  width: 20px;
-  height: 20px;
-}
+.icon:active { background: rgba(255,255,255,0.1); color: var(--text-main); }
+.icon svg { width: 22px; height: 22px; }
 
 .icon-g { color: #4285f4; }
 .icon-search { color: var(--primary); }
 .icon-mic { color: var(--danger); }
 
 /* ==========================================================================
-   6. Search Results & Lists
+   5. Lists & Info (Cleaned Up)
    ========================================================================== */
 
 .results {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 12px;
+  gap: 12px;
+  margin-top: 16px;
   width: 100%;
 }
 
 .result-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--stroke-light);
-  border-radius: 12px;
-  
+  gap: 6px;
+  padding: 16px;
+  background: var(--surface-highlight);
+  border: 1px solid var(--stroke-soft);
+  border-radius: 16px;
   cursor: pointer;
   transition: background 0.2s;
 }
-
-.result-item:active {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-/* ==========================================================================
-   7. Navigation Info Sections
-   ========================================================================== */
+.result-item:active { background: rgba(255,255,255,0.12); }
 
 .nav-section {
-  padding: 0 0 16px 0;
-  margin-bottom: 16px;
-  border-bottom: 1px solid var(--stroke-light);
+  padding: 0 0 20px 0;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--stroke-soft);
   width: 100%;
 }
-
-.nav-section:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-}
+.nav-section:last-child { border-bottom: none; margin-bottom: 0; }
 
 .nav-section-title {
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   color: var(--text-sub);
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
-/* Weather Widget */
-.nav-weather {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
+.nav-weather { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .weather-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  font-size: 13px;
-}
-
-.weather-item span:first-child {
-  font-size: 11px;
-  color: var(--text-sub);
-  margin-bottom: 4px;
-}
-
-/* Route Info */
-.route-distance {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-main);
-}
-
-.route-time {
-  font-size: 15px;
-  color: var(--text-sub);
-}
-
-/* Instructions List */
-.nav-instructions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.nav-instruction-item {
-  display: flex;
-  gap: 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
+  background: var(--surface-highlight);
+  border-radius: 12px;
   font-size: 14px;
-  line-height: 1.4;
+  font-weight: 500;
+}
+.weather-item span:first-child { font-size: 11px; color: var(--text-sub); margin-bottom: 6px; }
+
+.route-distance { font-size: 26px; font-weight: 800; color: var(--text-main); }
+.route-time { font-size: 16px; color: var(--text-sub); font-weight: 500; }
+
+.nav-instructions-list { display: flex; flex-direction: column; gap: 10px; }
+.nav-instruction-item {
+  display: flex; gap: 12px; padding: 14px;
+  background: var(--surface-highlight); border-radius: 12px;
+  font-size: 15px; line-height: 1.5;
 }
 
 /* ==========================================================================
-   8. Floating Action Buttons (FAB)
+   6. Floating Action Buttons (Premium Feel)
    ========================================================================== */
 
 .fab-stack {
   position: absolute;
-  bottom: calc(var(--safe-area-bottom) + 80px); /* Adjust based on panel height */
-  right: 16px;
-  
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  z-index: 900;
-  
-  pointer-events: auto; /* Clickable even if overlaying */
+  bottom: calc(var(--safe-area-bottom) + 32px);
+  right: 24px;
+  display: flex; flex-direction: column; gap: 16px;
+  z-index: 900; pointer-events: auto;
 }
 
 .fab {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  min-width: 48px;
-  height: 48px;
-  padding: 0 16px;
-  
-  background: var(--text-main);
-  color: #000;
-  font-weight: 600;
-  font-size: 14px;
-  
-  border-radius: 24px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  
+  display: flex; align-items: center; justify-content: center;
+  min-width: 52px; height: 52px; padding: 0 20px;
+  background: var(--text-main); color: #000;
+  font-weight: 700; font-size: 15px;
+  border-radius: 26px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.1);
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
 }
-
-.fab:active {
-  transform: scale(0.9);
-}
+.fab:active { transform: scale(0.92); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 
 /* ==========================================================================
-   9. Map Mode Settings
+   7. Map Mode & Dialogs
    ========================================================================== */
 
-.map-mode-section {
-  width: 100%;
-  margin-bottom: 20px;
-}
-
+.map-mode-section { width: 100%; margin-bottom: 24px; }
 .map-mode-buttons {
-  display: flex;
-  background: rgba(0, 0, 0, 0.2);
-  padding: 4px;
-  border-radius: 14px;
+  display: flex; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 16px;
 }
-
 .map-mode-btn {
-  flex: 1;
-  padding: 10px;
-  text-align: center;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-sub);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-  background: transparent;
+  flex: 1; padding: 12px; text-align: center; font-size: 13px; font-weight: 600;
+  color: var(--text-sub); border-radius: 12px; cursor: pointer;
+  transition: all 0.2s; border: none; background: transparent;
 }
-
 .map-mode-btn.active {
-  background: rgba(60, 60, 60, 0.8);
-  color: var(--text-main);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  background: rgba(80, 80, 80, 0.9); color: var(--text-main);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
 }
-
-/* ==========================================================================
-   10. Modals & Loaders
-   ========================================================================== */
 
 .loading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(10px);
-  z-index: 5000;
-  color: var(--text-main);
-  
-  transition: opacity 0.3s;
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(12px);
+  z-index: 5000; color: var(--text-main); transition: opacity 0.3s;
 }
+.loading.hidden { opacity: 0; pointer-events: none; }
 
-.loading.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* Edit Dialog */
 .edit-dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(5px);
-  z-index: 10000;
-  
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px); z-index: 10000;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
 }
-
 .edit-dialog {
-  width: 100%;
-  max-width: 480px;
-  max-height: 80%;
-  
-  background: #1c1c1e;
-  border: 1px solid var(--stroke);
-  border-radius: 20px;
-  padding: 24px;
-  
-  overflow-y: auto;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-}
-
-.edit-dialog-input {
-  width: 100%;
-  height: 50px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid var(--stroke);
-  border-radius: 12px;
-  color: #fff;
-  font-size: 16px;
-  padding: 0 16px;
-  outline: none;
-  margin-bottom: 20px;
-}
-
-.edit-dialog-input:focus {
-  border-color: var(--primary);
-  background: rgba(255,255,255,0.12);
+  width: 100%; max-width: 440px; max-height: 80%;
+  background: #1c1c1e; border: 1px solid var(--stroke);
+  border-radius: 24px; padding: 28px;
+  overflow-y: auto; box-shadow: 0 24px 48px rgba(0,0,0,0.6);
 }
