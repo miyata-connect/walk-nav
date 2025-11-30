@@ -572,7 +572,7 @@ function setSearchPoint(lat, lng) {
     pin.style.background = '#ff6565';
     pin.style.border = '3px solid #fff';
     pin.style.transform = 'rotate(-45deg)';
-    pin.style.boxShadow = '0 4px 8px rgba(0,0,0,.3)';
+    pin.style.boxShadow = '0 4px 4px rgba(0,0,0,.3)';
 
     try {
         appState.searchPointMarker = new google.maps.marker.AdvancedMarkerElement({
@@ -590,7 +590,8 @@ function setSearchPoint(lat, lng) {
             position: {
                 lat,
                 lng
-            }
+            },
+            label: 'Target'
         });
     }
     fetchPointAddress(lat, lng);
