@@ -1,11 +1,11 @@
 /* ==========================================================================
    WalkNav Application Stylesheet - Ultimate Polish
-   v12.0 - High-Fidelity UI & Robust Fixes
+   v13.0 - Clean Layout & Dynamic Panel Heights
    ========================================================================== */
 
 :root {
   /* --- Color Palette (Refined Dark Mode) --- */
-  --primary: #3b82f6;         /* A more vibrant, modern blue */
+  --primary: #3b82f6;
   --primary-gradient: linear-gradient(135deg, #3b82f6, #2563eb);
   --primary-pressed: #1d4ed8;
   
@@ -13,10 +13,9 @@
   --danger-gradient: linear-gradient(135deg, #ef4444, #dc2626);
   
   --text-main: #ffffff;
-  --text-sub: #a1a1aa;        /* Softer subtitle color */
+  --text-sub: #a1a1aa;
   
   --bg-app: #000000;
-  /* More sophisticated panel background */
   --panel-bg: rgba(30, 30, 35, 0.85);
   
   /* --- Subtle Details --- */
@@ -25,13 +24,20 @@
   --surface-highlight: rgba(255, 255, 255, 0.08);
   
   /* --- Layout & Effects --- */
-  --panel-radius: 28px;       /* Slightly rounder corners */
+  --panel-radius: 28px;
   --safe-area-bottom: env(safe-area-inset-bottom, 24px);
   --shadow-panel: 
     0 -10px 40px rgba(0, 0, 0, 0.5),
     0 -2px 12px rgba(0, 0, 0, 0.3),
-    inset 0 1px 1px rgba(255, 255, 255, 0.1); /* Top rim highlight */
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
   --shadow-button: 0 2px 6px rgba(0, 0, 0, 0.2);
+  
+  /* --- Spacing System (16px base) --- */
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
 }
 
 /* ==========================================================================
@@ -48,9 +54,8 @@ html, body {
   padding: 0;
   width: 100%;
   height: 100%;
-  height: 100dvh; /* Dynamic Viewport Height */
+  height: 100dvh;
   
-  /* CRITICAL: Physical Body Lock */
   position: fixed;
   top: 0;
   left: 0;
@@ -63,7 +68,7 @@ html, body {
   overscroll-behavior: none;
   touch-action: none;
   -webkit-text-size-adjust: 100%;
-  font-synthesis: none; /* Improves font rendering */
+  font-synthesis: none;
 }
 
 .app, #map {
@@ -78,11 +83,11 @@ html, body {
 
 #map {
   touch-action: none;
-  background: #222; /* Dark placeholder */
+  background: #222;
 }
 
 /* ==========================================================================
-   2. The Glass Panel (High-Fidelity Style)
+   2. The Glass Panel (Dynamic Height Control)
    ========================================================================== */
 
 .panel {
@@ -92,24 +97,20 @@ html, body {
   bottom: 0;
   width: 100%;
   
-  /* Constraints for natural feel */
-  max-height: 88dvh;
-  min-height: 240px;
+  /* Dynamic height based on content */
+  max-height: 85dvh;
+  min-height: auto;
   
   display: flex;
   flex-direction: column;
   
-  /* --- The "Beautiful" Part --- */
   background: var(--panel-bg);
-  /* iOS-style vibrant blur */
   backdrop-filter: saturate(180%) blur(30px);
   -webkit-backdrop-filter: saturate(180%) blur(30px);
   
   border-top-left-radius: var(--panel-radius);
   border-top-right-radius: var(--panel-radius);
   box-shadow: var(--shadow-panel);
-  
-  /* Subtle border rendering */
   border-top: 1px solid var(--stroke-soft);
   
   transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -119,23 +120,35 @@ html, body {
   padding-bottom: var(--safe-area-bottom);
 }
 
-/* Header (Fixed) */
+/* Tab-specific minimum heights */
+.panel[data-active-tab="search"] {
+  min-height: 320px;
+}
+
+.panel[data-active-tab="navigation"] {
+  min-height: 420px;
+}
+
+.panel[data-active-tab="settings"] {
+  min-height: 280px;
+}
+
+/* Header (Fixed, Cleaner) */
 .panel-tabs-header {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: var(--space-sm);
   
   width: 100%;
-  padding: 18px 24px 14px 24px;
+  padding: var(--space-md) var(--space-lg) var(--space-sm) var(--space-lg);
   
-  /* Subtle separation */
   background: rgba(0,0,0,0.1);
   border-bottom: 1px solid var(--stroke-soft);
 }
 
-/* Body (Scrollable) */
+/* Body (Optimized Scrolling) */
 .panel-tabs-body {
   flex: 1;
   width: 100%;
@@ -148,28 +161,29 @@ html, body {
   overscroll-behavior: contain;
   touch-action: pan-y;
   
-  padding: 20px 24px 32px 24px;
+  /* Generous, consistent padding */
+  padding: var(--space-lg) var(--space-lg) var(--space-xl) var(--space-lg);
 }
 
 /* ==========================================================================
    3. Refined UI Components
    ========================================================================== */
 
-/* --- Tab Navigation --- */
+/* --- Tab Navigation (Improved Touch Targets) --- */
 .tab-btn {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   
-  height: 38px;
-  padding: 0 16px;
+  min-height: 44px;
+  padding: 0 var(--space-md);
   
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.01em;
   
-  border-radius: 19px;
+  border-radius: 22px;
   border: 1px solid var(--stroke);
   background: var(--surface-highlight);
   color: var(--text-sub);
@@ -191,39 +205,39 @@ html, body {
   box-shadow: var(--shadow-button);
 }
 
-/* --- Typography & Layout --- */
+/* --- Typography & Layout (Clear Hierarchy) --- */
 h2 {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text-main);
-  margin: 0 0 18px 0;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
+  margin: 0 0 var(--space-lg) 0;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 .row {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
   width: 100%;
   flex-wrap: wrap;
 }
 
-/* --- Chips (Improved Depth) --- */
+/* --- Chips (Better Spacing) --- */
 .chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   
-  height: 34px;
-  padding: 0 16px;
+  min-height: 40px;
+  padding: 0 var(--space-md);
   
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   
-  border-radius: 17px;
+  border-radius: 20px;
   border: 1px solid var(--stroke);
   background: var(--surface-highlight);
   color: var(--text-main);
@@ -231,6 +245,7 @@ h2 {
   
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .chip:active {
@@ -246,28 +261,28 @@ h2 {
   box-shadow: var(--shadow-button);
 }
 
-/* --- Buttons (Polished) --- */
+/* --- Buttons (Clean, Spacious) --- */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   
   width: 100%;
-  height: 46px;
-  padding: 0 20px;
+  min-height: 52px;
+  padding: 0 var(--space-lg);
   
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   
-  border-radius: 14px;
+  border-radius: 16px;
   border: 1px solid var(--stroke);
-  /* Subtle gradient for depth */
   background: linear-gradient(180deg, rgba(70,70,70,0.6), rgba(50,50,50,0.6));
   color: var(--text-main);
   box-shadow: 0 1px 3px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.05);
   
   cursor: pointer;
   transition: all 0.15s ease;
+  margin-bottom: var(--space-sm);
 }
 
 .btn:active {
@@ -292,7 +307,7 @@ h2 {
 }
 
 /* ==========================================================================
-   4. Inputs & Search (Refined)
+   4. Inputs & Search (Optimized)
    ========================================================================== */
 
 .input-wrapper {
@@ -300,15 +315,16 @@ h2 {
   display: flex;
   align-items: center;
   width: 100%;
-  height: 50px;
+  min-height: 52px;
   
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--stroke);
   border-radius: 16px;
-  padding: 0 14px;
+  padding: 0 var(--space-md);
   
   transition: all 0.2s;
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: var(--space-md);
 }
 
 .input-wrapper:focus-within {
@@ -328,7 +344,7 @@ h2 {
   line-height: 1.5;
   
   min-width: 0;
-  padding: 0 10px;
+  padding: 0 var(--space-sm);
 }
 
 .input::placeholder {
@@ -339,8 +355,8 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  min-width: 40px;
+  min-height: 40px;
   border-radius: 50%;
   cursor: pointer;
   transition: background 0.2s;
@@ -354,126 +370,231 @@ h2 {
 .icon-mic { color: var(--danger); }
 
 /* ==========================================================================
-   5. Lists & Info (Cleaned Up)
+   5. Lists & Info (Clean Spacing)
    ========================================================================== */
 
 .results {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 16px;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
   width: 100%;
 }
 
 .result-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 16px;
+  gap: var(--space-xs);
+  padding: var(--space-md);
   background: var(--surface-highlight);
   border: 1px solid var(--stroke-soft);
   border-radius: 16px;
   cursor: pointer;
   transition: background 0.2s;
+  min-height: 68px;
 }
 .result-item:active { background: rgba(255,255,255,0.12); }
 
 .nav-section {
-  padding: 0 0 20px 0;
-  margin-bottom: 20px;
+  padding: 0 0 var(--space-lg) 0;
+  margin-bottom: var(--space-lg);
   border-bottom: 1px solid var(--stroke-soft);
   width: 100%;
 }
-.nav-section:last-child { border-bottom: none; margin-bottom: 0; }
+.nav-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
 
 .nav-section-title {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-sub);
-  margin-bottom: 10px;
+  margin-bottom: var(--space-md);
 }
 
-.nav-weather { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.nav-weather { 
+  display: grid; 
+  grid-template-columns: repeat(3, 1fr); 
+  gap: var(--space-sm); 
+}
+
 .weather-item {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 12px;
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center;
+  padding: var(--space-md);
   background: var(--surface-highlight);
-  border-radius: 12px;
-  font-size: 14px;
+  border-radius: 14px;
+  font-size: 15px;
   font-weight: 500;
+  min-height: 72px;
 }
-.weather-item span:first-child { font-size: 11px; color: var(--text-sub); margin-bottom: 6px; }
+.weather-item span:first-child { 
+  font-size: 11px; 
+  color: var(--text-sub); 
+  margin-bottom: var(--space-xs); 
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
 
-.route-distance { font-size: 26px; font-weight: 800; color: var(--text-main); }
-.route-time { font-size: 16px; color: var(--text-sub); font-weight: 500; }
+.route-distance { 
+  font-size: 32px; 
+  font-weight: 800; 
+  color: var(--text-main); 
+  line-height: 1;
+  margin-bottom: var(--space-xs);
+}
 
-.nav-instructions-list { display: flex; flex-direction: column; gap: 10px; }
+.route-time { 
+  font-size: 17px; 
+  color: var(--text-sub); 
+  font-weight: 500; 
+}
+
+.nav-instructions-list { 
+  display: flex; 
+  flex-direction: column; 
+  gap: var(--space-sm); 
+}
+
 .nav-instruction-item {
-  display: flex; gap: 12px; padding: 14px;
-  background: var(--surface-highlight); border-radius: 12px;
-  font-size: 15px; line-height: 1.5;
+  display: flex; 
+  gap: var(--space-md); 
+  padding: var(--space-md);
+  background: var(--surface-highlight); 
+  border-radius: 14px;
+  font-size: 15px; 
+  line-height: 1.5;
+  min-height: 56px;
+  align-items: center;
 }
 
 /* ==========================================================================
-   6. Floating Action Buttons (Premium Feel)
+   6. Floating Action Buttons (Cleaner Positioning)
    ========================================================================== */
 
 .fab-stack {
   position: absolute;
-  bottom: calc(var(--safe-area-bottom) + 32px);
-  right: 24px;
-  display: flex; flex-direction: column; gap: 16px;
-  z-index: 900; pointer-events: auto;
+  bottom: calc(var(--safe-area-bottom) + 40px);
+  right: var(--space-lg);
+  display: flex; 
+  flex-direction: column; 
+  gap: var(--space-md);
+  z-index: 900; 
+  pointer-events: auto;
 }
 
 .fab {
-  display: flex; align-items: center; justify-content: center;
-  min-width: 52px; height: 52px; padding: 0 20px;
-  background: var(--text-main); color: #000;
-  font-weight: 700; font-size: 15px;
-  border-radius: 26px;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  min-width: 56px; 
+  min-height: 56px; 
+  padding: 0 var(--space-lg);
+  background: var(--text-main); 
+  color: #000;
+  font-weight: 700; 
+  font-size: 15px;
+  border-radius: 28px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.1);
   cursor: pointer;
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
 }
-.fab:active { transform: scale(0.92); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.fab:active { 
+  transform: scale(0.92); 
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+}
 
 /* ==========================================================================
-   7. Map Mode & Dialogs
+   7. Map Mode & Dialogs (Refined)
    ========================================================================== */
 
-.map-mode-section { width: 100%; margin-bottom: 24px; }
+.map-mode-section { 
+  width: 100%; 
+  margin-bottom: var(--space-lg); 
+}
+
 .map-mode-buttons {
-  display: flex; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 16px;
+  display: flex; 
+  background: rgba(0,0,0,0.3); 
+  padding: 6px; 
+  border-radius: 18px;
+  gap: 4px;
 }
+
 .map-mode-btn {
-  flex: 1; padding: 12px; text-align: center; font-size: 13px; font-weight: 600;
-  color: var(--text-sub); border-radius: 12px; cursor: pointer;
-  transition: all 0.2s; border: none; background: transparent;
+  flex: 1; 
+  padding: var(--space-md); 
+  text-align: center; 
+  font-size: 14px; 
+  font-weight: 600;
+  color: var(--text-sub); 
+  border-radius: 14px; 
+  cursor: pointer;
+  transition: all 0.2s; 
+  border: none; 
+  background: transparent;
+  min-height: 44px;
 }
+
 .map-mode-btn.active {
-  background: rgba(80, 80, 80, 0.9); color: var(--text-main);
+  background: rgba(80, 80, 80, 0.9); 
+  color: var(--text-main);
   box-shadow: 0 2px 10px rgba(0,0,0,0.15);
 }
 
 .loading {
-  position: absolute; inset: 0; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  background: rgba(0,0,0,0.7); backdrop-filter: blur(12px);
-  z-index: 5000; color: var(--text-main); transition: opacity 0.3s;
+  position: absolute; 
+  inset: 0; 
+  display: flex; 
+  flex-direction: column;
+  align-items: center; 
+  justify-content: center;
+  background: rgba(0,0,0,0.7); 
+  backdrop-filter: blur(12px);
+  z-index: 5000; 
+  color: var(--text-main); 
+  transition: opacity 0.3s;
 }
 .loading.hidden { opacity: 0; pointer-events: none; }
 
 .edit-dialog-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-  backdrop-filter: blur(8px); z-index: 10000;
-  display: flex; align-items: center; justify-content: center; padding: 24px;
+  position: fixed; 
+  inset: 0; 
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px); 
+  z-index: 10000;
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  padding: var(--space-lg);
 }
+
 .edit-dialog {
-  width: 100%; max-width: 440px; max-height: 80%;
-  background: #1c1c1e; border: 1px solid var(--stroke);
-  border-radius: 24px; padding: 28px;
-  overflow-y: auto; box-shadow: 0 24px 48px rgba(0,0,0,0.6);
+  width: 100%; 
+  max-width: 440px; 
+  max-height: 80%;
+  background: #1c1c1e; 
+  border: 1px solid var(--stroke);
+  border-radius: 24px; 
+  padding: var(--space-xl);
+  overflow-y: auto; 
+  box-shadow: 0 24px 48px rgba(0,0,0,0.6);
 }
+
+/* ==========================================================================
+   8. Utility Classes (Spacing Helpers)
+   ========================================================================== */
+
+.mb-xs { margin-bottom: var(--space-xs) !important; }
+.mb-sm { margin-bottom: var(--space-sm) !important; }
+.mb-md { margin-bottom: var(--space-md) !important; }
+.mb-lg { margin-bottom: var(--space-lg) !important; }
+.mb-xl { margin-bottom: var(--space-xl) !important; }
+
+.mt-xs { margin-top: var(--space-xs) !important; }
+.mt-sm { margin-top: var(--space-sm) !important; }
+.mt-md { margin-top: var(--space-md) !important; }
+.mt-lg { margin-top: var(--space-lg) !important; }
+.mt-xl { margin-top: var(--space-xl) !important; }
