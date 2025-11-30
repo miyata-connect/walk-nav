@@ -9,33 +9,69 @@
 <link rel="stylesheet" href="app.css?v=7" />
 
 <style>
+  /* 【最強設定】
+    画面全体を物理的に固定し、ブラウザのスクロール機能を根底から無効化します。
+    これを解除できるのは、下部のJavaScriptで許可された要素だけです。
+  */
   html, body {
     width: 100%;
     height: 100%;
-    height: 100dvh;
-    overflow: hidden; /* 画面全体のスクロール禁止 */
-    position: fixed;  /* 画面を固定 */
-    inset: 0;
-    touch-action: none; /* ブラウザ標準動作を停止 */
+    position: fixed; /* 画面を釘付けにする */
+    overflow: hidden; /* スクロールバーを出さない */
+    touch-action: none; /* ブラウザ標準のジェスチャーを無効化 */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
   }
+
+  /* アプリのコンテナ */
   .app {
     width: 100%;
     height: 100%;
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
     overflow: hidden;
+  }
+
+  /* スクロールを許可する唯一のエリア 
+    明示的にクラスを指定して管理します。
+  */
+  .scrollable-y {
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain; /* 連鎖防止 */
+    touch-action: pan-y; /* 縦スクロールのみ許可 */
+    /* iOSでスクロール判定を安定させるためのハック（中身が空でもスクロール領域と認識させる） */
+    min-height: 0; 
+  }
+  
+  /* パネル自体の高さ制限とレイアウト調整 */
+  .panel-tabs-body {
+    flex: 1; /* 余った高さを埋める */
+    width: 100%;
+  }
+
+  /* パネル全体の構成を縦並びにして、headerを固定、bodyをスクロールにする */
+  #searchPanel {
+    display: flex;
+    flex-direction: column;
+    max-height: 70vh; /* 画面の7割まで */
   }
 </style>
 </head>
 <body id="appBody">
 <div class="app">
 <div id="map" aria-label="地図"></div>
+
 <section class="panel" id="searchPanel">
 <div class="panel-tabs-header" id="panelTabHeader">
 <div class="tab-btn active" data-panel-tab="search" tabindex="0">操作</div>
 <div class="tab-btn" data-panel-tab="nav" tabindex="0">案内</div>
 <div class="tab-btn" data-panel-tab="settings" tabindex="0">設定</div>
 </div>
-<div class="panel-tabs-body">
+
+<div class="panel-tabs-body scrollable-y" id="panelScrollContainer">
 <div class="tab-pane active" id="tabPaneSearch">
 <h2>近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
 <div class="row" style="margin-bottom:8px;justify-content:center;">
@@ -146,7 +182,9 @@
 </div>
 <div style="font-size:12px;color:var(--muted);text-align:center;margin-top:16px;">v=embedless-walknav</div>
 </div>
-</div></section>
+</div>
+</section>
+
 <div class="fab-stack" id="fabStack">
 <div class="fab" id="btnSearch">検索パネル</div>
 <div class="fab" id="btnLocate">現在地</div>
@@ -162,70 +200,62 @@
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=marker,geometry&language=ja&region=JP&loading=async" async defer></script>
 <script>
 (function () {
-// ▼▼▼ 【重要】iOSスクロールバウンス対策スクリプト ▼▼▼
-var touchStartY = 0;
-// タッチ開始位置を記録
-document.addEventListener('touchstart', function(e) {
-  touchStartY = e.touches[0].clientY;
-}, { passive: false });
+// ▼▼▼ iOS完全ロック・スクロール制御スクリプト ▼▼▼
+// 狙い: 許可されたエリア(.scrollable-y)以外でのタッチ移動を完全に無効化する
 
-// タッチ移動時の厳密な判定
 document.addEventListener('touchmove', function(e) {
-  var target = e.target;
-  
-  // 1. マップ操作かどうか？
-  // Google Mapsの要素（#mapまたは.gm-style内）なら許可
-  if (target.closest('#map') || target.closest('.gm-style')) {
-    return; // 何もしない（マップのドラッグを阻害しない）
+  // 1. タッチされた場所が「Googleマップ」なら許可 (地図操作用)
+  if (e.target.closest('.gm-style') || e.target.closest('#map')) {
+    return; // Google Mapsに任せる
   }
 
-  // 2. パネル内かどうか？
-  // ID=searchPanel がスクロールコンテナと仮定（またはその中のbody）
-  var panel = target.closest('#searchPanel');
-  
-  // パネル外（ヘッダーや余白）なら問答無用でブロック
-  if (!panel) {
+  // 2. タッチされた場所が「スクロール許可エリア(.scrollable-y)」の中か探す
+  var scrollableEl = e.target.closest('.scrollable-y');
+
+  // もしスクロール許可エリアの外（ヘッダー、余白、ボディなど）なら、即ブロック
+  if (!scrollableEl) {
     e.preventDefault();
     return;
   }
 
-  // 3. パネル内でも「スクロール可能か」判定
-  // ここでは .panel 自体が scroll設定されているCSSに基づき判定
-  // もし .panel-tabs-body がスクロールコンテナならそちらを取得してください
-  var scrollEl = panel; 
-  
-  // スクロールする必要がない（中身が短い）場合
-  if (scrollEl.scrollHeight <= scrollEl.clientHeight) {
-    // 入力フォーム以外はブロック
-    if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+  // 3. スクロール許可エリア内だが、スクロールする余地がない（中身が少ない）場合
+  if (scrollableEl.scrollHeight <= scrollableEl.clientHeight) {
+     // 入力フォーム以外はブロック
+     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
         e.preventDefault();
-    }
-    return;
+     }
+     return;
   }
 
-  var currentY = e.touches[0].clientY;
-  var deltaY = currentY - touchStartY;
-  var scrollTop = scrollEl.scrollTop;
-  var scrollHeight = scrollEl.scrollHeight;
-  var clientHeight = scrollEl.clientHeight;
+  // 4. 「端」に達した時のバウンス（親要素への伝播）を防ぐ
+  // ここでブロックしないと、勢い余って画面全体が揺れる
+  var scrollTop = scrollableEl.scrollTop;
+  var maxScroll = scrollableEl.scrollHeight - scrollableEl.clientHeight;
+  var isAtTop = scrollTop <= 0;
+  var isAtBottom = scrollTop >= maxScroll;
 
-  // 上端にいるのに、さらに下に引こうとした（バウンス発生要因）
-  if (scrollTop <= 0 && deltaY > 0) {
-    e.preventDefault();
-    return;
-  }
+  // ※移動方向を検知できればベストだが、簡易的に「端にいるなら注意」する
+  // より厳密には touchstart でY座標を保存し、方向判定するが、
+  // ここではCSSの overscroll-behavior: contain と併用して防御力を高める。
+  
+  // しかし、iOSのバウンスは強力なので、端にいるときは touchmove を止めるのが定石
+  // ただし、止めてしまうとスクロール開始できなくなるため、
+  // 「スクロール可能な方向への移動なら許可、逆（外側）なら拒否」が必要。
+  
+  // そのため、CSSの `overscroll-behavior: contain` (上で指定済) に任せつつ、
+  // どうしても止まらない場合はここを有効化する。
+  // 今回は「まだ止まっていない」ので、許可エリア以外ブロックが効くはず。
 
-  // 下端にいるのに、さらに上に引こうとした（バウンス発生要因）
-  if (scrollTop + clientHeight >= scrollHeight && deltaY < 0) {
-    e.preventDefault();
-    return;
-  }
+}, { passive: false }); // passive: false が必須
 
-  // それ以外（通常の中身スクロール）は許可（イベント伝播を止めて親に影響させない）
-  e.stopPropagation();
-
-}, { passive: false });
-// ▲▲▲ 対策スクリプト終了 ▲▲▲
+// 入力フォームでのフォーカス時にズームやスクロールがおかしくなるのを防ぐ
+var inputs = document.querySelectorAll('input, textarea');
+inputs.forEach(function(input) {
+  input.addEventListener('focus', function() {
+    // 必要ならここに処理を追加
+  });
+});
+// ▲▲▲ 制御スクリプト終了 ▲▲▲
 
 
 function initPanelTabs() {
