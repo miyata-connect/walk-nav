@@ -9,52 +9,68 @@
 <link rel="stylesheet" href="app.css?v=7" />
 
 <style>
-  /* 【最終調整】アドレスバー伸縮によるスライド防止策
-    dvh（動的な高さ）を使わず、JSで計算した固定値(--vh)を使います。
+  /* 【重要】JSとの連携設定
+    JSで計算された厳密な高さ(--app-height)を、アプリ全体の高さとして強制適用します。
+    これをしないと、アドレスバーの分だけズレて余白が生まれます。
   */
-  html, body {
-    width: 100%;
-    height: 100%;
-    /* 初期値としてsvh（バーが出ている状態の高さ）を指定 */
-    height: 100svh; 
-    position: fixed;
-    overflow: hidden;
-    touch-action: none;
-    overscroll-behavior: none;
-    -webkit-text-size-adjust: 100%;
+  :root {
+    --app-height: 100dvh; /* JSが読み込まれるまでの初期値 */
   }
 
-  /* アプリ全体のコンテナ：JSで計算した「本当の高さ」を強制適用 */
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    /* JSから渡される値をここで受け取る */
+    height: var(--app-height); 
+    overflow: hidden; /* はみ出し厳禁 */
+    position: fixed;  /* 画面固定 */
+    inset: 0;
+    touch-action: none;
+    overscroll-behavior: none;
+    background-color: #000;
+  }
+
   .app {
+    width: 100%;
+    height: 100%;
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    /* JSでセットする変数を使用。無ければ100% */
-    height: calc(var(--app-height, 100svh)); 
     overflow: hidden;
   }
 
-  /* スクロールエリア */
+  /* 地図も親要素(app)に従う */
+  #map {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    touch-action: none;
+  }
+
+  /* パネル設定 */
+  .panel {
+    display: flex;
+    flex-direction: column;
+    max-height: 70%; 
+    width: 100%;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+    /* iPhone X以降のホームバー領域を確保 */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* スクロールエリア（ここだけ指の動きを許可） */
   .scrollable-y {
-    overflow-y: auto !important;
+    flex: 1;
+    overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     touch-action: pan-y;
-    flex: 1; /* 余った領域を埋める */
-  }
-
-  /* パネルレイアウト */
-  .panel {
-    display: flex;
-    flex-direction: column;
-    /* パネルの最大高さも固定値ベースにする */
-    max-height: 70%; 
-  }
-
-  .panel-tabs-body {
-    width: 100%;
+    min-height: 0; 
   }
 </style>
 </head>
@@ -198,42 +214,47 @@
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=marker,geometry&language=ja&region=JP&loading=async" async defer></script>
 <script>
 (function () {
-// ▼▼▼ 画面高さ固定 & スクロールロック機能 ▼▼▼
-function fixAppHeight() {
-  // アドレスバーを除いた「現在の表示領域の高さ」を取得
-  var vh = window.innerHeight;
-  // CSS変数にセットして、強制的にこの高さにする
-  document.documentElement.style.setProperty('--app-height', vh + 'px');
+// ▼▼▼ JS: 画面高さの完全同期ロジック ▼▼▼
+function syncAppHeight() {
+  // 1. 今見えている正確な高さを取得
+  var doc = document.documentElement;
+  var height = window.innerHeight;
+  
+  // 2. CSS変数 --app-height に値をセット
+  // これにより、CSS側の height: var(--app-height) が連動して変化する
+  doc.style.setProperty('--app-height', height + 'px');
+  
+  // 3. iOSでスクロール位置がズレないよう強制補正
+  window.scrollTo(0, 0);
 }
 
-// 初回実行
-fixAppHeight();
-// リサイズ（回転など）時に再計算
-window.addEventListener('resize', fixAppHeight);
+// 起動時とリサイズ（回転・バーの伸縮）時に実行
+window.addEventListener('resize', syncAppHeight);
+syncAppHeight(); // 初回実行
 
-// タッチ制御（スクロール許可エリア以外をブロック）
+
+// ▼▼▼ JS: タッチイベント制御（スクロールロック） ▼▼▼
 document.addEventListener('touchmove', function(e) {
+  // Googleマップは許可
   if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
 
+  // スクロール許可エリア(.scrollable-y)内か判定
   var scrollable = e.target.closest('.scrollable-y');
-  // スクロールエリア外ならブロック
+
+  // エリア外なら、CSSに関わらずJSでブロック
   if (!scrollable) {
     e.preventDefault();
     return;
   }
-  
-  // スクロールエリア内でも、端っこでのバウンスを防ぐ
-  // （中身が足りない場合はブロック）
-  if (scrollable.scrollHeight <= scrollable.clientHeight) {
-     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-        e.preventDefault();
-     }
-  }
-  // ※ここでは「端での連鎖」はCSSのoverscroll-behaviorに任せるが、
-  // iOSの挙動が怪しければここに境界判定を追加する
-}, { passive: false });
-// ▲▲▲ 高さ固定＆ロック終了 ▲▲▲
 
+  // エリア内でも「中身がスカスカでスクロール不要」ならブロック
+  // これが余白（バウンス）を生む原因になるため
+  if (scrollable.scrollHeight <= scrollable.clientHeight) {
+      if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+      }
+  }
+}, { passive: false });
 
 function initPanelTabs() {
 var tabButtons = document.querySelectorAll('[data-panel-tab]');
