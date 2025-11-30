@@ -1,39 +1,25 @@
 /* ==========================================================================
-   WalkNav Application Stylesheet - Compact & Practical
-   v14.0 - Maximum Map Visibility
+   WalkNav - Compact & Map-First Design
+   v15.0 - 地図最優先・最小パネル
    ========================================================================== */
 
 :root {
-  /* --- Color Palette --- */
   --primary: #3b82f6;
-  --primary-gradient: linear-gradient(135deg, #3b82f6, #2563eb);
-  --primary-pressed: #1d4ed8;
-  
+  --primary-dark: #1d4ed8;
   --danger: #ef4444;
-  --danger-gradient: linear-gradient(135deg, #ef4444, #dc2626);
-  
   --text-main: #ffffff;
   --text-sub: #a1a1aa;
-  
   --bg-app: #000000;
-  --panel-bg: rgba(30, 30, 35, 0.9);
-  
-  /* --- Subtle Details --- */
+  --panel-bg: rgba(30, 30, 35, 0.92);
   --stroke: rgba(255, 255, 255, 0.12);
   --stroke-soft: rgba(255, 255, 255, 0.06);
-  --surface-highlight: rgba(255, 255, 255, 0.08);
-  
-  /* --- Layout --- */
-  --panel-radius: 24px;
-  --safe-area-bottom: env(safe-area-inset-bottom, 16px);
-  --shadow-panel: 
-    0 -8px 32px rgba(0, 0, 0, 0.6),
-    0 -2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-button: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --surface: rgba(255, 255, 255, 0.08);
+  --panel-radius: 20px;
+  --safe-bottom: env(safe-area-inset-bottom, 12px);
 }
 
 /* ==========================================================================
-   1. Base Reset & Core Layout
+   1. 基本設定（絶対的Body Lock）
    ========================================================================== */
 
 *, *::before, *::after {
@@ -47,15 +33,12 @@ html, body {
   width: 100%;
   height: 100%;
   height: 100dvh;
-  
   position: fixed;
   top: 0;
   left: 0;
-  
-  background-color: var(--bg-app);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg-app);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: var(--text-main);
-  
   overflow: hidden;
   overscroll-behavior: none;
   touch-action: none;
@@ -74,11 +57,11 @@ html, body {
 
 #map {
   touch-action: none;
-  background: #222;
+  background: #1a1a1a;
 }
 
 /* ==========================================================================
-   2. Compact Panel (Minimal Height)
+   2. 超コンパクトパネル（地図を最大化）
    ========================================================================== */
 
 .panel {
@@ -87,230 +70,232 @@ html, body {
   right: 0;
   bottom: 0;
   width: 100%;
-  
-  max-height: 75dvh;
-  min-height: auto;
-  
+  max-height: 65dvh;
   display: flex;
   flex-direction: column;
-  
   background: var(--panel-bg);
-  backdrop-filter: saturate(180%) blur(24px);
-  -webkit-backdrop-filter: saturate(180%) blur(24px);
-  
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-top-left-radius: var(--panel-radius);
   border-top-right-radius: var(--panel-radius);
-  box-shadow: var(--shadow-panel);
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.5);
   border-top: 1px solid var(--stroke-soft);
-  
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-  will-change: transform;
+  transition: transform 0.3s ease;
   z-index: 1000;
-  
-  padding-bottom: var(--safe-area-bottom);
+  padding-bottom: var(--safe-bottom);
 }
 
-.panel[data-active-tab="search"] {
-  min-height: 280px;
+/* ハンドル（上部のつまみ） */
+.panel-handle-area {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px 0;
 }
 
-.panel[data-active-tab="navigation"] {
-  min-height: 360px;
+.panel-handle {
+  width: 36px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
 }
 
-.panel[data-active-tab="settings"] {
-  min-height: 240px;
-}
-
-/* Header (Minimal) */
+/* タブヘッダー（最小化） */
 .panel-tabs-header {
   flex-shrink: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  
-  width: 100%;
-  padding: 12px 16px 8px 16px;
-  
-  background: rgba(0,0,0,0.1);
+  gap: 6px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--stroke-soft);
 }
 
-/* Body (Compact Padding) */
-.panel-tabs-body {
-  flex: 1;
-  width: 100%;
-  position: relative;
-  
-  overflow-y: auto;
-  overflow-x: hidden;
-  
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
-  
-  padding: 16px 16px 20px 16px;
-}
-
-/* ==========================================================================
-   3. Compact UI Components
-   ========================================================================== */
-
-/* --- Tab Navigation (Compact) --- */
 .tab-btn {
   flex: 1;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  
-  height: 36px;
-  padding: 0 12px;
-  
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  
-  border-radius: 18px;
+  border-radius: 16px;
   border: 1px solid var(--stroke);
-  background: var(--surface-highlight);
+  background: var(--surface);
   color: var(--text-sub);
-  
   cursor: pointer;
-  user-select: none;
-  transition: all 0.15s ease;
+  transition: all 0.15s;
 }
 
 .tab-btn:active {
-  transform: scale(0.97);
-  background: rgba(255,255,255,0.12);
+  transform: scale(0.96);
 }
 
 .tab-btn.active {
   background: var(--text-main);
   color: #000;
-  border-color: transparent;
-  box-shadow: var(--shadow-button);
+  border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
-/* --- Typography (Compact) --- */
-h2 {
-  font-size: 18px;
+/* スクロール可能なボディ */
+.panel-tabs-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding: 12px;
+}
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+/* ==========================================================================
+   3. タイポグラフィ（最小限）
+   ========================================================================== */
+
+h2, .section-title {
+  font-size: 16px;
   font-weight: 700;
-  color: var(--text-main);
-  margin: 0 0 12px 0;
+  margin: 0 0 10px 0;
   line-height: 1.2;
-  letter-spacing: -0.01em;
 }
 
-.row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  width: 100%;
-  flex-wrap: wrap;
+.nav-section-title, .settings-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-sub);
+  margin-bottom: 8px;
 }
 
-/* --- Chips (Compact) --- */
+/* ==========================================================================
+   4. ボタン・チップ（コンパクト）
+   ========================================================================== */
+
 .chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  
-  height: 32px;
+  height: 30px;
   padding: 0 12px;
-  
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  
-  border-radius: 16px;
+  border-radius: 15px;
   border: 1px solid var(--stroke);
-  background: var(--surface-highlight);
+  background: var(--surface);
   color: var(--text-main);
-  
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.15s;
   white-space: nowrap;
 }
 
 .chip:active {
-  background: rgba(255,255,255,0.15);
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
 .chip.active {
   background: var(--text-main);
   color: #000;
-  border-color: transparent;
+  border: none;
   font-weight: 700;
-  box-shadow: var(--shadow-button);
 }
 
-/* --- Buttons (Compact) --- */
+.chip.small {
+  height: 26px;
+  font-size: 11px;
+  padding: 0 10px;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  
   width: 100%;
-  height: 44px;
-  padding: 0 16px;
-  
-  font-size: 15px;
+  height: 40px;
+  padding: 0 14px;
+  font-size: 14px;
   font-weight: 600;
-  
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid var(--stroke);
-  background: linear-gradient(180deg, rgba(70,70,70,0.6), rgba(50,50,50,0.6));
+  background: rgba(60, 60, 60, 0.6);
   color: var(--text-main);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  
   cursor: pointer;
-  transition: all 0.15s ease;
-  margin-bottom: 8px;
+  transition: all 0.15s;
+  margin-bottom: 6px;
 }
 
 .btn:active {
   transform: scale(0.98);
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
 }
 
-.btn.primary {
-  background: var(--primary-gradient);
+.btn-primary {
+  background: var(--primary);
   border: none;
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
-}
-.btn.primary:active {
-  background: var(--primary-pressed);
+  color: #fff;
 }
 
-.btn.danger {
-  background: var(--danger-gradient);
+.btn-danger, .btn-danger-block {
+  background: var(--danger);
   border: none;
-  color: white;
-  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+  color: #fff;
+}
+
+.btn-secondary {
+  background: rgba(100, 100, 100, 0.5);
+}
+
+.btn-outline, .btn-outline-primary {
+  background: transparent;
+  border: 1px solid var(--stroke);
+}
+
+.btn-block {
+  width: 100%;
 }
 
 /* ==========================================================================
-   4. Inputs & Search (Compact)
+   5. レイアウト（ギャップ最小化）
    ========================================================================== */
 
+.filter-chips-row, .action-buttons-row, .bottom-actions-row,
+.tab-pos-buttons, .route-mode-toggle {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.action-buttons-row .btn,
+.bottom-actions-row .btn {
+  flex: 1;
+  min-width: 80px;
+}
+
+/* ==========================================================================
+   6. 検索ボックス
+   ========================================================================== */
+
+.search-box-container {
+  margin-bottom: 10px;
+}
+
 .input-wrapper {
-  position: relative;
   display: flex;
   align-items: center;
-  width: 100%;
-  height: 44px;
-  
-  background: rgba(0, 0, 0, 0.25);
+  gap: 6px;
+  height: 40px;
+  padding: 0 10px;
+  background: rgba(0, 0, 0, 0.3);
   border: 1px solid var(--stroke);
-  border-radius: 12px;
-  padding: 0 12px;
-  
+  border-radius: 10px;
   transition: all 0.2s;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
-  margin-bottom: 10px;
 }
 
 .input-wrapper:focus-within {
@@ -324,243 +309,314 @@ h2 {
   background: transparent;
   border: none;
   outline: none;
-  
   color: var(--text-main);
-  font-size: 15px;
-  line-height: 1.4;
-  
+  font-size: 14px;
   min-width: 0;
-  padding: 0 8px;
+  padding: 0 6px;
 }
 
 .input::placeholder {
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   cursor: pointer;
   transition: background 0.2s;
   color: var(--text-sub);
 }
-.icon:active { background: rgba(255,255,255,0.1); color: var(--text-main); }
-.icon svg { width: 20px; height: 20px; }
+
+.icon:active {
+  background: rgba(255,255,255,0.1);
+}
+
+.icon svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
 
 .icon-g { color: #4285f4; }
 .icon-search { color: var(--primary); }
 .icon-mic { color: var(--danger); }
 
 /* ==========================================================================
-   5. Lists & Info (Compact)
+   7. 住所カード・結果リスト
    ========================================================================== */
 
-.results {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
-  width: 100%;
-}
-
-.result-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px;
-  background: var(--surface-highlight);
+.address-card {
+  background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--stroke-soft);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.result-item:active { background: rgba(255,255,255,0.12); }
-
-.nav-section {
-  padding: 0 0 12px 0;
-  margin-bottom: 12px;
-  border-bottom: 1px solid var(--stroke-soft);
-  width: 100%;
-}
-.nav-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-
-.nav-section-title {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-sub);
-  margin-bottom: 8px;
-}
-
-.nav-weather { 
-  display: grid; 
-  grid-template-columns: repeat(3, 1fr); 
-  gap: 8px; 
-}
-
-.weather-item {
-  display: flex; 
-  flex-direction: column; 
-  align-items: center; 
-  justify-content: center;
-  padding: 10px;
-  background: var(--surface-highlight);
   border-radius: 10px;
-  font-size: 14px;
-  font-weight: 500;
-}
-.weather-item span:first-child { 
-  font-size: 10px; 
-  color: var(--text-sub); 
-  margin-bottom: 4px; 
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  padding: 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
-.route-distance { 
-  font-size: 28px; 
-  font-weight: 800; 
-  color: var(--text-main); 
-  line-height: 1;
+.address-title {
+  color: #fbbf24;
+  font-weight: 600;
   margin-bottom: 4px;
 }
 
-.route-time { 
-  font-size: 15px; 
-  color: var(--text-sub); 
-  font-weight: 500; 
+.address-coords {
+  color: var(--text-sub);
+  font-size: 11px;
 }
 
-.nav-instructions-list { 
-  display: flex; 
-  flex-direction: column; 
-  gap: 8px; 
+.results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
 }
 
-.nav-instruction-item {
-  display: flex; 
-  gap: 10px; 
-  padding: 10px;
-  background: var(--surface-highlight); 
-  border-radius: 10px;
-  font-size: 14px; 
-  line-height: 1.4;
+/* ==========================================================================
+   8. ナビゲーションセクション
+   ========================================================================== */
+
+.nav-section {
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--stroke-soft);
+}
+
+.nav-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.location-info {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.loc-coords {
+  color: #fbbf24;
+  margin-bottom: 4px;
+}
+
+.loc-address {
+  color: var(--text-sub);
+  font-size: 12px;
+}
+
+.weather-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.weather-card {
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  padding: 8px;
+  background: var(--surface);
+  border-radius: 8px;
+  font-size: 13px;
 }
 
-/* ==========================================================================
-   6. Floating Action Buttons
-   ========================================================================== */
+.weather-card span:first-child {
+  font-size: 10px;
+  color: var(--text-sub);
+  margin-bottom: 4px;
+}
 
-.fab-stack {
-  position: absolute;
-  bottom: calc(var(--safe-area-bottom) + 24px);
-  right: 16px;
-  display: flex; 
-  flex-direction: column; 
+.weather-val {
+  font-weight: 600;
+}
+
+.route-summary-card {
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.route-dest {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-bottom: 6px;
+}
+
+.route-stats {
+  display: flex;
   gap: 12px;
-  z-index: 900; 
-  pointer-events: auto;
+  margin-bottom: 8px;
 }
 
-.fab {
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
-  min-width: 48px; 
-  min-height: 48px; 
-  padding: 0 16px;
-  background: var(--text-main); 
-  color: #000;
-  font-weight: 700; 
-  font-size: 14px;
-  border-radius: 24px;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.25);
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+.stat-dist {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-main);
 }
-.fab:active { 
-  transform: scale(0.92); 
-  box-shadow: 0 3px 10px rgba(0,0,0,0.2); 
+
+.stat-time {
+  font-size: 13px;
+  color: var(--text-sub);
+  align-self: flex-end;
+}
+
+.incident-alert {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #fca5a5;
+}
+
+.instructions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 /* ==========================================================================
-   7. Map Mode & Dialogs
+   9. 設定画面
    ========================================================================== */
 
-.map-mode-section { 
-  width: 100%; 
-  margin-bottom: 12px; 
+.settings-group {
+  margin-bottom: 16px;
 }
 
 .map-mode-buttons {
-  display: flex; 
-  background: rgba(0,0,0,0.3); 
-  padding: 4px; 
-  border-radius: 14px;
-  gap: 3px;
+  display: flex;
+  gap: 4px;
+  background: rgba(0,0,0,0.3);
+  padding: 4px;
+  border-radius: 12px;
 }
 
 .map-mode-btn {
-  flex: 1; 
-  padding: 10px; 
-  text-align: center; 
-  font-size: 13px; 
+  flex: 1;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--text-sub); 
-  border-radius: 10px; 
-  cursor: pointer;
-  transition: all 0.2s; 
-  border: none; 
+  color: var(--text-sub);
   background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .map-mode-btn.active {
-  background: rgba(80, 80, 80, 0.9); 
+  background: rgba(80, 80, 80, 0.9);
   color: var(--text-main);
-  box-shadow: 0 1px 6px rgba(0,0,0,0.15);
 }
 
-.loading {
-  position: absolute; 
-  inset: 0; 
-  display: flex; 
+.nav-controls-stack {
+  display: flex;
   flex-direction: column;
-  align-items: center; 
+  gap: 6px;
+}
+
+.app-version {
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-sub);
+  margin-top: 12px;
+  opacity: 0.5;
+}
+
+/* ==========================================================================
+   10. FAB（右下ボタン）
+   ========================================================================== */
+
+.fab-container {
+  position: absolute;
+  bottom: calc(var(--safe-bottom) + 16px);
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 900;
+}
+
+.fab-btn {
+  min-width: 44px;
+  height: 44px;
+  padding: 0 14px;
+  background: var(--text-main);
+  color: #000;
+  font-weight: 700;
+  font-size: 13px;
+  border: none;
+  border-radius: 22px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  cursor: pointer;
+  transition: transform 0.2s;
+  white-space: nowrap;
+}
+
+.fab-btn:active {
+  transform: scale(0.92);
+}
+
+.fab-btn.destination {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* ==========================================================================
+   11. ローディング
+   ========================================================================== */
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.7); 
-  backdrop-filter: blur(12px);
-  z-index: 5000; 
-  color: var(--text-main); 
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 5000;
   transition: opacity 0.3s;
 }
-.loading.hidden { opacity: 0; pointer-events: none; }
 
-.edit-dialog-overlay {
-  position: fixed; 
-  inset: 0; 
-  background: rgba(0,0,0,0.85);
-  backdrop-filter: blur(8px); 
-  z-index: 10000;
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  padding: 20px;
+.loading-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
-.edit-dialog {
-  width: 100%; 
-  max-width: 420px; 
-  max-height: 80%;
-  background: #1c1c1e; 
-  border: 1px solid var(--stroke);
-  border-radius: 20px; 
-  padding: 24px;
-  overflow-y: auto; 
-  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+.loading-content {
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255,255,255,0.2);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 12px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.loading-sub {
+  font-size: 12px;
+  color: var(--text-sub);
 }
