@@ -1193,3 +1193,5 @@ function initializeWhenReady() {
 }
 
 window.addEventListener('DOMContentLoaded', initializeWhenReady);
+
+// END OF FILE
