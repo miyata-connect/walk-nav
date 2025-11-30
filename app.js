@@ -470,10 +470,7 @@ async function placesNearby(payload, fieldMask) {
         const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchNearby`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                ...(fieldMask ? {
-                    'X-Goog-FieldMask': fieldMask
-                } : {})
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(payload)
         });
