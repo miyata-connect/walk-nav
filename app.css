@@ -1,6 +1,6 @@
 /* ==========================================================================
-   WalkNav - ボタンはみ出し修正版
-   v16.1 - ボタン幅とレイアウト調整
+   WalkNav - ボタンはみ出し完全修正版
+   v16.2 - レイアウト崩れゼロ
    ========================================================================== */
 
 :root {
@@ -21,13 +21,13 @@
 *, *::before, *::after {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
+  margin: 0;
+  padding: 0;
 }
 
 html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
   height: 100dvh;
   position: fixed;
   top: 0;
@@ -97,6 +97,7 @@ html, body {
   gap: 4px;
   padding: 4px 8px;
   border-bottom: 1px solid var(--stroke-soft);
+  width: 100%;
 }
 
 .tab-btn {
@@ -113,6 +114,7 @@ html, body {
   color: var(--text-sub);
   cursor: pointer;
   transition: all 0.15s;
+  min-width: 0;
 }
 
 .tab-btn:active {
@@ -135,13 +137,11 @@ html, body {
   touch-action: pan-y;
   padding: 8px;
   width: 100%;
-  max-width: 100%;
 }
 
 .tab-pane {
   display: none;
   width: 100%;
-  max-width: 100%;
 }
 
 .tab-pane.active {
@@ -161,12 +161,8 @@ h2, .section-title {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-sub);
-  margin-bottom: 4px;
+  margin: 0 0 4px 0;
 }
-
-/* ==========================================================================
-   チップ：はみ出し防止
-   ========================================================================== */
 
 .chip {
   display: inline-flex;
@@ -183,10 +179,8 @@ h2, .section-title {
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
-  flex-shrink: 0;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .chip:active {
@@ -206,21 +200,11 @@ h2, .section-title {
   padding: 0 8px;
 }
 
-.chip.point-select {
-  flex-shrink: 1;
-  min-width: 0;
-}
-
-/* ==========================================================================
-   ボタン：幅制御強化
-   ========================================================================== */
-
 .btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 100%;
   height: 34px;
   padding: 0 12px;
   font-size: 12px;
@@ -231,11 +215,10 @@ h2, .section-title {
   color: var(--text-main);
   cursor: pointer;
   transition: all 0.15s;
-  margin-bottom: 4px;
+  margin: 0 0 4px 0;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  box-sizing: border-box;
 }
 
 .btn:active {
@@ -268,31 +251,54 @@ h2, .section-title {
 }
 
 /* ==========================================================================
-   レイアウト行：はみ出し防止
+   レイアウト行：完全なはみ出し防止
    ========================================================================== */
 
-.filter-chips-row, .action-buttons-row, .bottom-actions-row,
+.filter-chips-row {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 6px 0;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.action-buttons-row {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 6px 0;
+  width: 100%;
+}
+
+.action-buttons-row .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+}
+
+.bottom-actions-row {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  width: 100%;
+}
+
+.bottom-actions-row .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+}
+
 .tab-pos-buttons, .route-mode-toggle {
   display: flex;
   gap: 4px;
-  margin-bottom: 6px;
+  margin: 0 0 6px 0;
   flex-wrap: wrap;
   width: 100%;
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.action-buttons-row .btn,
-.bottom-actions-row .btn {
-  flex: 1;
-  min-width: 0;
-  max-width: calc(50% - 2px);
 }
 
 .search-box-container {
-  margin-bottom: 6px;
+  margin: 0 0 6px 0;
   width: 100%;
-  max-width: 100%;
 }
 
 .input-wrapper {
@@ -306,8 +312,6 @@ h2, .section-title {
   border-radius: 8px;
   transition: all 0.2s;
   width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
 }
 
 .input-wrapper:focus-within {
@@ -317,15 +321,15 @@ h2, .section-title {
 }
 
 .input {
-  flex: 1;
+  flex: 1 1 auto;
   background: transparent;
   border: none;
   outline: none;
   color: var(--text-main);
   font-size: 13px;
   min-width: 0;
-  padding: 0 4px;
   width: 100%;
+  padding: 0;
 }
 
 .input::placeholder {
@@ -364,19 +368,16 @@ h2, .section-title {
   border: 1px solid var(--stroke-soft);
   border-radius: 8px;
   padding: 6px;
-  margin-bottom: 6px;
+  margin: 0 0 6px 0;
   font-size: 11px;
   line-height: 1.3;
   width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  overflow: hidden;
 }
 
 .address-title {
   color: #fbbf24;
   font-weight: 600;
-  margin-bottom: 2px;
+  margin: 0 0 2px 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -396,33 +397,30 @@ h2, .section-title {
   gap: 4px;
   margin: 6px 0;
   width: 100%;
-  max-width: 100%;
 }
 
 .nav-section {
-  padding-bottom: 8px;
-  margin-bottom: 8px;
+  padding: 0 0 8px 0;
+  margin: 0 0 8px 0;
   border-bottom: 1px solid var(--stroke-soft);
   width: 100%;
-  max-width: 100%;
 }
 
 .nav-section:last-child {
   border-bottom: none;
-  margin-bottom: 0;
-  padding-bottom: 0;
+  margin: 0;
+  padding: 0;
 }
 
 .location-info {
   font-size: 12px;
   line-height: 1.4;
   width: 100%;
-  overflow: hidden;
 }
 
 .loc-coords {
   color: #fbbf24;
-  margin-bottom: 2px;
+  margin: 0 0 2px 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -451,13 +449,12 @@ h2, .section-title {
   background: var(--surface);
   border-radius: 6px;
   font-size: 12px;
-  min-width: 0;
 }
 
 .weather-card span:first-child {
   font-size: 9px;
   color: var(--text-sub);
-  margin-bottom: 2px;
+  margin: 0 0 2px 0;
 }
 
 .weather-val {
@@ -468,16 +465,14 @@ h2, .section-title {
   background: var(--surface);
   border-radius: 8px;
   padding: 8px;
-  margin-bottom: 6px;
+  margin: 0 0 6px 0;
   width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
 }
 
 .route-dest {
   font-size: 12px;
   color: var(--text-sub);
-  margin-bottom: 4px;
+  margin: 0 0 4px 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -486,7 +481,7 @@ h2, .section-title {
 .route-stats {
   display: flex;
   gap: 10px;
-  margin-bottom: 6px;
+  margin: 0 0 6px 0;
 }
 
 .stat-dist {
@@ -510,8 +505,6 @@ h2, .section-title {
   line-height: 1.3;
   color: #fca5a5;
   width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
 }
 
 .instructions-list {
@@ -522,9 +515,8 @@ h2, .section-title {
 }
 
 .settings-group {
-  margin-bottom: 12px;
+  margin: 0 0 12px 0;
   width: 100%;
-  max-width: 100%;
 }
 
 .map-mode-buttons {
@@ -569,7 +561,7 @@ h2, .section-title {
   text-align: center;
   font-size: 9px;
   color: var(--text-sub);
-  margin-top: 8px;
+  margin: 8px 0 0 0;
   opacity: 0.5;
 }
 
@@ -646,10 +638,11 @@ h2, .section-title {
 .loading-text {
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 3px;
+  margin: 0 0 3px 0;
 }
 
 .loading-sub {
   font-size: 11px;
   color: var(--text-sub);
+  margin: 0;
 }
