@@ -9,54 +9,52 @@
 <link rel="stylesheet" href="app.css?v=7" />
 
 <style>
-  /* 【最強設定】
-    画面全体を物理的に固定し、ブラウザのスクロール機能を根底から無効化します。
-    これを解除できるのは、下部のJavaScriptで許可された要素だけです。
+  /* 【最終調整】アドレスバー伸縮によるスライド防止策
+    dvh（動的な高さ）を使わず、JSで計算した固定値(--vh)を使います。
   */
   html, body {
     width: 100%;
     height: 100%;
-    position: fixed; /* 画面を釘付けにする */
-    overflow: hidden; /* スクロールバーを出さない */
-    touch-action: none; /* ブラウザ標準のジェスチャーを無効化 */
-    -webkit-overflow-scrolling: touch;
+    /* 初期値としてsvh（バーが出ている状態の高さ）を指定 */
+    height: 100svh; 
+    position: fixed;
+    overflow: hidden;
+    touch-action: none;
     overscroll-behavior: none;
+    -webkit-text-size-adjust: 100%;
   }
 
-  /* アプリのコンテナ */
+  /* アプリ全体のコンテナ：JSで計算した「本当の高さ」を強制適用 */
   .app {
-    width: 100%;
-    height: 100%;
     position: absolute;
     top: 0;
     left: 0;
+    width: 100%;
+    /* JSでセットする変数を使用。無ければ100% */
+    height: calc(var(--app-height, 100svh)); 
     overflow: hidden;
   }
 
-  /* スクロールを許可する唯一のエリア 
-    明示的にクラスを指定して管理します。
-  */
+  /* スクロールエリア */
   .scrollable-y {
     overflow-y: auto !important;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain; /* 連鎖防止 */
-    touch-action: pan-y; /* 縦スクロールのみ許可 */
-    /* iOSでスクロール判定を安定させるためのハック（中身が空でもスクロール領域と認識させる） */
-    min-height: 0; 
-  }
-  
-  /* パネル自体の高さ制限とレイアウト調整 */
-  .panel-tabs-body {
-    flex: 1; /* 余った高さを埋める */
-    width: 100%;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    flex: 1; /* 余った領域を埋める */
   }
 
-  /* パネル全体の構成を縦並びにして、headerを固定、bodyをスクロールにする */
-  #searchPanel {
+  /* パネルレイアウト */
+  .panel {
     display: flex;
     flex-direction: column;
-    max-height: 70vh; /* 画面の7割まで */
+    /* パネルの最大高さも固定値ベースにする */
+    max-height: 70%; 
+  }
+
+  .panel-tabs-body {
+    width: 100%;
   }
 </style>
 </head>
@@ -200,62 +198,41 @@
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=marker,geometry&language=ja&region=JP&loading=async" async defer></script>
 <script>
 (function () {
-// ▼▼▼ iOS完全ロック・スクロール制御スクリプト ▼▼▼
-// 狙い: 許可されたエリア(.scrollable-y)以外でのタッチ移動を完全に無効化する
+// ▼▼▼ 画面高さ固定 & スクロールロック機能 ▼▼▼
+function fixAppHeight() {
+  // アドレスバーを除いた「現在の表示領域の高さ」を取得
+  var vh = window.innerHeight;
+  // CSS変数にセットして、強制的にこの高さにする
+  document.documentElement.style.setProperty('--app-height', vh + 'px');
+}
 
+// 初回実行
+fixAppHeight();
+// リサイズ（回転など）時に再計算
+window.addEventListener('resize', fixAppHeight);
+
+// タッチ制御（スクロール許可エリア以外をブロック）
 document.addEventListener('touchmove', function(e) {
-  // 1. タッチされた場所が「Googleマップ」なら許可 (地図操作用)
-  if (e.target.closest('.gm-style') || e.target.closest('#map')) {
-    return; // Google Mapsに任せる
-  }
+  if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
 
-  // 2. タッチされた場所が「スクロール許可エリア(.scrollable-y)」の中か探す
-  var scrollableEl = e.target.closest('.scrollable-y');
-
-  // もしスクロール許可エリアの外（ヘッダー、余白、ボディなど）なら、即ブロック
-  if (!scrollableEl) {
+  var scrollable = e.target.closest('.scrollable-y');
+  // スクロールエリア外ならブロック
+  if (!scrollable) {
     e.preventDefault();
     return;
   }
-
-  // 3. スクロール許可エリア内だが、スクロールする余地がない（中身が少ない）場合
-  if (scrollableEl.scrollHeight <= scrollableEl.clientHeight) {
-     // 入力フォーム以外はブロック
+  
+  // スクロールエリア内でも、端っこでのバウンスを防ぐ
+  // （中身が足りない場合はブロック）
+  if (scrollable.scrollHeight <= scrollable.clientHeight) {
      if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
         e.preventDefault();
      }
-     return;
   }
-
-  // 4. 「端」に達した時のバウンス（親要素への伝播）を防ぐ
-  // ここでブロックしないと、勢い余って画面全体が揺れる
-  var scrollTop = scrollableEl.scrollTop;
-  var maxScroll = scrollableEl.scrollHeight - scrollableEl.clientHeight;
-  var isAtTop = scrollTop <= 0;
-  var isAtBottom = scrollTop >= maxScroll;
-
-  // ※移動方向を検知できればベストだが、簡易的に「端にいるなら注意」する
-  // より厳密には touchstart でY座標を保存し、方向判定するが、
-  // ここではCSSの overscroll-behavior: contain と併用して防御力を高める。
-  
-  // しかし、iOSのバウンスは強力なので、端にいるときは touchmove を止めるのが定石
-  // ただし、止めてしまうとスクロール開始できなくなるため、
-  // 「スクロール可能な方向への移動なら許可、逆（外側）なら拒否」が必要。
-  
-  // そのため、CSSの `overscroll-behavior: contain` (上で指定済) に任せつつ、
-  // どうしても止まらない場合はここを有効化する。
-  // 今回は「まだ止まっていない」ので、許可エリア以外ブロックが効くはず。
-
-}, { passive: false }); // passive: false が必須
-
-// 入力フォームでのフォーカス時にズームやスクロールがおかしくなるのを防ぐ
-var inputs = document.querySelectorAll('input, textarea');
-inputs.forEach(function(input) {
-  input.addEventListener('focus', function() {
-    // 必要ならここに処理を追加
-  });
-});
-// ▲▲▲ 制御スクリプト終了 ▲▲▲
+  // ※ここでは「端での連鎖」はCSSのoverscroll-behaviorに任せるが、
+  // iOSの挙動が怪しければここに境界判定を追加する
+}, { passive: false });
+// ▲▲▲ 高さ固定＆ロック終了 ▲▲▲
 
 
 function initPanelTabs() {
