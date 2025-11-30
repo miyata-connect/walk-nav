@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
@@ -8,32 +7,22 @@
 <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
 <link rel="stylesheet" href="app.css?v=7" />
+
 <style>
   html, body {
     width: 100%;
     height: 100%;
-    height: 100dvh; /* アドレスバーの影響を受けない動的な高さ */
-    overflow: hidden; /* 画面全体のスクロールを禁止 */
-    overscroll-behavior: none; /* iOSのバウンスエフェクトを無効化 */
-    position: fixed; /* 画面を完全に固定 */
-    top: 0;
-    left: 0;
-    touch-action: none; /* 基本的なタッチ操作を無効化（地図やパネル内は別途有効化） */
+    height: 100dvh;
+    overflow: hidden; /* 画面全体のスクロール禁止 */
+    position: fixed;  /* 画面を固定 */
+    inset: 0;
+    touch-action: none; /* ブラウザ標準動作を停止 */
   }
-
-  /* パネル内のスクロールは許可しつつ、親要素への連鎖を防ぐ */
-  .panel-tabs-body {
-    overscroll-behavior: contain;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch; /* iOSでの慣性スクロール */
-    touch-action: pan-y; /* 縦スクロールのみ許可 */
-  }
-
-  /* 地図自体のタッチ操作はAPIが制御するため干渉しないように設定 */
-  #map {
-    height: 100%;
+  .app {
     width: 100%;
-    touch-action: none;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
   }
 </style>
 </head>
@@ -173,6 +162,72 @@
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=marker,geometry&language=ja&region=JP&loading=async" async defer></script>
 <script>
 (function () {
+// ▼▼▼ 【重要】iOSスクロールバウンス対策スクリプト ▼▼▼
+var touchStartY = 0;
+// タッチ開始位置を記録
+document.addEventListener('touchstart', function(e) {
+  touchStartY = e.touches[0].clientY;
+}, { passive: false });
+
+// タッチ移動時の厳密な判定
+document.addEventListener('touchmove', function(e) {
+  var target = e.target;
+  
+  // 1. マップ操作かどうか？
+  // Google Mapsの要素（#mapまたは.gm-style内）なら許可
+  if (target.closest('#map') || target.closest('.gm-style')) {
+    return; // 何もしない（マップのドラッグを阻害しない）
+  }
+
+  // 2. パネル内かどうか？
+  // ID=searchPanel がスクロールコンテナと仮定（またはその中のbody）
+  var panel = target.closest('#searchPanel');
+  
+  // パネル外（ヘッダーや余白）なら問答無用でブロック
+  if (!panel) {
+    e.preventDefault();
+    return;
+  }
+
+  // 3. パネル内でも「スクロール可能か」判定
+  // ここでは .panel 自体が scroll設定されているCSSに基づき判定
+  // もし .panel-tabs-body がスクロールコンテナならそちらを取得してください
+  var scrollEl = panel; 
+  
+  // スクロールする必要がない（中身が短い）場合
+  if (scrollEl.scrollHeight <= scrollEl.clientHeight) {
+    // 入力フォーム以外はブロック
+    if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+    }
+    return;
+  }
+
+  var currentY = e.touches[0].clientY;
+  var deltaY = currentY - touchStartY;
+  var scrollTop = scrollEl.scrollTop;
+  var scrollHeight = scrollEl.scrollHeight;
+  var clientHeight = scrollEl.clientHeight;
+
+  // 上端にいるのに、さらに下に引こうとした（バウンス発生要因）
+  if (scrollTop <= 0 && deltaY > 0) {
+    e.preventDefault();
+    return;
+  }
+
+  // 下端にいるのに、さらに上に引こうとした（バウンス発生要因）
+  if (scrollTop + clientHeight >= scrollHeight && deltaY < 0) {
+    e.preventDefault();
+    return;
+  }
+
+  // それ以外（通常の中身スクロール）は許可（イベント伝播を止めて親に影響させない）
+  e.stopPropagation();
+
+}, { passive: false });
+// ▲▲▲ 対策スクリプト終了 ▲▲▲
+
+
 function initPanelTabs() {
 var tabButtons = document.querySelectorAll('[data-panel-tab]');
 var paneSearch = document.getElementById('tabPaneSearch');
