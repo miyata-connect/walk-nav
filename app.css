@@ -8,7 +8,7 @@
   --stroke: rgba(255,255,255,0.12);
 }
 
-/* 画面全体固定レイアウト */
+/* ��ʑS�̌Œ背�C�A�E�g */
 html, body {
   margin: 0;
   padding: 0;
@@ -34,7 +34,7 @@ html, body {
   overflow: hidden !important;
 }
 
-/* 地図 */
+/* �n�} */
 #map {
   position: absolute;
   inset: 0;
@@ -42,7 +42,7 @@ html, body {
   height: 100dvh !important;
 }
 
-/* パネル */
+/* �p�l�� - ���S�Œ� */
 .panel {
   position: fixed;
   left: 0;
@@ -60,8 +60,7 @@ html, body {
   max-height: 80%;
   overflow: hidden;
   z-index: 1000;
-  transition: transform 0.3s ease-out;
-  will-change: transform;
+  transform: translateY(0) !important;
   touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
@@ -219,7 +218,7 @@ h2 {
   width: 100%;
 }
 
-/* アイコン */
+/* �A�C�R�� */
 .icon {
   display: flex;
   align-items: center;
@@ -241,7 +240,7 @@ h2 {
   outline: none;
 }
 
-/* Gアイコン(Google) */
+/* G�A�C�R��(Google) */
 .icon-g {
   color: #4285f4;
 }
@@ -250,7 +249,7 @@ h2 {
   fill: #4285f4;
 }
 
-/* 検索アイコン(虫眼鏡) */
+/* �����A�C�R��(���ዾ) */
 .icon-search {
   color: #3aa0ff;
 }
@@ -259,7 +258,7 @@ h2 {
   fill: #3aa0ff;
 }
 
-/* マイクアイコン */
+/* �}�C�N�A�C�R�� */
 .icon-mic {
   color: #ff6565;
 }
@@ -268,7 +267,7 @@ h2 {
   fill: #ff6565;
 }
 
-/* 検索結果 */
+/* �������� */
 .results {
   margin-top: 10px;
   display: flex;
@@ -291,7 +290,7 @@ h2 {
   width: 100%;
 }
 
-/* ナビゲーション */
+/* �i�r�Q�[�V���� */
 .nav-section {
   margin-bottom: 12px;
   padding-bottom: 10px;
@@ -351,7 +350,7 @@ h2 {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ローディング */
+/* ���[�f�B���O */
 .loading {
   position: absolute;
   inset: 0;
@@ -368,7 +367,7 @@ h2 {
   display: none;
 }
 
-/* 100dvh 対応(iOS Safari 用) */
+/* 100dvh �Ή�(iOS Safari �p) */
 @supports (height: 100dvh) {
   html, body {
     height: 100dvh;
@@ -383,12 +382,12 @@ h2 {
   }
 }
 
-/* iOS SafariのためのInputフォーカス時の調整 */
+/* iOS Safari�̂��߂�Input�t�H�[�J�X���̒��� */
 .input:focus {
   -webkit-user-select: auto;
 }
 
-/* 地図モード選択セクション */
+/* �n�}���[�h�I���Z�N�V���� */
 .map-mode-section {
   margin-bottom: 16px;
   width: 100%;
@@ -435,7 +434,7 @@ h2 {
   opacity: 0.7;
 }
 
-/* 編集ダイアログオーバーレイ */
+/* �ҏW�_�C�A���O�I�[�o�[���C */
 .edit-dialog-overlay {
   position: fixed;
   inset: 0;
@@ -448,7 +447,7 @@ h2 {
   touch-action: manipulation;
 }
 
-/* 編集ダイアログ本体 */
+/* �ҏW�_�C�A���O�{�� */
 .edit-dialog {
   background: #1e1e1e;
   border-radius: 16px;
@@ -460,14 +459,14 @@ h2 {
   color: #fff;
 }
 
-/* ダイアログタイトル */
+/* �_�C�A���O�^�C�g�� */
 .edit-dialog h3 {
   margin: 0 0 16px 0;
   font-size: 18px;
   font-weight: 600;
 }
 
-/* リストコンテナ */
+/* ���X�g�R���e�i */
 .edit-dialog-list {
   display: flex;
   flex-direction: column;
@@ -475,7 +474,7 @@ h2 {
   margin-bottom: 16px;
 }
 
-/* リストアイテム */
+/* ���X�g�A�C�e�� */
 .edit-dialog-item {
   background: rgba(255,255,255,0.1);
   border: 1px solid rgba(255,255,255,0.2);
@@ -501,7 +500,7 @@ h2 {
   opacity: 0.7;
 }
 
-/* ボタン共通スタイル */
+/* �{�^�����ʃX�^�C�� */
 .edit-dialog-btn {
   width: 100%;
   padding: 14px;
@@ -519,7 +518,7 @@ h2 {
   opacity: 0.8;
 }
 
-/* ボタンバリエーション */
+/* �{�^���o���G�[�V���� */
 .edit-dialog-btn-primary {
   background: #25d07a;
   color: #fff;
@@ -538,7 +537,7 @@ h2 {
   border: 1px solid rgba(255,255,255,0.2);
 }
 
-/* 確認ダイアログボタングループ */
+/* �m�F�_�C�A���O�{�^���O���[�v */
 .edit-dialog-btn-group {
   display: flex;
   gap: 8px;
@@ -550,7 +549,7 @@ h2 {
   margin-bottom: 0;
 }
 
-/* 修正フォーム用input */
+/* �C���t�H�[���pinput */
 .edit-dialog-input {
   width: 100%;
   padding: 12px;
