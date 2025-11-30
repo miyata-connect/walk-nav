@@ -1,42 +1,18 @@
-/* ==================================================
-   WalkNav Application CSS (Full Version)
-   v20251130-final
-   ================================================== */
-
 :root {
-  /* カラーパレット */
-  --primary: #3b82f6;       /* 鮮やかな青 */
-  --primary-hover: #2563eb;
-  --secondary: #64748b;     /* グレー */
-  --success: #22c55e;       /* 緑 */
-  --danger: #ef4444;        /* 赤 */
-  --warning: #f59e0b;       /* 黄色 */
-  --text-main: #ffffff;
-  --text-sub: #94a3b8;
-  
-  /* 背景・透過設定 */
-  --app-bg: #0f172a;
-  --panel-bg: rgba(20, 25, 35, 0.92); /* 濃い目の背景で視認性確保 */
-  --panel-backdrop: blur(20px);
-  --overlay-bg: rgba(0, 0, 0, 0.6);
-  
-  /* ボーダー・装飾 */
-  --stroke: rgba(255, 255, 255, 0.1);
-  --stroke-light: rgba(255, 255, 255, 0.2);
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.1);
-  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.4);
-  
-  /* レイアウト */
-  --header-height: 60px;
-  --panel-radius: 24px;
+  --primary: #2563eb;
+  --warning: #fbbf24;
+  --muted: #94a3b8;
+  --text: #111;
+  --bg: #f8fafc;
+  --panel-bg: rgba(30,30,30,0.85);
+  --stroke: rgba(255,255,255,0.12);
 }
 
 /* ==================================================
-   1. Global Reset & Layout Fixes (iOS Safe)
+   1. ベース設定（画面固定）
    ================================================== */
 * {
-  box-sizing: border-box; /* 全要素の幅計算をpadding込みにする（横スクロール防止） */
+  box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -45,9 +21,7 @@ html {
   padding: 0;
   width: 100%;
   height: 100%;
-  height: 100dvh; /* iOS 15+ Dynamic Viewport */
   overflow: hidden;
-  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -55,21 +29,16 @@ body {
   padding: 0;
   width: 100%;
   height: 100%;
-  
-  /* Body Lock: 画面全体を物理的に固定 */
-  position: fixed; 
+  position: fixed; /* Body Lock */
   inset: 0;
-  
-  background-color: var(--app-bg);
-  color: var(--text-main);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  
-  overflow: hidden;          /* スクロール禁止 */
-  overscroll-behavior: none; /* バウンス禁止 */
-  touch-action: none;        /* ブラウザ標準ジェスチャー禁止 */
+  background-color: #000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", "Helvetica Neue", Arial, sans-serif;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  -webkit-text-size-adjust: 100%;
 }
 
-/* アプリケーションコンテナ */
 .app {
   position: absolute;
   top: 0;
@@ -80,531 +49,259 @@ body {
   z-index: 1;
 }
 
-/* 地図レイヤー */
 #map {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  touch-action: none;
   z-index: 1;
-  touch-action: none; /* マップ操作はGoogle Maps APIに任せる */
 }
 
 /* ==================================================
-   2. Main Panel Styling
+   2. パネルレイアウト（高さを92%まで拡張）
    ================================================== */
 .panel {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  
   width: 100%;
-  max-width: 100vw;
-  max-height: 75dvh; /* 画面の75%まで */
+  
+  /* ★修正：高さを70%から92%へ大幅アップ */
+  max-height: 92%; 
   
   background: var(--panel-bg);
-  backdrop-filter: var(--panel-backdrop);
-  -webkit-backdrop-filter: var(--panel-backdrop);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   
-  border-top-left-radius: var(--panel-radius);
-  border-top-right-radius: var(--panel-radius);
-  border-top: 1px solid var(--stroke);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  
+  color: #fff;
+  z-index: 1000;
   
   display: flex;
   flex-direction: column;
   
-  z-index: 1000;
-  
-  /* iPhone Home Indicator Area */
+  /* iPhoneの下部バー回避 */
   padding-bottom: env(safe-area-inset-bottom, 20px);
   
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 -4px 24px rgba(0,0,0,0.25);
+  transition: transform 0.3s ease-out;
+  will-change: transform;
 }
 
-/* ハンドル（つまみ）エリア */
-.panel-handle-area {
-  width: 100%;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  cursor: grab;
-}
-
-.panel-handle {
-  width: 36px;
-  height: 4px;
-  background: rgba(255,255,255,0.3);
-  border-radius: 2px;
-}
-
-/* タブヘッダー */
+/* ヘッダー */
 .panel-tabs-header {
-  display: flex;
-  width: 100%;
-  padding: 0 16px 12px 16px;
-  gap: 8px;
   flex-shrink: 0;
-  border-bottom: 1px solid transparent; /* 境界線が必要なら色指定 */
+  display: flex;
+  gap: 8px;
+  padding: 16px;
+  justify-content: center;
+  width: 100%;
 }
 
-.tab-btn {
-  flex: 1;
-  padding: 10px 0;
-  border-radius: 99px;
-  background: rgba(255,255,255,0.08);
-  color: var(--text-sub);
-  font-size: 13px;
-  font-weight: 600;
-  text-align: center;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  user-select: none;
-}
-
-.tab-btn.active {
-  background: var(--text-main);
-  color: #000;
-  box-shadow: var(--shadow-sm);
-}
-
-/* スクロールボディエリア */
+/* ボディ（スクロールエリア） */
 .panel-tabs-body {
   flex: 1;
   width: 100%;
+  padding: 0 16px 24px 16px; /* 下部余白を少し増やして見やすく */
+  
   overflow-y: auto;
   overflow-x: hidden;
   
-  padding: 12px 16px 20px 16px;
-  
-  /* バウンスが親に伝わらないようにする */
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   
-  /* コンテンツ最小高さ */
-  min-height: 120px;
-}
-
-/* タブコンテンツ */
-.tab-pane {
-  display: none;
-  width: 100%;
-  animation: fadeIn 0.2s ease-out;
-}
-.tab-pane.active { display: block; }
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  min-height: 0;
 }
 
 /* ==================================================
-   3. Components & Widgets
+   3. UIコンポーネント
    ================================================== */
-
-/* タイトル */
-.section-title {
-  margin: 0 0 12px 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-main);
-  letter-spacing: 0.02em;
-}
-
-/* フィルターチップ */
-.filter-chips-row {
+.row {
   display: flex;
   gap: 8px;
-  overflow-x: auto;
-  margin-bottom: 16px;
-  padding-bottom: 4px; /* スクロールバー用余白 */
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
   width: 100%;
 }
-/* スクロールバー非表示 */
-.filter-chips-row::-webkit-scrollbar { display: none; }
 
-.chip {
-  padding: 6px 14px;
-  border-radius: 20px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid var(--stroke);
-  color: var(--text-main);
-  font-size: 13px;
-  white-space: nowrap;
+.tab-btn {
+  flex: 1;
+  padding: 8px 0;
+  border-radius: 999px;
+  text-align: center;
   cursor: pointer;
-  transition: background 0.2s;
-}
-
-.chip.active {
-  background: var(--text-main);
-  color: #000;
-  border-color: var(--text-main);
-  font-weight: 600;
-}
-
-.chip.small {
-  padding: 4px 10px;
-  font-size: 12px;
-}
-
-/* アドレスカード */
-.address-card {
-  background: rgba(30, 41, 59, 0.6);
   border: 1px solid var(--stroke);
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  font-size: 13px;
+  user-select: none;
+  white-space: nowrap;
+}
+.tab-btn.active {
+  background: #fff;
+  color: #111;
+  border-color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
-.address-title {
-  color: var(--warning);
-  font-size: 14px;
+.tab-pane { display: none; width: 100%; }
+.tab-pane.active { display: block; }
+
+h2 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 18px;
   font-weight: 600;
   line-height: 1.4;
 }
 
-.address-coords {
-  color: var(--text-sub);
-  font-size: 12px;
-  font-family: monospace;
+.chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: 1px solid var(--stroke);
+  cursor: pointer;
+  font-size: 13px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
+.chip.active { background: #fff; color: #111; }
 
-/* アクションボタン行 */
-.action-buttons-row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
-  width: 100%;
-}
-
-/* ボタンスタイル */
 .btn {
-  padding: 10px 16px;
+  padding: 12px;
   border-radius: 12px;
   font-size: 14px;
-  font-weight: 600;
-  text-align: center;
   cursor: pointer;
-  border: none;
-  transition: opacity 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-.btn:active { opacity: 0.7; }
-
-.btn-outline {
-  flex: 1;
-  background: transparent;
-  border: 1px solid var(--stroke-light);
-  color: var(--text-main);
-}
-.btn-primary {
-  flex: 1;
-  background: var(--primary);
+  background: rgba(255,255,255,0.2);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
-}
-.btn-danger {
+  border: 1px solid var(--stroke);
   flex: 1;
-  background: rgba(239, 68, 68, 0.2);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  text-align: center;
+  white-space: nowrap;
+  min-width: 80px;
 }
-.btn-secondary {
-  flex: 1;
-  background: rgba(255,255,255,0.1);
-  color: var(--text-sub);
-}
-.btn-block { width: 100%; }
-.btn-outline-primary {
-  width: 100%;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid var(--primary);
-  color: var(--primary);
-  margin-bottom: 8px;
-}
-.btn-danger-block {
-  width: 100%;
-  background: var(--danger);
-  color: #fff;
-}
-
-/* 検索ボックス */
-.search-box-container {
-  margin-bottom: 16px;
-  width: 100%;
-}
+.btn.danger { background: rgba(244,63,94,0.3); border-color: rgba(244,63,94,0.6); }
 
 .input-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(20, 25, 35, 0.8);
-  border: 1px solid var(--stroke-light);
-  border-radius: 14px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
   padding: 8px 12px;
-  height: 50px;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+  width: 100%;
 }
-
 .input {
   flex: 1;
   background: transparent;
   border: none;
-  color: var(--text-main);
-  font-size: 16px; /* iOS自動ズーム回避サイズ */
+  color: #fff;
+  outline: none;
+  font-size: 15px;
   min-width: 0;
 }
-.input::placeholder { color: rgba(255,255,255,0.3); }
-.input:focus { outline: none; }
+.input:focus { font-size: 16px; }
 
 .icon {
-  width: 24px;
-  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #fff;
   cursor: pointer;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
 }
-.icon svg { width: 20px; height: 20px; fill: currentColor; }
-.icon-g { color: #4285f4; }
-.icon-search { color: var(--primary); }
-.icon-mic { color: var(--danger); }
+.icon-g { color: #4285f4; } .icon-g svg { fill: #4285f4; }
+.icon-search { color: #3aa0ff; } .icon-search svg { fill: #3aa0ff; }
+.icon-mic { color: #ff6565; } .icon-mic svg { fill: #ff6565; }
 
-/* 検索結果リスト */
-.results-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
+.results { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; width: 100%; }
 .result-item {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.1);
   border: 1px solid var(--stroke);
   border-radius: 12px;
   padding: 12px;
-  cursor: pointer;
-}
-.result-item:hover { background: rgba(255,255,255,0.1); }
-
-/* 下部アクションボタン */
-.bottom-actions-row {
-  display: flex;
-  gap: 12px;
-  margin-top: auto;
+  width: 100%;
 }
 
-/* ==================================================
-   4. Navigation Tab Styles
-   ================================================== */
-.nav-section {
-  padding-bottom: 16px;
-  margin-bottom: 16px;
-  border-bottom: 1px solid var(--stroke);
-}
+.nav-section { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--stroke); width: 100%; }
 .nav-section:last-child { border-bottom: none; }
+.nav-section-title { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
 
-.nav-section-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-sub);
-  text-transform: uppercase;
-  margin-bottom: 8px;
-  letter-spacing: 0.05em;
-}
-
-.location-info {
-  background: rgba(255,255,255,0.03);
-  border-radius: 8px;
-  padding: 10px;
-}
-.loc-coords { font-size: 12px; color: var(--text-sub); margin-bottom: 4px; }
-.loc-address { font-size: 14px; font-weight: 600; color: var(--text-main); }
-
-/* 天気グリッド */
-.weather-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-.weather-card {
-  background: rgba(255,255,255,0.05);
-  border-radius: 10px;
-  padding: 8px;
+.weather-item {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-}
-.weather-card span:first-child { font-size: 11px; color: var(--text-sub); }
-.weather-val { font-size: 14px; font-weight: 600; color: var(--text-main); }
-
-/* ルート情報 */
-.route-summary-card {
-  background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(59,130,246,0.02));
-  border: 1px solid rgba(59,130,246,0.2);
-  border-radius: 12px;
-  padding: 14px;
-  margin-bottom: 12px;
-}
-
-.route-dest { font-size: 14px; margin-bottom: 8px; }
-.route-dest span { font-weight: 700; color: var(--primary); }
-
-.route-stats {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-.stat-dist { font-size: 20px; font-weight: 700; }
-.stat-time { font-size: 14px; color: var(--text-sub); }
-
-.route-mode-toggle { display: flex; gap: 8px; }
-
-.incident-alert {
-  background: rgba(245, 158, 11, 0.1);
-  border-left: 3px solid var(--warning);
-  padding: 10px;
-  font-size: 13px;
-  color: var(--warning);
-  line-height: 1.5;
-  border-radius: 4px;
-}
-
-.instructions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.nav-instruction-item {
-  background: rgba(255,255,255,0.03);
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  line-height: 1.5;
-  border-left: 2px solid var(--stroke);
-}
-
-/* ==================================================
-   5. Settings Tab Styles
-   ================================================== */
-.settings-group {
-  margin-bottom: 20px;
-}
-.settings-label {
-  font-size: 13px;
-  color: var(--text-sub);
-  margin-bottom: 8px;
-}
-
-.map-mode-buttons { display: flex; gap: 8px; width: 100%; }
-.map-mode-btn {
-  flex: 1;
-  padding: 10px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.05);
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.1);
   border: 1px solid var(--stroke);
-  color: var(--text-main);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.map-mode-btn.active {
-  background: var(--primary);
-  border-color: var(--primary);
-  box-shadow: var(--shadow-md);
+  border-radius: 10px;
+  margin-bottom: 6px;
+  width: 100%;
 }
 
-.tab-pos-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-}
+.nav-instructions-list { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.nav-instruction-item { padding: 10px; background: rgba(255,255,255,0.06); border-radius: 8px; font-size: 13px; line-height: 1.5; width: 100%; }
 
-.nav-controls-stack {
+.fab-stack {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.app-version {
-  text-align: center;
-  font-size: 11px;
-  color: rgba(255,255,255,0.2);
-  margin-top: 30px;
-}
-
-/* ==================================================
-   6. Overlays & FABs
-   ================================================== */
-.fab-container {
-  position: absolute;
-  bottom: 24px;
-  right: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
   z-index: 900;
   pointer-events: auto;
 }
-
-.fab-btn {
-  background: var(--text-main);
-  color: #000;
-  border: none;
-  padding: 12px 18px;
-  border-radius: 16px;
-  font-weight: 600;
-  font-size: 13px;
-  box-shadow: var(--shadow-lg);
+.fab {
+  background: #fff;
+  color: #111;
+  padding: 12px 16px;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  font-size: 14px;
   cursor: pointer;
-  transition: transform 0.1s;
-}
-.fab-btn:active { transform: scale(0.95); }
-.fab-btn.destination {
-  background: var(--primary);
-  color: #fff;
+  user-select: none;
 }
 
-.loading-overlay {
+.loading {
   position: absolute;
   inset: 0;
-  background: var(--overlay-bg);
-  backdrop-filter: blur(8px);
-  z-index: 5000;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.loading-content {
-  text-align: center;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px);
+  z-index: 5000;
   color: #fff;
 }
+.loading.hidden { display: none; }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(255,255,255,0.3);
-  border-top-color: var(--primary);
-  border-radius: 50%;
-  margin: 0 auto 16px;
-  animation: spin 1s linear infinite;
-}
+.map-mode-section { margin-bottom: 16px; width: 100%; }
+.map-mode-label { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #fff; }
+.map-mode-buttons { display: flex; gap: 8px; width: 100%; }
+.map-mode-btn { flex: 1; padding: 10px; border-radius: 12px; font-size: 14px; font-weight: 500; cursor: pointer; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid var(--stroke); text-align: center; }
+.map-mode-btn.active { background: #3aa0ff; border-color: #3aa0ff; }
 
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.loading-text { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-.loading-sub { font-size: 14px; opacity: 0.8; }
+.edit-dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.edit-dialog { background: #1e1e1e; border-radius: 16px; padding: 20px; max-width: 500px; width: 100%; max-height: 80%; overflow-y: auto; color: #fff; }
+.edit-dialog h3 { margin: 0 0 16px 0; font-size: 18px; font-weight: 600; }
+.edit-dialog-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.edit-dialog-item { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 12px; cursor: pointer; width: 100%; }
+.edit-dialog-item-title { font-weight: 600; margin-bottom: 4px; }
+.edit-dialog-item-subtitle { font-size: 13px; opacity: 0.7; }
+.edit-dialog-btn { width: 100%; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; border: none; }
+.edit-dialog-btn-primary { background: #25d07a; color: #fff; margin-bottom: 8px; }
+.edit-dialog-btn-danger { background: #ff6565; color: #fff; margin-bottom: 8px; }
+.edit-dialog-btn-secondary { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+.edit-dialog-btn-group { display: flex; gap: 8px; margin-top: 16px; }
+.edit-dialog-btn-group .edit-dialog-btn { flex: 1; margin-bottom: 0; }
+.edit-dialog-input { width: 100%; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; font-size: 16px; margin-bottom: 16px; outline: none; }
+.edit-dialog-input:focus { border-color: #25d07a; }
