@@ -6,76 +6,10 @@
 <title>WalkNav</title>
 <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-<link rel="stylesheet" href="app.css?v=7" />
-
-<style>
-  /* 【重要】JSとの連携設定
-    JSで計算された厳密な高さ(--app-height)を、アプリ全体の高さとして強制適用します。
-    これをしないと、アドレスバーの分だけズレて余白が生まれます。
-  */
-  :root {
-    --app-height: 100dvh; /* JSが読み込まれるまでの初期値 */
-  }
-
-  html, body {
-    margin: 0;
-    padding: 0;
-    width: 100vw;
-    /* JSから渡される値をここで受け取る */
-    height: var(--app-height); 
-    overflow: hidden; /* はみ出し厳禁 */
-    position: fixed;  /* 画面固定 */
-    inset: 0;
-    touch-action: none;
-    overscroll-behavior: none;
-    background-color: #000;
-  }
-
-  .app {
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    overflow: hidden;
-  }
-
-  /* 地図も親要素(app)に従う */
-  #map {
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    touch-action: none;
-  }
-
-  /* パネル設定 */
-  .panel {
-    display: flex;
-    flex-direction: column;
-    max-height: 70%; 
-    width: 100%;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    z-index: 1000;
-    /* iPhone X以降のホームバー領域を確保 */
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  /* スクロールエリア（ここだけ指の動きを許可） */
-  .scrollable-y {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    touch-action: pan-y;
-    min-height: 0; 
-  }
-</style>
+<link rel="stylesheet" href="app.css?v=9" />
 </head>
 <body id="appBody">
-<div class="app">
+<div class="app" id="appContainer">
 <div id="map" aria-label="地図"></div>
 
 <section class="panel" id="searchPanel">
@@ -85,7 +19,7 @@
 <div class="tab-btn" data-panel-tab="settings" tabindex="0">設定</div>
 </div>
 
-<div class="panel-tabs-body scrollable-y" id="panelScrollContainer">
+<div class="panel-tabs-body" id="panelScrollContainer">
 <div class="tab-pane active" id="tabPaneSearch">
 <h2>近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
 <div class="row" style="margin-bottom:8px;justify-content:center;">
@@ -214,47 +148,57 @@
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=marker,geometry&language=ja&region=JP&loading=async" async defer></script>
 <script>
 (function () {
-// ▼▼▼ JS: 画面高さの完全同期ロジック ▼▼▼
-function syncAppHeight() {
-  // 1. 今見えている正確な高さを取得
-  var doc = document.documentElement;
-  var height = window.innerHeight;
+// ▼▼▼ 視点変更: Visual Viewport APIによる完全支配 ▼▼▼
+// 従来のwindow.innerHeightではなく、アドレスバーを除いた「真の表示領域」を監視する
+function updateLayout() {
+  if (!window.visualViewport) return;
   
-  // 2. CSS変数 --app-height に値をセット
-  // これにより、CSS側の height: var(--app-height) が連動して変化する
-  doc.style.setProperty('--app-height', height + 'px');
+  // 表示領域の高さをミリ秒単位で取得
+  const h = window.visualViewport.height;
+  // 上部からのオフセット（アドレスバーが押した分など）
+  const offsetTop = window.visualViewport.offsetTop;
   
-  // 3. iOSでスクロール位置がズレないよう強制補正
+  // CSS変数に反映
+  document.documentElement.style.setProperty('--vv-height', h + 'px');
+  document.documentElement.style.setProperty('--vv-offset', offsetTop + 'px');
+  
+  // 念のためスクロール位置をリセット（バウンス防止）
   window.scrollTo(0, 0);
 }
 
-// 起動時とリサイズ（回転・バーの伸縮）時に実行
-window.addEventListener('resize', syncAppHeight);
-syncAppHeight(); // 初回実行
+// 監視イベントの登録
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', updateLayout);
+  window.visualViewport.addEventListener('scroll', updateLayout); // スクロール時も即座に反応させる
+}
+window.addEventListener('resize', updateLayout);
+// 初期実行
+updateLayout();
 
 
-// ▼▼▼ JS: タッチイベント制御（スクロールロック） ▼▼▼
+// ▼▼▼ タッチイベント制御（スクロールロック） ▼▼▼
 document.addEventListener('touchmove', function(e) {
   // Googleマップは許可
   if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
 
-  // スクロール許可エリア(.scrollable-y)内か判定
-  var scrollable = e.target.closest('.scrollable-y');
+  // パネル内のスクロール可能エリアのみ許可
+  var scrollable = e.target.closest('.panel-tabs-body');
 
-  // エリア外なら、CSSに関わらずJSでブロック
+  // エリア外なら即ブロック (html/bodyのスクロールを物理的に止める)
   if (!scrollable) {
     e.preventDefault();
     return;
   }
-
-  // エリア内でも「中身がスカスカでスクロール不要」ならブロック
-  // これが余白（バウンス）を生む原因になるため
+  
+  // エリア内でも「中身が少なくてスクロール不要」ならブロック
   if (scrollable.scrollHeight <= scrollable.clientHeight) {
-      if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
         e.preventDefault();
-      }
+     }
   }
+  // ※ここでは「端でのバウンス」はCSSの overscroll-behavior: contain に任せる
 }, { passive: false });
+
 
 function initPanelTabs() {
 var tabButtons = document.querySelectorAll('[data-panel-tab]');
