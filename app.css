@@ -8,63 +8,81 @@
   --stroke: rgba(255,255,255,0.12);
 }
 
-/* ��ʑS�̌Œ背�C�A�E�g */
+/* =========================================
+   【重要修正】画面全体の揺れ防止設定
+   ========================================= */
 html, body {
   margin: 0;
   padding: 0;
-  height: 100dvh !important;
-  width: 100% !important;
-  overflow: hidden !important;
-  overflow-x: hidden !important;
-  overscroll-behavior: none;
+  width: 100%;
+  height: 100%;
+  /* アドレスバー対策の動的高さ */
+  height: 100dvh; 
   background: var(--bg);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-               "Hiragino Sans", "Noto Sans JP", "Helvetica Neue",
-               Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", "Helvetica Neue", Arial, sans-serif;
+  
+  /* ▼ ここが修正ポイント ▼ */
+  overflow: hidden;             /* スクロールバーを出さない */
+  overscroll-behavior: none;    /* iOSのバウンス（ゴム）効果を無効化 */
+  position: fixed;              /* 画面を物理的に固定 */
+  inset: 0;                     /* 上下左右0固定 */
+  touch-action: none;           /* ブラウザ標準のパン・ズーム操作を無効化 */
 }
 
 * {
-  box-sizing: border-box !important;
+  box-sizing: border-box;
 }
 
 .app {
   position: relative;
   width: 100%;
-  height: 100dvh !important;
-  overflow: hidden !important;
+  height: 100%;
+  overflow: hidden;
 }
 
-/* �n�} */
+/* 地図 */
 #map {
   position: absolute;
   inset: 0;
   width: 100%;
-  height: 100dvh !important;
+  height: 100%;
+  touch-action: none; /* マップ操作はJS(Google Maps)に任せる */
 }
 
-/* �p�l�� - ���S�Œ� */
+/* パネル */
 .panel {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  width: 100%;
   background: var(--panel-bg);
   backdrop-filter: blur(18px);
   padding: 16px 16px 12px 16px;
-  padding-bottom: env(safe-area-inset-bottom) !important;
   box-sizing: border-box;
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
   color: #fff;
-  max-height: 80%;
-  overflow: hidden;
+  
+  max-height: 70%;
+  /* iOS Safari用 100dvh対応 */
+  max-height: 70dvh; 
+  
   z-index: 1000;
-  transform: translateY(0) !important;
-  touch-action: manipulation;
+  transition: transform 0.3s ease-out;
+  will-change: transform;
+  
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
+  width: 100vw;
+  max-width: 100vw;
+
+  /* ▼ ここが修正ポイント（パネル内スクロール設定） ▼ */
+  overflow-y: auto;             /* 縦スクロール許可 */
+  overflow-x: hidden;
+  overscroll-behavior: contain; /* ★重要：スクロールの連鎖（親への伝播）を防ぐ */
+  touch-action: pan-y;          /* 縦スクロール操作のみ有効にする */
+  -webkit-overflow-scrolling: touch; /* iOSでの慣性スクロール */
 }
 
 .panel-tabs-header {
@@ -73,16 +91,13 @@ html, body {
   margin-bottom: 10px;
   justify-content: center;
   width: 100%;
-  overflow-x: hidden;
 }
 
 .panel-tabs-body {
   width: 100%;
-  height: 45dvh;
-  min-height: 350px;
-  overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: 20px;
+  /* パネル本体ではなくここでスクロールする場合の保険 */
+  overscroll-behavior: contain;
 }
 
 .tab-btn {
@@ -100,7 +115,6 @@ html, body {
   outline: none;
   -webkit-tap-highlight-color: transparent;
   white-space: nowrap;
-  min-width: 0;
 }
 
 .tab-btn.active {
@@ -140,7 +154,6 @@ h2 {
   margin-bottom: 8px;
   flex-wrap: wrap;
   width: 100%;
-  overflow-x: hidden;
 }
 
 .chip {
@@ -203,7 +216,6 @@ h2 {
   flex: 1;
   width: 100%;
   min-width: 0;
-  max-width: 100%;
   box-sizing: border-box;
 }
 
@@ -218,7 +230,7 @@ h2 {
   width: 100%;
 }
 
-/* �A�C�R�� */
+/* アイコン基本スタイル */
 .icon {
   display: flex;
   align-items: center;
@@ -240,7 +252,7 @@ h2 {
   outline: none;
 }
 
-/* G�A�C�R��(Google) */
+/* ★Gアイコン（Google） - カラフル */
 .icon-g {
   color: #4285f4;
 }
@@ -249,7 +261,7 @@ h2 {
   fill: #4285f4;
 }
 
-/* �����A�C�R��(���ዾ) */
+/* ★検索アイコン（虫眼鏡） - 青 */
 .icon-search {
   color: #3aa0ff;
 }
@@ -258,7 +270,7 @@ h2 {
   fill: #3aa0ff;
 }
 
-/* �}�C�N�A�C�R�� */
+/* ★マイクアイコン - 赤 */
 .icon-mic {
   color: #ff6565;
 }
@@ -267,14 +279,13 @@ h2 {
   fill: #ff6565;
 }
 
-/* �������� */
+/* 検索結果 */
 .results {
   margin-top: 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   width: 100%;
-  overflow-x: hidden;
 }
 
 .result-item {
@@ -290,13 +301,12 @@ h2 {
   width: 100%;
 }
 
-/* �i�r�Q�[�V���� */
+/* ナビゲーション */
 .nav-section {
   margin-bottom: 12px;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--stroke);
   width: 100%;
-  overflow-x: hidden;
 }
 
 .nav-section:last-child {
@@ -326,6 +336,22 @@ h2 {
   margin-bottom: 0;
 }
 
+/* 道順リスト */
+.nav-instructions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.nav-instruction-item {
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 /* FAB */
 .fab-stack {
   position: absolute;
@@ -350,7 +376,7 @@ h2 {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ���[�f�B���O */
+/* ローディング */
 .loading {
   position: absolute;
   inset: 0;
@@ -367,27 +393,12 @@ h2 {
   display: none;
 }
 
-/* 100dvh �Ή�(iOS Safari �p) */
-@supports (height: 100dvh) {
-  html, body {
-    height: 100dvh;
-  }
-
-  .app {
-    height: 100dvh;
-  }
-
-  .panel {
-    max-height: 70dvh;
-  }
-}
-
-/* iOS Safari�̂��߂�Input�t�H�[�J�X���̒��� */
+/* iOS SafariのためのInputフォーカス時の調整 */
 .input:focus {
   -webkit-user-select: auto;
 }
 
-/* �n�}���[�h�I���Z�N�V���� */
+/* 地図モード選択セクション */
 .map-mode-section {
   margin-bottom: 16px;
   width: 100%;
@@ -434,7 +445,7 @@ h2 {
   opacity: 0.7;
 }
 
-/* �ҏW�_�C�A���O�I�[�o�[���C */
+/* 編集ダイアログオーバーレイ */
 .edit-dialog-overlay {
   position: fixed;
   inset: 0;
@@ -447,7 +458,7 @@ h2 {
   touch-action: manipulation;
 }
 
-/* �ҏW�_�C�A���O�{�� */
+/* 編集ダイアログ本体 */
 .edit-dialog {
   background: #1e1e1e;
   border-radius: 16px;
@@ -459,14 +470,14 @@ h2 {
   color: #fff;
 }
 
-/* �_�C�A���O�^�C�g�� */
+/* ダイアログタイトル */
 .edit-dialog h3 {
   margin: 0 0 16px 0;
   font-size: 18px;
   font-weight: 600;
 }
 
-/* ���X�g�R���e�i */
+/* リストコンテナ */
 .edit-dialog-list {
   display: flex;
   flex-direction: column;
@@ -474,7 +485,7 @@ h2 {
   margin-bottom: 16px;
 }
 
-/* ���X�g�A�C�e�� */
+/* リストアイテム */
 .edit-dialog-item {
   background: rgba(255,255,255,0.1);
   border: 1px solid rgba(255,255,255,0.2);
@@ -500,7 +511,7 @@ h2 {
   opacity: 0.7;
 }
 
-/* �{�^�����ʃX�^�C�� */
+/* ボタン共通スタイル */
 .edit-dialog-btn {
   width: 100%;
   padding: 14px;
@@ -518,7 +529,7 @@ h2 {
   opacity: 0.8;
 }
 
-/* �{�^���o���G�[�V���� */
+/* ボタンバリエーション */
 .edit-dialog-btn-primary {
   background: #25d07a;
   color: #fff;
@@ -537,7 +548,7 @@ h2 {
   border: 1px solid rgba(255,255,255,0.2);
 }
 
-/* �m�F�_�C�A���O�{�^���O���[�v */
+/* 確認ダイアログボタングループ */
 .edit-dialog-btn-group {
   display: flex;
   gap: 8px;
@@ -549,7 +560,7 @@ h2 {
   margin-bottom: 0;
 }
 
-/* �C���t�H�[���pinput */
+/* 修正フォーム用input */
 .edit-dialog-input {
   width: 100%;
   padding: 12px;
