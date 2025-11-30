@@ -1,6 +1,6 @@
 /* ==========================================================================
-   WalkNav - ボタンサイズ最適化・はみ出し完全解消
-   v17.0 - 完全修正版
+   WalkNav - 横幅パディング削減版
+   v17.2 - 高さ維持・横パディングのみ削減
    ========================================================================== */
 
 :root {
@@ -194,17 +194,16 @@ h2, .section-title {
   padding: 0 10px;
 }
 
-/* ボタン：コンパクト化 */
 .btn {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 36px;
-  padding: 0 10px;
-  font-size: 12px;
+  height: 44px;
+  padding: 0 4px;
+  font-size: 13px;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--stroke);
   background: rgba(60, 60, 60, 0.6);
   color: var(--text-main);
@@ -252,32 +251,28 @@ h2, .section-title {
   flex-wrap: wrap;
 }
 
-/* 2列ボタン：はみ出し防止 */
 .action-buttons-row {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   margin-bottom: 8px;
 }
 
 .action-buttons-row .btn {
   flex: 1;
   min-width: 0;
-  padding: 0 8px;
-  font-size: 11px;
+  padding: 0 2px;
 }
 
-/* 3列ボタン：さらにコンパクト */
 .bottom-actions-row {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   margin-bottom: 8px;
 }
 
 .bottom-actions-row .btn {
   flex: 1;
   min-width: 0;
-  padding: 0 6px;
-  font-size: 11px;
+  padding: 0 2px;
 }
 
 .tab-pos-buttons, .route-mode-toggle {
