@@ -60,7 +60,7 @@ function loadSavedLocations() {
         const saved = localStorage.getItem(SAVED_LOCATIONS_KEY);
         appState.savedLocations = saved ? JSON.parse(saved) : [];
     } catch (e) {
-        console.error('登録地の読み込みエラー:', e);
+        console.error('�o�^�n�̓ǂݍ��݃G���[:', e);
         appState.savedLocations = [];
     }
 }
@@ -68,9 +68,9 @@ function loadSavedLocations() {
 function saveSavedLocations() {
     try {
         localStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(appState.savedLocations));
-        console.log('[SavedLocations] 保存完了:', appState.savedLocations.length, '件');
+        console.log('[SavedLocations] �ۑ�����:', appState.savedLocations.length, '��');
     } catch (e) {
-        console.error('登録地の保存エラー:', e);
+        console.error('�o�^�n�̕ۑ��G���[:', e);
     }
 }
 
@@ -87,9 +87,9 @@ function saveMapMode(mode) {
     try {
         localStorage.setItem(MAP_MODE_KEY, mode);
         appState.mapMode = mode;
-        console.log('[MapMode] 保存:', mode);
+        console.log('[MapMode] �ۑ�:', mode);
     } catch (e) {
-        console.error('地図モード保存エラー:', e);
+        console.error('�n�}���[�h�ۑ��G���[:', e);
     }
 }
 
@@ -127,15 +127,15 @@ function updateMapModeButtons(activeMode) {
 
 function showSaveLocationDialog() {
     if (!appState.currentPos) {
-        alert('現在地が取得できていません');
+        alert('���ݒn���擾�ł��Ă��܂���');
         return;
     }
 
-    const address = getEl('locAddress')?.textContent || '現在地';
+    const address = getEl('locAddress')?.textContent || '���ݒn';
     const lat = appState.currentPos.lat;
     const lng = appState.currentPos.lng;
 
-    const name = prompt('登録地名を入力してください:', address);
+    const name = prompt('�o�^�n������͂��Ă�������:', address);
     if (!name) return;
 
     appState.savedLocations.push({
@@ -147,14 +147,14 @@ function showSaveLocationDialog() {
     });
 
     saveSavedLocations();
-    alert(`「${name}」を登録しました`);
+    alert(`�u${name}�v��o�^���܂���`);
 }
 
 function showEditLocationDialog() {
     loadSavedLocations();
 
     if (appState.savedLocations.length === 0) {
-        alert('登録地がありません');
+        alert('�o�^�n������܂���');
         return;
     }
 
@@ -168,7 +168,7 @@ function showEditLocationDialog() {
     dialog.className = 'edit-dialog';
 
     const title = document.createElement('h3');
-    title.textContent = '編集する登録地を選択してください';
+    title.textContent = '�ҏW����o�^�n��I�����Ă�������';
     dialog.appendChild(title);
 
     const list = document.createElement('div');
@@ -202,7 +202,7 @@ function showEditLocationDialog() {
 
     const btnClose = document.createElement('button');
     btnClose.className = 'edit-dialog-btn edit-dialog-btn-secondary';
-    btnClose.textContent = 'キャンセル';
+    btnClose.textContent = '�L�����Z��';
     btnClose.onclick = () => {
         document.body.removeChild(overlay);
         appState.isEditDialogOpen = false;
@@ -223,12 +223,12 @@ function showLocationEditMenu(index) {
     dialog.className = 'edit-dialog';
 
     const title = document.createElement('h3');
-    title.textContent = `「${location.name}」を編集`;
+    title.textContent = `�u${location.name}�v��ҏW`;
     dialog.appendChild(title);
 
     const btnEdit = document.createElement('button');
     btnEdit.className = 'edit-dialog-btn edit-dialog-btn-primary';
-    btnEdit.textContent = '修正';
+    btnEdit.textContent = '�C��';
     btnEdit.onclick = () => {
         document.body.removeChild(overlay);
         showLocationEditForm(index);
@@ -236,7 +236,7 @@ function showLocationEditMenu(index) {
 
     const btnDelete = document.createElement('button');
     btnDelete.className = 'edit-dialog-btn edit-dialog-btn-danger';
-    btnDelete.textContent = '削除';
+    btnDelete.textContent = '�폜';
     btnDelete.onclick = () => {
         document.body.removeChild(overlay);
         showLocationDeleteConfirm(index);
@@ -244,7 +244,7 @@ function showLocationEditMenu(index) {
 
     const btnCancel = document.createElement('button');
     btnCancel.className = 'edit-dialog-btn edit-dialog-btn-secondary';
-    btnCancel.textContent = 'キャンセル';
+    btnCancel.textContent = '�L�����Z��';
     btnCancel.onclick = () => {
         document.body.removeChild(overlay);
         appState.isEditDialogOpen = false;
@@ -268,12 +268,12 @@ function showLocationDeleteConfirm(index) {
     dialog.className = 'edit-dialog';
 
     const title = document.createElement('h3');
-    title.textContent = 'この登録ポイントを削除しますか?';
+    title.textContent = '���̓o�^�|�C���g���폜���܂���?';
     dialog.appendChild(title);
 
     const message = document.createElement('div');
     message.style.cssText = 'margin-bottom: 16px; opacity: 0.8;';
-    message.textContent = `「${location.name}」`;
+    message.textContent = `�u${location.name}�v`;
     dialog.appendChild(message);
 
     const btnGroup = document.createElement('div');
@@ -281,7 +281,7 @@ function showLocationDeleteConfirm(index) {
 
     const btnNo = document.createElement('button');
     btnNo.className = 'edit-dialog-btn edit-dialog-btn-secondary';
-    btnNo.textContent = 'いいえ';
+    btnNo.textContent = '������';
     btnNo.onclick = () => {
         document.body.removeChild(overlay);
         appState.isEditDialogOpen = false;
@@ -289,13 +289,13 @@ function showLocationDeleteConfirm(index) {
 
     const btnYes = document.createElement('button');
     btnYes.className = 'edit-dialog-btn edit-dialog-btn-danger';
-    btnYes.textContent = 'はい';
+    btnYes.textContent = '�͂�';
     btnYes.onclick = () => {
         appState.savedLocations.splice(index, 1);
         saveSavedLocations();
         document.body.removeChild(overlay);
         appState.isEditDialogOpen = false;
-        alert('削除しました');
+        alert('�폜���܂���');
     };
 
     btnGroup.appendChild(btnNo);
@@ -316,35 +316,35 @@ function showLocationEditForm(index) {
     dialog.className = 'edit-dialog';
 
     const title = document.createElement('h3');
-    title.textContent = '登録地名を修正';
+    title.textContent = '�o�^�n�����C��';
     dialog.appendChild(title);
 
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'edit-dialog-input';
     input.value = location.name;
-    input.placeholder = '登録地名を入力';
+    input.placeholder = '�o�^�n�������';
     dialog.appendChild(input);
 
     const btnComplete = document.createElement('button');
     btnComplete.className = 'edit-dialog-btn edit-dialog-btn-primary';
-    btnComplete.textContent = '完了';
+    btnComplete.textContent = '����';
     btnComplete.onclick = () => {
         const newName = input.value.trim();
         if (!newName) {
-            alert('登録地名を入力してください');
+            alert('�o�^�n������͂��Ă�������');
             return;
         }
         location.name = newName;
         saveSavedLocations();
         document.body.removeChild(overlay);
         appState.isEditDialogOpen = false;
-        alert('更新しました');
+        alert('�X�V���܂���');
     };
 
     const btnCancel = document.createElement('button');
     btnCancel.className = 'edit-dialog-btn edit-dialog-btn-secondary';
-    btnCancel.textContent = 'キャンセル';
+    btnCancel.textContent = '�L�����Z��';
     btnCancel.onclick = () => {
         document.body.removeChild(overlay);
         appState.isEditDialogOpen = false;
@@ -459,7 +459,7 @@ async function placesTextSearch(payload, fieldMask) {
         if (!resp.ok) throw new Error(`TextSearch ${resp.status}`);
         return await resp.json();
     } catch (error) {
-        console.error(`検索エラー: ${error.message}`);
+        console.error(`�����G���[: ${error.message}`);
         throw error;
     }
 }
@@ -477,7 +477,7 @@ async function placesNearby(payload, fieldMask) {
         if (!resp.ok) throw new Error(`Nearby ${resp.status}`);
         return await resp.json();
     } catch (error) {
-        console.error(`検索エラー: ${error.message}`);
+        console.error(`�����G���[: ${error.message}`);
         throw error;
     }
 }
@@ -513,7 +513,7 @@ function initMap(center) {
 
     } catch (e) {
         console.error('[WalkNav] Map initialization failed:', e);
-        alert('地図の読み込みに失敗しました。APIキーの設定を確認してください。');
+        alert('�n�}�̓ǂݍ��݂Ɏ��s���܂����BAPI�L�[�̐ݒ���m�F���Ă��������B');
     }
 }
 
@@ -610,16 +610,16 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 
 function readLegDistanceText(leg) {
     if (leg?.distance?.text) return leg.distance.text;
-    return leg?.localizedValues?.distance?.text || '–';
+    return leg?.localizedValues?.distance?.text || '-';
 }
 
 function readLegDurationText(leg) {
     if (leg?.duration?.text) return leg.duration.text;
     if (typeof leg?.duration === 'string' && leg.duration.endsWith('s')) {
         const min = Math.max(1, Math.round(parseInt(leg.duration) / 60));
-        return `${min} 分`;
+        return `${min} ��`;
     }
-    return leg?.localizedValues?.duration?.text || '–';
+    return leg?.localizedValues?.duration?.text || '-';
 }
 
 function drawRoutePolyline(route) {
@@ -711,7 +711,7 @@ async function startNavigation(destination) {
         originLng = appState.currentPos.lng;
         appState.isSimulation = false;
     } else {
-        alert('起点が取得できません');
+        alert('�N�_���擾�ł��܂���');
         return;
     }
 
@@ -747,7 +747,7 @@ async function startNavigation(destination) {
 
             setText('destinationName', destination.name);
             setText('routeDistance', readLegDistanceText(l0));
-            setText('routeTime', `徒歩 ${readLegDurationText(l0)}`);
+            setText('routeTime', `�k�� ${readLegDurationText(l0)}`);
 
             setDisplay('routeInfoSection', 'block');
             setDisplay('results', 'none');
@@ -786,13 +786,13 @@ async function startNavigation(destination) {
             });
 
         } else {
-            alert('ルートが見つかりませんでした');
+            alert('���[�g��������܂���ł���');
             stopNavigation();
         }
 
     } catch (e) {
         console.error(e);
-        alert('ルート検索エラー');
+        alert('���[�g�����G���[');
         stopNavigation();
     }
 }
@@ -858,8 +858,8 @@ function acquireLocation() {
         if (!appState.mapInitialized) {
             initMap(defaultPos);
         }
-        setText('locAddress', '現在地取得失敗 (つるぎ町を表示)');
-        setText('locCoords', 'GPSエラー');
+        setText('locAddress', '���ݒn�擾���s (�邬����\��)');
+        setText('locCoords', 'GPS�G���[');
 
     };
 
@@ -892,7 +892,7 @@ async function fetchLocationNameGoogle(lat, lng) {
         });
         const data = await res.json();
         if (data.results?.[0]) {
-            setText('locAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
+            setText('locAddress', data.results[0].formatted_address.replace(/^���{�A\s*/, ''));
         }
     } catch (e) {
         console.error(e);
@@ -900,7 +900,7 @@ async function fetchLocationNameGoogle(lat, lng) {
 }
 
 async function fetchPointAddress(lat, lng) {
-    setText('pointAddress', '取得中...');
+    setText('pointAddress', '�擾��...');
     setDisplay('pointAddressBlock', 'flex');
     setText('pointCoords', `Lat: ${lat.toFixed(5)}`);
     try {
@@ -919,10 +919,10 @@ async function fetchPointAddress(lat, lng) {
         });
         const data = await res.json();
         if (data.results?.[0]) {
-            setText('pointAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
+            setText('pointAddress', data.results[0].formatted_address.replace(/^���{�A\s*/, ''));
         }
     } catch (e) {
-        setText('pointAddress', '取得エラー');
+        setText('pointAddress', '�擾�G���[');
     }
 }
 
@@ -951,7 +951,7 @@ async function performSearch(query) {
         displayResults(results, center.lat, center.lng);
     } catch (e) {
         console.error(e);
-        alert('検索に失敗しました');
+        alert('�����Ɏ��s���܂���');
     }
 }
 
@@ -1012,14 +1012,17 @@ function bindKeyboardWatch() {
 
     if (!searchInput || !searchPanel) return;
 
+    let isInputFocused = false;
+
     const adjustPanelPosition = () => {
         if (!window.visualViewport) return;
+        if (!isInputFocused) return;
 
         const viewportHeight = window.visualViewport.height;
         const windowHeight = window.innerHeight;
         const keyboardHeight = windowHeight - viewportHeight;
 
-        if (keyboardHeight > 150) {
+        if (keyboardHeight > 200 && isInputFocused) {
             if (appState.keyboardAdjusted) return;
 
             searchPanel.style.transform = 'translateY(0)';
@@ -1039,7 +1042,7 @@ function bindKeyboardWatch() {
             appState.keyboardAdjusted = true;
             console.log(`[Keyboard] Show - keyboard:${keyboardHeight}px, move:${moveAmount}px`);
 
-        } else {
+        } else if (!isInputFocused || keyboardHeight <= 200) {
             if (!appState.keyboardAdjusted) return;
 
             searchPanel.style.transition = 'transform 0.25s ease-out';
@@ -1057,16 +1060,16 @@ function bindKeyboardWatch() {
     }
 
     searchInput.addEventListener('focus', () => {
+        isInputFocused = true;
         setTimeout(adjustPanelPosition, 300);
     });
 
     searchInput.addEventListener('blur', () => {
+        isInputFocused = false;
         setTimeout(() => {
-            if (document.activeElement !== searchInput) {
-                searchPanel.style.transition = 'transform 0.25s ease-out';
-                searchPanel.style.transform = 'translateY(0)';
-                appState.keyboardAdjusted = false;
-            }
+            searchPanel.style.transition = 'transform 0.25s ease-out';
+            searchPanel.style.transform = 'translateY(0)';
+            appState.keyboardAdjusted = false;
         }, 100);
     });
 }
@@ -1095,7 +1098,7 @@ function bindUI() {
         appState.pointSearchMode = false;
         const btnP = getEl('btnPointSearch');
         if (btnP) {
-            btnP.textContent = '📍 ポイント選択';
+            btnP.textContent = '? �|�C���g�I��';
             btnP.style.background = '';
             btnP.style.color = '';
         }
@@ -1121,7 +1124,7 @@ function bindUI() {
     const btnPoint = getEl('btnPointSearch');
     if (btnPoint) btnPoint.onclick = () => {
         appState.pointSearchMode = !appState.pointSearchMode;
-        btnPoint.textContent = appState.pointSearchMode ? '📍 選択中...' : '📍 ポイント選択';
+        btnPoint.textContent = appState.pointSearchMode ? '? �I��...' : '? �|�C���g�I��';
         btnPoint.style.background = appState.pointSearchMode ? '#25d07a' : '';
         btnPoint.style.color = appState.pointSearchMode ? '#fff' : '';
     };
@@ -1156,12 +1159,10 @@ function bindUI() {
         setText('radiusLabel', '30km');
     };
     
-    // [最終修正コードの注入]
     const searchPanel = getEl('searchPanel');
     if (searchPanel) {
-        // パネルの横幅をビューポートに強制フィットさせ、はみ出しをゼロにする
         searchPanel.style.maxWidth = '100vw';
-        searchPanel.style.paddingLeft = '10px'; // 僅かなパディングで調整
+        searchPanel.style.paddingLeft = '10px';
         searchPanel.style.paddingRight = '10px';
         searchPanel.style.boxSizing = 'border-box';
     }
@@ -1180,8 +1181,6 @@ function startApp() {
     switchPanelTab('search');
     acquireLocation();
     startCompassListener();
-
-    // setTimeout(unifyTabPaneHeights, 500);
 }
 
 function initializeWhenReady() {
@@ -1193,5 +1192,3 @@ function initializeWhenReady() {
 }
 
 window.addEventListener('DOMContentLoaded', initializeWhenReady);
-
-// END OF FILE
