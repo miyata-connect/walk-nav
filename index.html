@@ -7,7 +7,7 @@
 <title>WalkNav</title>
 <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-<link rel="stylesheet" href="app.css?v=20251201-final" />
+<link rel="stylesheet" href="app.css?v=20251201-fix-edit1" />
 </head>
 <body id="appBody">
 <div class="app">
@@ -165,92 +165,154 @@
 </div>
 </div>
 
-<script src="app.js"></script>
+<script src="app.js?v=20251201-fix-edit1"></script>
 
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=marker,geometry&language=ja&region=JP&loading=async" async defer></script>
 
 <script>
 (function () {
-  // ▼▼▼ 物理的なスクロール・バウンス防止（iOS Safari対策） ▼▼▼
-  document.addEventListener('touchmove', function(e) {
-    // 0. ボタン等の操作は必ず許可（preventDefaultするとクリックが潰れることがある）
-    var interactive = e.target.closest('button, a, input, textarea, select, [role="button"], .chip, .btn, .tab-btn, .map-mode-btn, .fab-btn, .icon');
-    if (interactive) return;
+// ▼▼▼ 物理的なスクロール・バウンス防止（iOS Safari対策） ▼▼▼
+document.addEventListener('touchmove', function(e) {
+  // 1. Googleマップは許可
+  if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
 
-    // 1. Googleマップは許可
-    if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
+  // 2. パネル内のスクロールエリアのみ許可
+  var scrollable = e.target.closest('.panel-tabs-body');
 
-    // 2. パネル内のスクロールエリアのみ許可
-    var scrollable = e.target.closest('.panel-tabs-body');
+  // 3. それ以外はすべてブロック（Body Lock）
+  if (!scrollable) {
+    if (e.cancelable) e.preventDefault();
+    return;
+  }
+  
+  // 4. 中身が少なくてスクロール不要な場合のバウンス防止
+  if (scrollable.scrollHeight <= scrollable.clientHeight) {
+     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        if (e.cancelable) e.preventDefault();
+     }
+  }
+}, { passive: false });
 
-    // 3. それ以外はすべてブロック（Body Lock）
-    if (!scrollable) {
-      if (e.cancelable) e.preventDefault();
-      return;
-    }
+function initPanelTabs() {
+  var tabButtons = document.querySelectorAll('[data-panel-tab]');
+  var paneSearch = document.getElementById('tabPaneSearch');
+  var paneNav = document.getElementById('tabPaneNav');
+  var paneSettings = document.getElementById('tabPaneSettings');
+  var posButtons = document.querySelectorAll('[data-pos]');
 
-    // 4. 中身が少なくてスクロール不要な場合のバウンス防止
-    if (scrollable.scrollHeight <= scrollable.clientHeight) {
-      if (e.cancelable) e.preventDefault();
-    }
-  }, { passive: false });
-
-  function initPanelTabs() {
-    var tabButtons = document.querySelectorAll('[data-panel-tab]');
-    var paneSearch = document.getElementById('tabPaneSearch');
-    var paneNav = document.getElementById('tabPaneNav');
-    var paneSettings = document.getElementById('tabPaneSettings');
-    var posButtons = document.querySelectorAll('[data-pos]');
-
-    function setMode(mode) {
-      var isNav = (mode === 'nav');
-      var isSettings = (mode === 'settings');
-      if (paneSearch) paneSearch.classList.toggle('active', !isNav && !isSettings);
-      if (paneNav) paneNav.classList.toggle('active', isNav);
-      if (paneSettings) paneSettings.classList.toggle('active', isSettings);
-      var target = isSettings ? 'settings' : (isNav ? 'nav' : 'search');
-
-      tabButtons.forEach(function(b) {
-        b.classList.toggle('active', b.getAttribute('data-panel-tab') === target);
-      });
-    }
-
-    tabButtons.forEach(function(btn) {
-      btn.addEventListener('click', function () {
-        setMode(btn.getAttribute('data-panel-tab') || 'search');
-      });
+  function setMode(mode) {
+    var isNav = (mode === 'nav');
+    var isSettings = (mode === 'settings');
+    if (paneSearch) paneSearch.classList.toggle('active', !isNav && !isSettings);
+    if (paneNav) paneNav.classList.toggle('active', isNav);
+    if (paneSettings) paneSettings.classList.toggle('active', isSettings);
+    var target = isSettings ? 'settings' : (isNav ? 'nav' : 'search');
+    
+    tabButtons.forEach(function(b) {
+       b.classList.toggle('active', b.getAttribute('data-panel-tab') === target);
     });
+  }
 
-    posButtons.forEach(function(btnPos) {
-      btnPos.addEventListener('click', function () {
-        posButtons.forEach(function(b){ b.classList.remove('active'); });
-        btnPos.classList.add('active');
-        if (window.parent !== window) {
-          window.parent.postMessage({ type: 'WN_SET_TAB_POS', position: btnPos.getAttribute('data-pos') }, '*');
-        }
-      });
+  tabButtons.forEach(function(btn) {
+    btn.addEventListener('click', function () {
+      setMode(btn.getAttribute('data-panel-tab') || 'search');
     });
+  });
 
-    setMode('search');
-
-    // 親ウィンドウとの通信（iframe利用時）
-    window.addEventListener('message', function (e) {
-      if (e.data && e.data.type === 'WN_CURRENT_TAB_POS') {
-        var pos = e.data.position || 'right';
-        posButtons.forEach(function(b){
-          b.classList.toggle('active', b.getAttribute('data-pos') === pos);
-        });
+  posButtons.forEach(function(btnPos) {
+    btnPos.addEventListener('click', function () {
+      posButtons.forEach(function(b){ b.classList.remove('active'); });
+      btnPos.classList.add('active');
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: 'WN_SET_TAB_POS', position: btnPos.getAttribute('data-pos') }, '*');
       }
     });
-    if (window.parent !== window) {
-      window.parent.postMessage({ type: 'WN_REQUEST_TAB_POS' }, '*');
+  });
+
+  setMode('search');
+
+  // 親ウィンドウとの通信（iframe利用時）
+  window.addEventListener('message', function (e) {
+    if (e.data && e.data.type === 'WN_CURRENT_TAB_POS') {
+      var pos = e.data.position || 'right';
+      posButtons.forEach(function(b){
+        b.classList.toggle('active', b.getAttribute('data-pos') === pos);
+      });
     }
+  });
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'WN_REQUEST_TAB_POS' }, '*');
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPanelTabs);
+} else {
+  initPanelTabs();
+}
+})();
+</script>
+
+<script>
+/* ===== 登録地ボタンを「確実に」発火させる（app.jsは触らない） ===== */
+(function () {
+  function bindReliable(el, fn) {
+    if (!el || typeof fn !== 'function') return false;
+
+    var firedAt = 0;
+    function handler(e) {
+      // 追撃click（二重発火）を抑止
+      var now = Date.now();
+      if (e && e.type === 'click' && (now - firedAt) < 700) return;
+      firedAt = now;
+
+      try { if (e && e.cancelable) e.preventDefault(); } catch (_) {}
+      try { fn(); } catch (err) { console.error(err); alert('登録地操作でエラーが発生しました'); }
+    }
+
+    el.addEventListener('touchend', handler, { passive: false });
+    el.addEventListener('pointerup', handler);
+    el.addEventListener('click', handler);
+    return true;
+  }
+
+  function tryHook() {
+    var btnEdit = document.getElementById('btnEditLocation');
+    var btnSave = document.getElementById('btnSaveLocation');
+
+    var okEdit = bindReliable(btnEdit, window.showEditLocationDialog);
+    var okSave = bindReliable(btnSave, window.showSaveLocationDialog);
+
+    // app.js側が関数をグローバルに出していない場合は警告（原因が確定）
+    if (btnEdit && !okEdit) {
+      bindReliable(btnEdit, function () {
+        alert('showEditLocationDialog が見つかりません（app.js側のスコープ/構造が原因）');
+      });
+    }
+    if (btnSave && !okSave) {
+      bindReliable(btnSave, function () {
+        alert('showSaveLocationDialog が見つかりません（app.js側のスコープ/構造が原因）');
+      });
+    }
+
+    return (okEdit || okSave);
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initPanelTabs);
+    document.addEventListener('DOMContentLoaded', function () {
+      // app.jsの初期化タイミング差を吸収
+      var tries = 0;
+      var t = setInterval(function () {
+        tries++;
+        if (tryHook() || tries > 40) clearInterval(t);
+      }, 100);
+    });
   } else {
-    initPanelTabs();
+    var tries2 = 0;
+    var t2 = setInterval(function () {
+      tries2++;
+      if (tryHook() || tries2 > 40) clearInterval(t2);
+    }, 100);
   }
 })();
 </script>
