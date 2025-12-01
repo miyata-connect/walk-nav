@@ -1,6 +1,6 @@
 'use strict';
 
-const ISSUE_ID = 'idx20251201_fix_edit_location_button_v1';
+const ISSUE_ID = 'idx20251201_weather_1h2h3h_v1';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -44,7 +44,10 @@ const appState = {
   editingLocationIndex: null,
   isEditDialogOpen: false,
 
-  mapMode: 'roadmap'
+  mapMode: 'roadmap',
+
+  weatherAbort: null,
+  lastWeatherAt: 0
 };
 
 function getEl(id) {
@@ -171,6 +174,130 @@ async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
   }
 }
 
+/* =========================
+   天気（1h/2h/3h）
+   - Worker 経由: `${WORKER_ORIGIN}/weather?lat=..&lon=..`
+   - Worker が One Call の hourly を返す想定
+   ========================= */
+
+function resetWeatherUI() {
+  setText('weather1h', '--');
+  setText('weather2h', '--');
+  setText('weather3h', '--');
+}
+
+function formatTemp(t) {
+  if (typeof t !== 'number' || Number.isNaN(t)) return '--';
+  return `${Math.round(t)}°`;
+}
+
+function compactWeatherText(temp, desc) {
+  const t = formatTemp(temp);
+  const d = (desc ? String(desc) : '').trim();
+  if (!d) return t;
+  if (t === '--') return d;
+  return `${t} ${d}`;
+}
+
+function pickHourlyAtOffset(hourly, hoursFromNow) {
+  if (!Array.isArray(hourly) || hourly.length === 0) return null;
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const targetMin = nowSec + (hoursFromNow * 3600) - 1800;
+  const targetMax = nowSec + (hoursFromNow * 3600) + 1800;
+
+  let best = null;
+  let bestDiff = Infinity;
+
+  for (const h of hourly) {
+    const dt = typeof h?.dt === 'number' ? h.dt : null;
+    if (!dt) continue;
+    if (dt < targetMin || dt > targetMax) continue;
+
+    const diff = Math.abs(dt - (nowSec + hoursFromNow * 3600));
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = h;
+    }
+  }
+
+  if (best) return best;
+
+  // ±30分範囲で取れない場合は、単純に先頭から hoursFromNow 近いもの
+  for (const h of hourly) {
+    const dt = typeof h?.dt === 'number' ? h.dt : null;
+    if (!dt) continue;
+    const diff = Math.abs(dt - (nowSec + hoursFromNow * 3600));
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = h;
+    }
+  }
+  return best;
+}
+
+async function updateWeather(lat, lng) {
+  // 連打制限（現在地ボタン連打など）
+  const now = Date.now();
+  if ((now - appState.lastWeatherAt) < 1500) return;
+  appState.lastWeatherAt = now;
+
+  const w1 = getEl('weather1h');
+  const w2 = getEl('weather2h');
+  const w3 = getEl('weather3h');
+  if (!w1 || !w2 || !w3) return;
+
+  // 前回のリクエストを中断
+  try { appState.weatherAbort?.abort(); } catch (_) {}
+  const controller = new AbortController();
+  appState.weatherAbort = controller;
+
+  // ローディング表示
+  setText('weather1h', '…');
+  setText('weather2h', '…');
+  setText('weather3h', '…');
+
+  try {
+    const url = new URL(`${WORKER_ORIGIN}/weather`);
+    url.searchParams.set('lat', String(lat));
+    url.searchParams.set('lon', String(lng));
+    url.searchParams.set('lang', 'ja');
+    url.searchParams.set('units', 'metric');
+    url.searchParams.set('t', String(Date.now())); // キャッシュ判定用の微調整（Worker側で無視してOK）
+
+    const resp = await fetch(url.toString(), {
+      method: 'GET',
+      signal: controller.signal,
+      cache: 'no-store'
+    });
+
+    if (!resp.ok) throw new Error(`weather ${resp.status}`);
+
+    const data = await resp.json();
+
+    const hourly = data?.hourly;
+    const h1 = pickHourlyAtOffset(hourly, 1);
+    const h2 = pickHourlyAtOffset(hourly, 2);
+    const h3 = pickHourlyAtOffset(hourly, 3);
+
+    const t1 = (h1 && typeof h1.temp === 'number') ? h1.temp : null;
+    const t2 = (h2 && typeof h2.temp === 'number') ? h2.temp : null;
+    const t3 = (h3 && typeof h3.temp === 'number') ? h3.temp : null;
+
+    const d1 = h1?.weather?.[0]?.description || '';
+    const d2 = h2?.weather?.[0]?.description || '';
+    const d3 = h3?.weather?.[0]?.description || '';
+
+    setText('weather1h', compactWeatherText(t1, d1));
+    setText('weather2h', compactWeatherText(t2, d2));
+    setText('weather3h', compactWeatherText(t3, d3));
+
+  } catch (e) {
+    console.error('[Weather] failed:', e);
+    resetWeatherUI();
+  }
+}
+
 async function placesTextSearch(payload, fieldMask) {
   payload.languageCode = 'ja';
   const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
@@ -282,6 +409,17 @@ function setSearchPoint(lat, lng) {
   fetchPointAddress(lat, lng).catch(() => {});
 }
 
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 function drawRoutePolyline(route) {
   if (appState.currentPolyline) {
     appState.currentPolyline.setMap(null);
@@ -344,6 +482,10 @@ function startLocationWatcher() {
     (pos) => {
       const { latitude, longitude } = pos.coords;
       setUserMarker(latitude, longitude);
+
+      // 天気更新（移動追随しすぎないように内部でスロットル）
+      updateWeather(latitude, longitude).catch(() => {});
+
       if (appState.isNavigating && !appState.isPaused && appState.map) {
         appState.map.panTo({ lat: latitude, lng: longitude });
       }
@@ -373,7 +515,9 @@ function acquireLocation() {
     }
 
     setUserMarker(latitude, longitude);
+
     fetchLocationNameGoogle(latitude, longitude).catch(() => {});
+    updateWeather(latitude, longitude).catch(() => {});
   };
 
   const onError = (error) => {
@@ -386,6 +530,7 @@ function acquireLocation() {
 
     setText('locAddress', '現在地取得失敗');
     setText('locCoords', 'GPSエラー');
+    resetWeatherUI();
   };
 
   if (!navigator.geolocation) {
@@ -462,14 +607,14 @@ async function performSearch(query) {
     }, DEFAULT_MASK);
 
     const results = data.places || [];
-    displayResults(results);
+    displayResults(results, center.lat, center.lng);
   } catch (e) {
     console.error(e);
     alert('検索に失敗しました');
   }
 }
 
-function displayResults(places) {
+function displayResults(places, centerLat, centerLng) {
   const resDiv = getEl('results');
   if (!resDiv) return;
 
@@ -614,7 +759,9 @@ function stopNavigation() {
   stopLocationWatcher();
   appState.isNavigating = false;
 
-  try { appState.currentPolyline?.setMap(null); } catch (_) {}
+  try {
+    appState.currentPolyline?.setMap(null);
+  } catch (_) {}
   appState.currentPolyline = null;
 
   setDisplay('routeInfoSection', 'none');
@@ -640,7 +787,7 @@ function stopNavigation() {
 }
 
 /* =========================
-   登録地：追加／編集（今回の修正の中心）
+   登録地：追加／編集
    ========================= */
 
 function showSaveLocationDialog() {
@@ -685,9 +832,10 @@ function showEditLocationDialog() {
       return;
     }
 
-    /* ★修正：先に閉じる → その後に open 状態を立てる（元コードはtrue→直後にfalseへ戻っていた） */
-    closeAnyEditOverlay();
+    if (appState.isEditDialogOpen) return;
     appState.isEditDialogOpen = true;
+
+    closeAnyEditOverlay();
 
     const overlay = document.createElement('div');
     overlay.className = 'edit-dialog-overlay';
