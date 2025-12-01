@@ -282,17 +282,6 @@ function setSearchPoint(lat, lng) {
   fetchPointAddress(lat, lng).catch(() => {});
 }
 
-function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371000;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
 function drawRoutePolyline(route) {
   if (appState.currentPolyline) {
     appState.currentPolyline.setMap(null);
@@ -473,14 +462,14 @@ async function performSearch(query) {
     }, DEFAULT_MASK);
 
     const results = data.places || [];
-    displayResults(results, center.lat, center.lng);
+    displayResults(results);
   } catch (e) {
     console.error(e);
     alert('検索に失敗しました');
   }
 }
 
-function displayResults(places, centerLat, centerLng) {
+function displayResults(places) {
   const resDiv = getEl('results');
   if (!resDiv) return;
 
@@ -625,9 +614,7 @@ function stopNavigation() {
   stopLocationWatcher();
   appState.isNavigating = false;
 
-  try {
-    appState.currentPolyline?.setMap(null);
-  } catch (_) {}
+  try { appState.currentPolyline?.setMap(null); } catch (_) {}
   appState.currentPolyline = null;
 
   setDisplay('routeInfoSection', 'none');
@@ -653,7 +640,7 @@ function stopNavigation() {
 }
 
 /* =========================
-   登録地：追加／編集（ここが今回の修正の中心）
+   登録地：追加／編集（今回の修正の中心）
    ========================= */
 
 function showSaveLocationDialog() {
@@ -698,10 +685,9 @@ function showEditLocationDialog() {
       return;
     }
 
-    if (appState.isEditDialogOpen) return;
-    appState.isEditDialogOpen = true;
-
+    /* ★修正：先に閉じる → その後に open 状態を立てる（元コードはtrue→直後にfalseへ戻っていた） */
     closeAnyEditOverlay();
+    appState.isEditDialogOpen = true;
 
     const overlay = document.createElement('div');
     overlay.className = 'edit-dialog-overlay';
@@ -977,7 +963,6 @@ function bindReliableActivate(el, fn) {
   let last = 0;
   const run = (e) => {
     const now = Date.now();
-    // touchend/pointerup後にclickが追撃してくるのを抑止
     if (e.type === 'click' && (now - last) < 700) return;
     last = now;
 
@@ -1034,7 +1019,6 @@ function bindUI() {
 
   bindReliableActivate(getEl('btnStopRoute'), () => stopNavigation());
 
-  // ★今回の主目的：登録地ボタン2つを“確実に”動かす
   bindReliableActivate(getEl('btnSaveLocation'), () => showSaveLocationDialog());
   bindReliableActivate(getEl('btnEditLocation'), () => showEditLocationDialog());
 
