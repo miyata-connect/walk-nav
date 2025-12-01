@@ -13,6 +13,9 @@ const LOCATION_OPTIONS = {
   maximumAge: 0
 };
 
+// iOS Safariで getCurrentPosition が成功/失敗を返さず固まるケースの保険（最小追加）
+const GEO_HARD_TIMEOUT_MS = 20000;
+
 const SAVED_LOCATIONS_KEY = 'walknav_saved_locations';
 const MAP_MODE_KEY = 'walknav_map_mode';
 
@@ -45,6 +48,7 @@ const STR = {
   SEARCH_FAIL: '\u691c\u7d22\u306b\u5931\u6557\u3057\u307e\u3057\u305f',
   GPS_FAIL_LABEL: '\u73fe\u5728\u5730\u53d6\u5f97\u5931\u6557 (\u5409\u6210\u9db4\u5dfb\u8868\u793a)',
   GPS_ERROR: 'GPS\u30a8\u30e9\u30fc',
+  GEO_HARD_TIMEOUT: '\u73fe\u5728\u5730\u53d6\u5f97\u304c\u30bf\u30a4\u30e0\u30a2\u30a6\u30c8\u3057\u307e\u3057\u305f',
   MAP_LOAD_FAILED: '\u5730\u56f3\u306e\u8aad\u307f\u8fbc\u307f\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002API\u30ad\u30fc\u306e\u8a2d\u5b9a\u3092\u78ba\u8a8d\u3057\u3066\u304f\u3060\u3055\u3044\u3002',
   POINT_SEARCH: '\uD83D\uDCCD \u30dd\u30a4\u30f3\u30c8\u9078\u629e',
   POINT_SELECTING: '\uD83D\uDCCD \u9078\u629e\u4e2d...',
@@ -83,7 +87,8 @@ const appState = {
   savedLocations: [],
   editingLocationIndex: null,
   isEditDialogOpen: false,
-  mapMode: 'roadmap'
+  mapMode: 'roadmap',
+  geoHardTimeoutId: null
 };
 
 function getEl(id) {
@@ -98,6 +103,18 @@ function setDisplay(id, displayVal) {
 function setText(id, text) {
   const el = document.getElementById(id);
   if (el) el.textContent = text;
+}
+
+function removeLoadingIfAny() {
+  const loadingEl = getEl('loading');
+  if (loadingEl) loadingEl.remove();
+}
+
+function clearGeoHardTimeout() {
+  if (appState.geoHardTimeoutId) {
+    clearTimeout(appState.geoHardTimeoutId);
+    appState.geoHardTimeoutId = null;
+  }
 }
 
 function loadSavedLocations() {
@@ -656,6 +673,7 @@ function drawRoutePolyline(route) {
 
 function startCompassListener() {
   if (!window.DeviceOrientationEvent) return;
+
   const handler = (event) => {
     if (appState.isNavigating) return;
     const heading = event.webkitCompassHeading || (event.absolute ? event.alpha : null);
@@ -807,46 +825,75 @@ function stopNavigation() {
   setDisplay('fabStack', 'none');
   setDisplay('btnSearch', 'flex');
 
-  getEl('q').value = '';
-  getEl('results').innerHTML = '';
+  const qEl = getEl('q');
+  if (qEl) qEl.value = '';
+
+  const resEl = getEl('results');
+  if (resEl) resEl.innerHTML = '';
+
   setDisplay('results', 'none');
 
   switchPanelTab('search');
-  if (appState.currentPos) {
+  if (appState.currentPos && appState.map) {
     appState.map.panTo(appState.currentPos);
     appState.map.setZoom(17);
   }
 }
 
 function acquireLocation() {
+  clearGeoHardTimeout();
+
+  let completed = false;
+
+  const defaultPos = { lat: 34.0344, lng: 134.0577 };
+
+  const finishOnce = (fn) => {
+    if (completed) return;
+    completed = true;
+    clearGeoHardTimeout();
+    removeLoadingIfAny();
+    fn();
+  };
+
   const onSuccess = (pos) => {
-    const { latitude, longitude } = pos.coords;
-    const loadingEl = getEl('loading');
-    if (loadingEl) loadingEl.remove();
+    finishOnce(() => {
+      const { latitude, longitude } = pos.coords;
 
-    if (!appState.mapInitialized) initMap({ lat: latitude, lng: longitude });
-    else appState.map.setCenter({ lat: latitude, lng: longitude });
+      if (!appState.mapInitialized) {
+        initMap({ lat: latitude, lng: longitude });
+      } else if (appState.map) {
+        appState.map.setCenter({ lat: latitude, lng: longitude });
+      }
 
-    setUserMarker(latitude, longitude);
-    fetchLocationNameGoogle(latitude, longitude);
+      setUserMarker(latitude, longitude);
+      fetchLocationNameGoogle(latitude, longitude);
+    });
   };
 
   const onError = (error) => {
-    console.warn('[WalkNav] Geolocation error:', error);
-    const loadingEl = getEl('loading');
-    if (loadingEl) loadingEl.remove();
+    finishOnce(() => {
+      console.warn('[WalkNav] Geolocation error:', error);
 
-    const defaultPos = { lat: 34.0344, lng: 134.0577 };
-    if (!appState.mapInitialized) initMap(defaultPos);
+      if (!appState.mapInitialized) {
+        initMap(defaultPos);
+      }
 
-    setText('locAddress', STR.GPS_FAIL_LABEL);
-    setText('locCoords', STR.GPS_ERROR);
+      // 取得失敗時でもUIが固まらないように必ず表示更新
+      setText('locAddress', STR.GPS_FAIL_LABEL);
+      setText('locCoords', (error && error.message) ? error.message : STR.GPS_ERROR);
+    });
   };
 
   if (!navigator.geolocation) {
-    onError('Geolocation not supported');
+    onError({ message: 'Geolocation not supported' });
     return;
   }
+
+  // iOS Safariで getCurrentPosition が返らないケースの強制復帰
+  appState.geoHardTimeoutId = setTimeout(() => {
+    onError({ message: STR.GEO_HARD_TIMEOUT });
+  }, GEO_HARD_TIMEOUT_MS);
+
   try {
     navigator.geolocation.getCurrentPosition(onSuccess, onError, LOCATION_OPTIONS);
   } catch (e) {
@@ -927,6 +974,8 @@ async function performSearch(query) {
 
 function displayResults(places, centerLat, centerLng) {
   const resDiv = getEl('results');
+  if (!resDiv) return;
+
   resDiv.innerHTML = '';
   setDisplay('results', 'block');
   setDisplay('instructionsSection', 'none');
@@ -1066,6 +1115,7 @@ function startApp() {
   bindUI();
   updateMapModeButtons(appState.mapMode);
   switchPanelTab('search');
+
   acquireLocation();
   startCompassListener();
 }
