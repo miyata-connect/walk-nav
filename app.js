@@ -1,11 +1,9 @@
 'use strict';
 
-const ISSUE_ID = 'idx20251119_fix_loc_tsurugi_v5_addr_restore_editbtn_fix';
-
-// セキュリティ上、ここにはAPIキーを再掲しない（あなたの手元の値をそのまま入れてください）
-const API_KEY = 'PASTE_YOUR_API_KEY_HERE';
-
+const ISSUE_ID = 'idx20251119_fix_loc_tsurugi_v5_addr_restore_editbtn_retryfix';
+const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
+
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
 const RETRY_DELAY = 1000;
@@ -32,11 +30,7 @@ const appState = {
   searchMarkers: [],
   currentDestination: null,
   currentPolyline: null,
-
-  // 音声（使っていないなら未使用のままでOK）
   recognition: null,
-  isRecognizing: false,
-
   isPaused: false,
   isNavigating: false,
   locationWatchId: null,
@@ -45,13 +39,13 @@ const appState = {
   isSimulation: false,
   currentRouteData: null,
   unifiedHeight: null,
-
   savedLocations: [],
   editingLocationIndex: null,
 
-  // ★ ここが詰まると「編集ボタンが動かない」になるので、DOMも見て強制回復する
+  // ★ 編集ダイアログが「開けない」原因（フラグ詰まり/二重発火）対策
   isEditDialogOpen: false,
   editOverlayEl: null,
+  lastEditTapTs: 0,
 
   mapMode: 'roadmap',
   geoHardTimeoutId: null,
@@ -59,16 +53,8 @@ const appState = {
 };
 
 function getEl(id) { return document.getElementById(id); }
-
-function setDisplay(id, displayVal) {
-  const el = getEl(id);
-  if (el) el.style.display = displayVal;
-}
-
-function setText(id, text) {
-  const el = getEl(id);
-  if (el) el.textContent = text;
-}
+function setDisplay(id, displayVal) { const el = getEl(id); if (el) el.style.display = displayVal; }
+function setText(id, text) { const el = getEl(id); if (el) el.textContent = text; }
 
 function removeLoadingIfAny() {
   const loadingEl = getEl('loading');
@@ -81,6 +67,8 @@ function clearGeoHardTimeout() {
     appState.geoHardTimeoutId = null;
   }
 }
+
+function nowTs() { return Date.now(); }
 
 function bindClick(ids, handler) {
   ids.forEach((id) => {
@@ -180,7 +168,7 @@ async function readTextSafe(resp) {
 
 function normalizeJapanAddressLabel(s) {
   if (!s) return '';
-  return String(s).replace(/^日本、\s*/u, '').trim(); // 「日本、」だけ削る
+  return String(s).replace(/^日本、\s*/u, '').trim();
 }
 
 function pickFormattedAddressFromGeocodePayload(data) {
@@ -190,9 +178,9 @@ function pickFormattedAddressFromGeocodePayload(data) {
 }
 
 /**
- * ★ 住所復旧の要点
- * - /geocode は「カスタムヘッダを付ける→CORSプリフライト→失敗」で空欄化しやすい
- * - なのでまず Content-Type だけで叩く → 401/403ならキー付きで再試行
+ * CORSプリフライトでコケると「住所が空白」になりやすい。
+ * → /geocode はまず Content-Type のみで投げる
+ * → 401/403だけ X-Goog-Api-Key 付きで再試行
  */
 async function postToWorker(path, payload, opt = {}) {
   const { fieldMask, tryApiKey = false, forceApiKey = false } = opt;
@@ -268,7 +256,6 @@ function initMap(center) {
     });
 
     changeMapMode(appState.mapMode);
-
     appState.mapInitialized = true;
   } catch (e) {
     console.error('[WalkNav] Map initialization failed:', e);
@@ -373,64 +360,30 @@ function drawRoutePolyline(route) {
   });
 }
 
-function startCompassListener() {
-  if (!window.DeviceOrientationEvent) return;
-
-  const handler = (event) => {
-    if (appState.isNavigating) return;
-    const heading = event.webkitCompassHeading || (event.absolute ? event.alpha : null);
-    if (heading !== null) {
-      appState.currentHeading = heading;
-      const icon = getEl('user-marker-icon');
-      if (icon) icon.style.transform = `rotate(${heading}deg)`;
-    }
-  };
-
-  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-    DeviceOrientationEvent.requestPermission().then(state => {
-      if (state === 'granted') {
-        window.addEventListener('deviceorientation', handler, true);
-        appState.compassWatchId = 1;
-      }
-    }).catch(console.error);
-  } else {
-    window.addEventListener('deviceorientationabsolute', handler, true);
-    window.addEventListener('deviceorientation', handler, true);
-    appState.compassWatchId = 1;
-  }
-}
-
-function startLocationWatcher() {
-  if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
-  appState.locationWatchId = navigator.geolocation.watchPosition(
-    (pos) => {
-      const { latitude, longitude } = pos.coords;
-      setUserMarker(latitude, longitude);
-      if (appState.isNavigating && !appState.isPaused && appState.map) {
-        appState.map.panTo({ lat: latitude, lng: longitude });
-      }
-    },
-    (e) => console.error(e),
-    LOCATION_OPTIONS
-  );
-}
-
-function stopLocationWatcher() {
-  if (appState.locationWatchId) {
-    navigator.geolocation.clearWatch(appState.locationWatchId);
-    appState.locationWatchId = null;
-  }
-}
-
 /* =========================
-   登録地 編集ダイアログ（ボタン不動の修復）
+   登録地 修正ボタン不動：根治
+   - clickが来ない端末/状況があるので touchend/pointerup を拾う
+   - 二重発火（touchend→click）を抑制
+   - isEditDialogOpenフラグ詰まりを毎回修復してから開く
    ========================= */
 
-function closeEditOverlayIfAny() {
-  // フラグが詰まっていても、DOMが無ければ強制回復
-  if (appState.editOverlayEl && appState.editOverlayEl.parentNode) {
-    appState.editOverlayEl.parentNode.removeChild(appState.editOverlayEl);
+function repairEditDialogState() {
+  // DOMにoverlayが無いのにフラグだけtrue → ボタンが「無反応」に見える
+  const anyOverlay = document.querySelector('.edit-dialog-overlay');
+  if (!anyOverlay) {
+    appState.isEditDialogOpen = false;
+    appState.editOverlayEl = null;
   }
+}
+
+function closeEditOverlayIfAny() {
+  try {
+    // 既存overlay（自分以外も含む）を全部閉じる（詰まり優先）
+    document.querySelectorAll('.edit-dialog-overlay').forEach(el => {
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
+  } catch (_) {}
+
   appState.editOverlayEl = null;
   appState.isEditDialogOpen = false;
 }
@@ -461,78 +414,72 @@ function showSaveLocationDialog() {
 }
 
 function showEditLocationDialog() {
-  // ★ ここが詰まりやすいので毎回回復してから開く
-  // （「編集ボタンが動かない」＝フラグがtrueのまま、が多い）
-  closeEditOverlayIfAny();
+  // ★ 最重要：ここで毎回修復してから開く
+  repairEditDialogState();
+  if (appState.isEditDialogOpen) closeEditOverlayIfAny();
 
-  try {
-    loadSavedLocations();
+  loadSavedLocations();
 
-    if (appState.savedLocations.length === 0) {
-      alert('登録地がありません');
-      return;
-    }
+  if (appState.savedLocations.length === 0) {
+    alert('登録地がありません');
+    return;
+  }
 
-    appState.isEditDialogOpen = true;
+  appState.isEditDialogOpen = true;
 
-    const overlay = document.createElement('div');
-    overlay.className = 'edit-dialog-overlay';
+  const overlay = document.createElement('div');
+  overlay.className = 'edit-dialog-overlay';
 
-    // 画面の外側タップでも閉じられる（機能追加だがデザイン変更なし）
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeEditOverlayIfAny();
-    }, { passive: true });
+  // 外側タップで閉じる（デザイン変更なし）
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeEditOverlayIfAny();
+  }, { passive: true });
 
-    const dialog = document.createElement('div');
-    dialog.className = 'edit-dialog';
+  const dialog = document.createElement('div');
+  dialog.className = 'edit-dialog';
 
-    const title = document.createElement('h3');
-    title.textContent = '編集する登録地を選択してください';
-    dialog.appendChild(title);
+  const title = document.createElement('h3');
+  title.textContent = '編集する登録地を選択してください';
+  dialog.appendChild(title);
 
-    const list = document.createElement('div');
-    list.className = 'edit-dialog-list';
+  const list = document.createElement('div');
+  list.className = 'edit-dialog-list';
 
-    appState.savedLocations.forEach((loc, index) => {
-      const item = document.createElement('div');
-      item.className = 'edit-dialog-item';
+  appState.savedLocations.forEach((loc, index) => {
+    const item = document.createElement('div');
+    item.className = 'edit-dialog-item';
 
-      const itemTitle = document.createElement('div');
-      itemTitle.className = 'edit-dialog-item-title';
-      itemTitle.textContent = loc.name;
+    const itemTitle = document.createElement('div');
+    itemTitle.className = 'edit-dialog-item-title';
+    itemTitle.textContent = loc.name;
 
-      const itemSubtitle = document.createElement('div');
-      itemSubtitle.className = 'edit-dialog-item-subtitle';
-      itemSubtitle.textContent = loc.address;
+    const itemSubtitle = document.createElement('div');
+    itemSubtitle.className = 'edit-dialog-item-subtitle';
+    itemSubtitle.textContent = loc.address;
 
-      item.appendChild(itemTitle);
-      item.appendChild(itemSubtitle);
+    item.appendChild(itemTitle);
+    item.appendChild(itemSubtitle);
 
-      item.onclick = () => {
-        closeEditOverlayIfAny();
-        showLocationEditMenu(index);
-      };
-
-      list.appendChild(item);
+    item.addEventListener('click', () => {
+      closeEditOverlayIfAny();
+      showLocationEditMenu(index);
     });
 
-    dialog.appendChild(list);
+    list.appendChild(item);
+  });
 
-    const btnClose = document.createElement('button');
-    btnClose.className = 'edit-dialog-btn edit-dialog-btn-secondary';
-    btnClose.textContent = 'キャンセル';
-    btnClose.onclick = () => closeEditOverlayIfAny();
+  dialog.appendChild(list);
 
-    dialog.appendChild(btnClose);
-    overlay.appendChild(dialog);
-    document.body.appendChild(overlay);
+  const btnClose = document.createElement('button');
+  btnClose.className = 'edit-dialog-btn edit-dialog-btn-secondary';
+  btnClose.textContent = 'キャンセル';
+  btnClose.onclick = () => closeEditOverlayIfAny();
 
-    appState.editOverlayEl = overlay;
-  } catch (e) {
-    console.error('[EditDialog] open failed:', e);
-    closeEditOverlayIfAny();
-    alert('登録地編集の表示に失敗しました');
-  }
+  dialog.appendChild(btnClose);
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+
+  appState.editOverlayEl = overlay;
 }
 
 function showLocationEditMenu(index) {
@@ -540,9 +487,11 @@ function showLocationEditMenu(index) {
   if (!location) return;
 
   closeEditOverlayIfAny();
+  appState.isEditDialogOpen = true;
 
   const overlay = document.createElement('div');
   overlay.className = 'edit-dialog-overlay';
+
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closeEditOverlayIfAny();
   }, { passive: true });
@@ -583,7 +532,6 @@ function showLocationEditMenu(index) {
   document.body.appendChild(overlay);
 
   appState.editOverlayEl = overlay;
-  appState.isEditDialogOpen = true;
 }
 
 function showLocationDeleteConfirm(index) {
@@ -591,9 +539,11 @@ function showLocationDeleteConfirm(index) {
   if (!location) return;
 
   closeEditOverlayIfAny();
+  appState.isEditDialogOpen = true;
 
   const overlay = document.createElement('div');
   overlay.className = 'edit-dialog-overlay';
+
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closeEditOverlayIfAny();
   }, { passive: true });
@@ -636,7 +586,6 @@ function showLocationDeleteConfirm(index) {
   document.body.appendChild(overlay);
 
   appState.editOverlayEl = overlay;
-  appState.isEditDialogOpen = true;
 }
 
 function showLocationEditForm(index) {
@@ -644,9 +593,11 @@ function showLocationEditForm(index) {
   if (!location) return;
 
   closeEditOverlayIfAny();
+  appState.isEditDialogOpen = true;
 
   const overlay = document.createElement('div');
   overlay.className = 'edit-dialog-overlay';
+
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closeEditOverlayIfAny();
   }, { passive: true });
@@ -692,9 +643,43 @@ function showLocationEditForm(index) {
   document.body.appendChild(overlay);
 
   appState.editOverlayEl = overlay;
-  appState.isEditDialogOpen = true;
 
   setTimeout(() => input.focus(), 100);
+}
+
+function isEditButtonTarget(t) {
+  if (!t || !t.closest) return false;
+  return !!(
+    t.closest('#btnEditLocation') ||
+    t.closest('#btnEditLocations') ||
+    t.closest('#btnEditSavedLocation') ||
+    t.closest('#btnEditSavedLocations') ||
+    t.closest('[data-action="edit-location"]')
+  );
+}
+
+function shouldDedupeEditTap() {
+  const ts = nowTs();
+  if (ts - appState.lastEditTapTs < 600) return true; // touchend→click等の二重発火抑止
+  appState.lastEditTapTs = ts;
+  return false;
+}
+
+function installEditButtonEventRouter() {
+  // ★ iOSでclickが来ない/遅れる/吸われることがあるため、touchend/pointerupも拾う
+  const handler = (e) => {
+    const t = e.target;
+    if (!isEditButtonTarget(t)) return;
+
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    if (shouldDedupeEditTap()) return;
+
+    showEditLocationDialog();
+  };
+
+  document.addEventListener('touchend', handler, { passive: false, capture: true });
+  document.addEventListener('pointerup', handler, { passive: false, capture: true });
+  document.addEventListener('click', handler, { passive: false, capture: true });
 }
 
 /* =========================
@@ -725,7 +710,6 @@ async function fetchLocationNameGoogle(lat, lng) {
   const prev = getEl('locAddress')?.textContent || '';
   if (!prev.trim()) setText('locAddress', '住所取得中…');
 
-  // 1) WORKER /geocode（キーなし優先）
   try {
     const data = await postToWorker('/geocode', {
       latlng: { lat, lng },
@@ -742,7 +726,6 @@ async function fetchLocationNameGoogle(lat, lng) {
     console.warn('[Geocode] worker failed:', e);
   }
 
-  // 2) Maps JS Geocoder フォールバック（郵便番号〜番地が出やすい）
   try {
     const raw2 = await reverseGeocodeByMapsJS(lat, lng);
     const addr2 = normalizeJapanAddressLabel(raw2);
@@ -933,7 +916,6 @@ async function startNavigation(destination) {
       bounds.extend({ lat: originLat, lng: originLng });
       bounds.extend({ lat: destination.lat, lng: destination.lng });
       appState.map.fitBounds(bounds, { padding: 50 });
-
     } else {
       alert('ルートが見つかりませんでした');
       stopNavigation();
@@ -993,8 +975,30 @@ function switchPanelTab(mode) {
 }
 
 /* =========================
-   位置取得
+   位置取得 / 追尾
    ========================= */
+
+function startLocationWatcher() {
+  if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
+  appState.locationWatchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      const { latitude, longitude } = pos.coords;
+      setUserMarker(latitude, longitude);
+      if (appState.isNavigating && !appState.isPaused && appState.map) {
+        appState.map.panTo({ lat: latitude, lng: longitude });
+      }
+    },
+    (e) => console.error(e),
+    LOCATION_OPTIONS
+  );
+}
+
+function stopLocationWatcher() {
+  if (appState.locationWatchId) {
+    navigator.geolocation.clearWatch(appState.locationWatchId);
+    appState.locationWatchId = null;
+  }
+}
 
 function acquireLocation() {
   clearGeoHardTimeout();
@@ -1049,42 +1053,52 @@ function acquireLocation() {
   }
 }
 
-/* =========================
-   UIバインド（編集ボタン不動の根治：ID違い/内側クリックも拾う）
-   ========================= */
+function startCompassListener() {
+  if (!window.DeviceOrientationEvent) return;
 
-function bindEditButtonDelegation() {
-  document.addEventListener('click', (e) => {
-    const t = e.target;
+  const handler = (event) => {
+    if (appState.isNavigating) return;
+    const heading = event.webkitCompassHeading || (event.absolute ? event.alpha : null);
+    if (heading !== null) {
+      appState.currentHeading = heading;
+      const icon = getEl('user-marker-icon');
+      if (icon) icon.style.transform = `rotate(${heading}deg)`;
+    }
+  };
 
-    // 「登録地修正」系の候補を全部拾う（IDが違っても動く）
-    const hit =
-      t?.closest?.('#btnEditLocation') ||
-      t?.closest?.('#btnEditLocations') ||
-      t?.closest?.('#btnEditSavedLocation') ||
-      t?.closest?.('#btnEditSavedLocations') ||
-      t?.closest?.('[data-action="edit-location"]');
-
-    if (!hit) return;
-
-    e.preventDefault();
-    showEditLocationDialog();
-  }, { passive: false });
+  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission().then(state => {
+      if (state === 'granted') {
+        window.addEventListener('deviceorientation', handler, true);
+        appState.compassWatchId = 1;
+      }
+    }).catch(console.error);
+  } else {
+    window.addEventListener('deviceorientationabsolute', handler, true);
+    window.addEventListener('deviceorientation', handler, true);
+    appState.compassWatchId = 1;
+  }
 }
+
+/* =========================
+   UI bind
+   ========================= */
 
 function bindUI() {
   const btnSearch = getEl('btnSearchIcon');
   const inputQ = getEl('q');
+
   const btnReset = getEl('btnReset');
   const btnLocate = getEl('btnLocatePanel');
   const btnClose = getEl('btnClosePanel');
   const btnFabSearch = getEl('btnSearch');
   const btnStop = getEl('btnStopRoute');
 
+  const btnSaveLocation = getEl('btnSaveLocation');
+  const btnEditLocation = getEl('btnEditLocation');
+
   if (btnSearch && inputQ) btnSearch.onclick = () => performSearch(inputQ.value);
-  if (inputQ) {
-    inputQ.onkeypress = (e) => { if (e.key === 'Enter') performSearch(inputQ.value); };
-  }
+  if (inputQ) inputQ.onkeypress = (e) => { if (e.key === 'Enter') performSearch(inputQ.value); };
 
   if (btnReset && inputQ) btnReset.onclick = () => {
     inputQ.value = '';
@@ -1112,12 +1126,12 @@ function bindUI() {
 
   if (btnStop) btnStop.onclick = stopNavigation;
 
-  // 登録/編集（ID直指定でもバインド）
-  bindClick(['btnSaveLocation', 'btnSaveLocations'], showSaveLocationDialog);
-  bindClick(['btnEditLocation', 'btnEditLocations', 'btnEditSavedLocation', 'btnEditSavedLocations'], showEditLocationDialog);
+  if (btnSaveLocation) btnSaveLocation.onclick = showSaveLocationDialog;
+  if (btnEditLocation) btnEditLocation.onclick = showEditLocationDialog;
 
-  // ★ さらにイベント委譲で「SVG押しても動く」「ID違っても動く」
-  bindEditButtonDelegation();
+  // 予備IDがある場合も対応
+  bindClick(['btnSaveLocations'], showSaveLocationDialog);
+  bindClick(['btnEditLocations', 'btnEditSavedLocation', 'btnEditSavedLocations'], showEditLocationDialog);
 
   const btnPoint = getEl('btnPointSearch');
   if (btnPoint) btnPoint.onclick = () => {
@@ -1146,7 +1160,6 @@ function bindUI() {
     setText('radiusLabel', '10km');
     appState.searchRadiusM = 10000;
   };
-
   if (r20) r20.onclick = () => {
     r20.classList.add('active');
     r10?.classList.remove('active');
@@ -1154,7 +1167,6 @@ function bindUI() {
     setText('radiusLabel', '20km');
     appState.searchRadiusM = 20000;
   };
-
   if (r30) r30.onclick = () => {
     r30.classList.add('active');
     r10?.classList.remove('active');
@@ -1172,7 +1184,9 @@ function startApp() {
   loadSavedLocations();
   loadMapMode();
 
+  installEditButtonEventRouter(); // ★ 編集ボタン不動の根治
   bindUI();
+
   updateMapModeButtons(appState.mapMode);
   switchPanelTab('search');
 
