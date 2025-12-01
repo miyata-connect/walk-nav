@@ -631,27 +631,126 @@ h2, .section-title {
   text-align: center;
 }
 
-/* ==========================================================================
-   追加: “ボタンが動かない”系の保険（見た目は変えない）
-   - ローディング要素が不可視でも当たり判定だけ残るケースを潰す
-   - iOSのタップ安定化（スクロール/ジェスチャの影響を減らす）
-   ========================================================================== */
+/* ===== 登録地編集ダイアログ（表示されない問題の対策：position/z-index付与） ===== */
 
-/* hidden属性/aria-hiddenでもクリックを確実に通す */
-.loading-overlay[hidden],
-.loading-overlay[aria-hidden="true"] {
-  opacity: 0 !important;
-  pointer-events: none !important;
+.edit-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 6500; /* panel(1000) / loading(5000) より上 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.60);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-/* ボタン/チップ類のタップを安定化（デザイン変更なし） */
-.tab-btn,
-.btn,
-.chip,
-.icon,
-.map-mode-btn,
-.fab-btn,
-.edit-dialog-btn,
+.edit-dialog {
+  width: min(420px, 92vw);
+  max-height: min(70vh, 560px);
+  overflow: auto;
+  background: rgba(30, 30, 35, 0.92);
+  border: 1px solid var(--stroke-soft);
+  border-radius: 20px;
+  box-shadow: var(--shadow-panel);
+  padding: 16px;
+}
+
+.edit-dialog h3 {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+}
+
+.edit-dialog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
 .edit-dialog-item {
-  touch-action: manipulation;
+  border: 1px solid var(--stroke-soft);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 12px;
+  cursor: pointer;
+  transition: transform .12s ease, background .12s ease;
+}
+
+.edit-dialog-item:active {
+  transform: scale(0.98);
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.edit-dialog-item-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.edit-dialog-item-subtitle {
+  font-size: 12px;
+  color: var(--text-sub);
+  line-height: 1.4;
+}
+
+.edit-dialog-btn {
+  width: 100%;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.06);
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.edit-dialog-btn:active { transform: scale(0.98); }
+
+.edit-dialog-btn-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.edit-dialog-btn-group .edit-dialog-btn { margin-top: 0; }
+
+.edit-dialog-btn-primary {
+  border: none;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.edit-dialog-btn-danger {
+  border: none;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.edit-dialog-btn-secondary {
+  background: rgba(120,120,120,0.25);
+}
+
+.edit-dialog-message {
+  margin: 0 0 10px 0;
+  opacity: 0.85;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.edit-dialog-input {
+  width: 100%;
+  height: 46px;
+  border-radius: 14px;
+  border: 1px solid var(--stroke);
+  background: rgba(0,0,0,0.25);
+  color: var(--text-main);
+  padding: 0 12px;
+  outline: none;
+  font-size: 16px;
 }
