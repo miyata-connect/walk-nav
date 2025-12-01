@@ -147,6 +147,7 @@
 <div class="app-version">v=embedless-walknav</div>
 </div>
 </div>
+</div>
 </section>
 
 <div class="fab-container" id="fabStack">
@@ -170,83 +171,87 @@
 
 <script>
 (function () {
-// ▼▼▼ 物理的なスクロール・バウンス防止（iOS Safari対策） ▼▼▼
-document.addEventListener('touchmove', function(e) {
-  // 1. Googleマップは許可
-  if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
+  // ▼▼▼ 物理的なスクロール・バウンス防止（iOS Safari対策） ▼▼▼
+  document.addEventListener('touchmove', function(e) {
+    // 0. ボタン等の操作は必ず許可（preventDefaultするとクリックが潰れることがある）
+    var interactive = e.target.closest('button, a, input, textarea, select, [role="button"], .chip, .btn, .tab-btn, .map-mode-btn, .fab-btn, .icon');
+    if (interactive) return;
 
-  // 2. パネル内のスクロールエリアのみ許可
-  var scrollable = e.target.closest('.panel-tabs-body');
+    // 1. Googleマップは許可
+    if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
 
-  // 3. それ以外はすべてブロック（Body Lock）
-  if (!scrollable) {
-    if (e.cancelable) e.preventDefault();
-    return;
-  }
-  
-  // 4. 中身が少なくてスクロール不要な場合のバウンス防止
-  if (scrollable.scrollHeight <= scrollable.clientHeight) {
-     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-        if (e.cancelable) e.preventDefault();
-     }
-  }
-}, { passive: false });
+    // 2. パネル内のスクロールエリアのみ許可
+    var scrollable = e.target.closest('.panel-tabs-body');
 
-function initPanelTabs() {
-  var tabButtons = document.querySelectorAll('[data-panel-tab]');
-  var paneSearch = document.getElementById('tabPaneSearch');
-  var paneNav = document.getElementById('tabPaneNav');
-  var paneSettings = document.getElementById('tabPaneSettings');
-  var posButtons = document.querySelectorAll('[data-pos]');
+    // 3. それ以外はすべてブロック（Body Lock）
+    if (!scrollable) {
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
 
-  function setMode(mode) {
-    var isNav = (mode === 'nav');
-    var isSettings = (mode === 'settings');
-    if (paneSearch) paneSearch.classList.toggle('active', !isNav && !isSettings);
-    if (paneNav) paneNav.classList.toggle('active', isNav);
-    if (paneSettings) paneSettings.classList.toggle('active', isSettings);
-    var target = isSettings ? 'settings' : (isNav ? 'nav' : 'search');
-    
-    tabButtons.forEach(function(b) {
-       b.classList.toggle('active', b.getAttribute('data-panel-tab') === target);
+    // 4. 中身が少なくてスクロール不要な場合のバウンス防止
+    if (scrollable.scrollHeight <= scrollable.clientHeight) {
+      if (e.cancelable) e.preventDefault();
+    }
+  }, { passive: false });
+
+  function initPanelTabs() {
+    var tabButtons = document.querySelectorAll('[data-panel-tab]');
+    var paneSearch = document.getElementById('tabPaneSearch');
+    var paneNav = document.getElementById('tabPaneNav');
+    var paneSettings = document.getElementById('tabPaneSettings');
+    var posButtons = document.querySelectorAll('[data-pos]');
+
+    function setMode(mode) {
+      var isNav = (mode === 'nav');
+      var isSettings = (mode === 'settings');
+      if (paneSearch) paneSearch.classList.toggle('active', !isNav && !isSettings);
+      if (paneNav) paneNav.classList.toggle('active', isNav);
+      if (paneSettings) paneSettings.classList.toggle('active', isSettings);
+      var target = isSettings ? 'settings' : (isNav ? 'nav' : 'search');
+
+      tabButtons.forEach(function(b) {
+        b.classList.toggle('active', b.getAttribute('data-panel-tab') === target);
+      });
+    }
+
+    tabButtons.forEach(function(btn) {
+      btn.addEventListener('click', function () {
+        setMode(btn.getAttribute('data-panel-tab') || 'search');
+      });
     });
-  }
 
-  tabButtons.forEach(function(btn) {
-    btn.addEventListener('click', function () {
-      setMode(btn.getAttribute('data-panel-tab') || 'search');
+    posButtons.forEach(function(btnPos) {
+      btnPos.addEventListener('click', function () {
+        posButtons.forEach(function(b){ b.classList.remove('active'); });
+        btnPos.classList.add('active');
+        if (window.parent !== window) {
+          window.parent.postMessage({ type: 'WN_SET_TAB_POS', position: btnPos.getAttribute('data-pos') }, '*');
+        }
+      });
     });
-  });
 
-  posButtons.forEach(function(btnPos) {
-    btnPos.addEventListener('click', function () {
-      posButtons.forEach(b => b.classList.remove('active'));
-      btnPos.classList.add('active');
-      if (window.parent !== window) {
-        window.parent.postMessage({ type: 'WN_SET_TAB_POS', position: btnPos.getAttribute('data-pos') }, '*');
+    setMode('search');
+
+    // 親ウィンドウとの通信（iframe利用時）
+    window.addEventListener('message', function (e) {
+      if (e.data && e.data.type === 'WN_CURRENT_TAB_POS') {
+        var pos = e.data.position || 'right';
+        posButtons.forEach(function(b){
+          b.classList.toggle('active', b.getAttribute('data-pos') === pos);
+        });
       }
     });
-  });
-
-  setMode('search');
-
-  // 親ウィンドウとの通信（iframe利用時）
-  window.addEventListener('message', function (e) {
-    if (e.data && e.data.type === 'WN_CURRENT_TAB_POS') {
-      var pos = e.data.position || 'right';
-      posButtons.forEach(b => b.classList.toggle('active', b.getAttribute('data-pos') === pos));
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'WN_REQUEST_TAB_POS' }, '*');
     }
-  });
-  if (window.parent !== window) {
-    window.parent.postMessage({ type: 'WN_REQUEST_TAB_POS' }, '*');
   }
-}
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initPanelTabs);
-} else {
-  initPanelTabs();
-}
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPanelTabs);
+  } else {
+    initPanelTabs();
+  }
 })();
 </script>
 
