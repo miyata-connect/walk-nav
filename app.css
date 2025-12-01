@@ -630,3 +630,28 @@ h2, .section-title {
 .loading-content {
   text-align: center;
 }
+
+/* ==========================================================================
+   追加: “ボタンが動かない”系の保険（見た目は変えない）
+   - ローディング要素が不可視でも当たり判定だけ残るケースを潰す
+   - iOSのタップ安定化（スクロール/ジェスチャの影響を減らす）
+   ========================================================================== */
+
+/* hidden属性/aria-hiddenでもクリックを確実に通す */
+.loading-overlay[hidden],
+.loading-overlay[aria-hidden="true"] {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* ボタン/チップ類のタップを安定化（デザイン変更なし） */
+.tab-btn,
+.btn,
+.chip,
+.icon,
+.map-mode-btn,
+.fab-btn,
+.edit-dialog-btn,
+.edit-dialog-item {
+  touch-action: manipulation;
+}
