@@ -244,7 +244,6 @@ h2, .section-title {
   border: none;
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255,255,255,0.1);
 }
-
 .btn-primary:active { background: var(--primary-dark); }
 
 .btn-danger, .btn-danger-block {
@@ -255,12 +254,7 @@ h2, .section-title {
 }
 
 .btn-secondary { background: rgba(100, 100, 100, 0.5); }
-
-.btn-outline, .btn-outline-primary {
-  background: transparent;
-  border: 1px solid var(--stroke);
-}
-
+.btn-outline, .btn-outline-primary { background: transparent; border: 1px solid var(--stroke); }
 .btn-block { width: 100%; }
 
 .filter-chips-row {
@@ -275,24 +269,14 @@ h2, .section-title {
   gap: 8px;
   margin-bottom: 16px;
 }
-
-.action-buttons-row .btn {
-  flex: 1;
-  min-width: 0;
-  padding: 0 8px !important;
-}
+.action-buttons-row .btn { flex: 1; min-width: 0; padding: 0 8px !important; }
 
 .bottom-actions-row {
   display: flex;
   gap: 8px;
   margin-bottom: 16px;
 }
-
-.bottom-actions-row .btn {
-  flex: 1;
-  min-width: 0;
-  padding: 0 8px !important;
-}
+.bottom-actions-row .btn { flex: 1; min-width: 0; padding: 0 8px !important; }
 
 .tab-pos-buttons, .route-mode-toggle {
   display: flex;
@@ -316,7 +300,6 @@ h2, .section-title {
   transition: all 0.2s;
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
 }
-
 .input-wrapper:focus-within {
   border-color: var(--primary);
   background: rgba(0, 0, 0, 0.4);
@@ -334,7 +317,6 @@ h2, .section-title {
   min-width: 0;
   padding: 0 10px;
 }
-
 .input::placeholder { color: rgba(255, 255, 255, 0.35); }
 
 .icon {
@@ -348,10 +330,8 @@ h2, .section-title {
   transition: background 0.2s;
   color: var(--text-sub);
 }
-
 .icon:active { background: rgba(255,255,255,0.1); color: var(--text-main); }
 .icon svg { width: 22px; height: 22px; fill: currentColor; }
-
 .icon-g { color: #4285f4; }
 .icon-search { color: var(--primary); }
 .icon-mic { color: var(--danger); }
@@ -365,7 +345,6 @@ h2, .section-title {
   font-size: 14px;
   line-height: 1.5;
 }
-
 .address-title { color: #fbbf24; font-weight: 600; margin-bottom: 6px; }
 .address-coords { color: var(--text-sub); font-size: 13px; }
 
@@ -394,7 +373,6 @@ h2, .section-title {
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
-
 .weather-card {
   display: flex;
   flex-direction: column;
@@ -406,13 +384,11 @@ h2, .section-title {
   font-size: 14px;
   font-weight: 500;
 }
-
 .weather-card span:first-child {
   font-size: 11px;
   color: var(--text-sub);
   margin-bottom: 6px;
 }
-
 .weather-val { font-weight: 600; }
 
 .route-summary-card {
@@ -421,27 +397,10 @@ h2, .section-title {
   padding: 16px;
   margin-bottom: 16px;
 }
-
-.route-dest {
-  font-size: 14px;
-  color: var(--text-sub);
-  margin-bottom: 8px;
-}
-
+.route-dest { font-size: 14px; color: var(--text-sub); margin-bottom: 8px; }
 .route-stats { display: flex; gap: 14px; margin-bottom: 12px; }
-
-.stat-dist {
-  font-size: 26px;
-  font-weight: 800;
-  color: var(--text-main);
-}
-
-.stat-time {
-  font-size: 16px;
-  color: var(--text-sub);
-  font-weight: 500;
-  align-self: flex-end;
-}
+.stat-dist { font-size: 26px; font-weight: 800; color: var(--text-main); }
+.stat-time { font-size: 16px; color: var(--text-sub); font-weight: 500; align-self: flex-end; }
 
 .incident-alert {
   background: rgba(239, 68, 68, 0.15);
@@ -453,11 +412,7 @@ h2, .section-title {
   color: #fca5a5;
 }
 
-.instructions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+.instructions-list { display: flex; flex-direction: column; gap: 10px; }
 
 .settings-group { margin-bottom: 24px; }
 
@@ -467,7 +422,6 @@ h2, .section-title {
   padding: 5px;
   border-radius: 16px;
 }
-
 .map-mode-btn {
   flex: 1;
   padding: 12px;
@@ -481,7 +435,6 @@ h2, .section-title {
   border: none;
   background: transparent;
 }
-
 .map-mode-btn.active {
   background: rgba(80, 80, 80, 0.9);
   color: var(--text-main);
@@ -527,12 +480,10 @@ h2, .section-title {
   white-space: nowrap;
   border: none;
 }
-
 .fab-btn:active {
   transform: scale(0.92);
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
-
 .fab-btn.destination { background: var(--primary); color: #fff; }
 
 .loading-overlay {
@@ -548,7 +499,6 @@ h2, .section-title {
   color: var(--text-main);
   transition: opacity 0.3s;
 }
-
 .loading-overlay.hidden { opacity: 0; pointer-events: none; }
 
 .loading-spinner {
@@ -560,171 +510,81 @@ h2, .section-title {
   animation: spin 0.8s linear infinite;
   margin-bottom: 16px;
 }
-
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.loading-text {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.loading-sub {
-  font-size: 13px;
-  color: var(--text-sub);
-}
-
+.loading-text { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.loading-sub { font-size: 13px; color: var(--text-sub); }
 .loading-content { text-align: center; }
 
-/* ==========================================================================
-   追加：検索結果/案内ステップの最低限（未定義だと見た目が崩れる）
-   ========================================================================== */
+/* 追加（最小限）：検索結果・編集ダイアログのスタイル保険 */
 .result-item {
+  width: 100%;
   padding: 12px 12px;
   border-radius: 14px;
   border: 1px solid var(--stroke-soft);
-  background: rgba(0,0,0,0.22);
-  cursor: pointer;
-  user-select: none;
-}
-.result-item:active {
-  transform: scale(0.99);
-  background: rgba(255,255,255,0.08);
-}
-
-.nav-instruction-item {
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--stroke-soft);
   background: rgba(0,0,0,0.20);
-  color: var(--text-main);
-  font-size: 14px;
-  line-height: 1.5;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 }
+.result-item:active { transform: scale(0.99); background: rgba(255,255,255,0.06); }
 
-/* ==========================================================================
-   追加：登録地編集ダイアログ（これが無いと“動いてない”に見える）
-   ========================================================================== */
 .edit-dialog-overlay {
   position: fixed;
   inset: 0;
-  z-index: 6500;           /* panel(1000)より前 */
-  display: flex;
-  align-items: flex-end;   /* 下から出る */
-  justify-content: center;
-  padding: 18px 18px calc(var(--safe-area-bottom) + 18px) 18px;
+  z-index: 9999;
   background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
 }
-
 .edit-dialog {
-  width: min(520px, 100%);
-  max-height: 72vh;
-  overflow: hidden;
-  border-radius: 20px;
-  background: rgba(26,26,30,0.92);
+  width: min(520px, calc(100vw - 36px));
+  border-radius: 18px;
+  background: rgba(30, 30, 35, 0.92);
   border: 1px solid var(--stroke-soft);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
-  padding: 16px 16px 14px 16px;
+  box-shadow: 0 16px 60px rgba(0,0,0,0.55);
+  padding: 16px;
 }
-
 .edit-dialog h3 {
-  margin: 2px 0 12px 0;
+  margin: 0 0 12px 0;
   font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  color: var(--text-main);
 }
-
-.edit-dialog-list {
-  max-height: 46vh;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-right: 4px;
-  margin-bottom: 12px;
-}
-
+.edit-dialog-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
 .edit-dialog-item {
-  padding: 12px 12px;
+  padding: 12px;
   border-radius: 14px;
   border: 1px solid var(--stroke-soft);
-  background: rgba(0,0,0,0.22);
-  cursor: pointer;
-  user-select: none;
-  margin-bottom: 10px;
+  background: rgba(0,0,0,0.20);
 }
-.edit-dialog-item:active {
-  transform: scale(0.99);
-  background: rgba(255,255,255,0.08);
-}
-
-.edit-dialog-item-title {
-  font-size: 14px;
-  font-weight: 800;
-  margin-bottom: 4px;
-}
-
-.edit-dialog-item-subtitle {
-  font-size: 12px;
-  color: var(--text-sub);
-  line-height: 1.4;
-}
+.edit-dialog-item:active { background: rgba(255,255,255,0.06); transform: scale(0.99); }
+.edit-dialog-item-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.edit-dialog-item-subtitle { font-size: 12px; color: var(--text-sub); }
 
 .edit-dialog-input {
   width: 100%;
   height: 44px;
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid var(--stroke);
-  background: rgba(0,0,0,0.35);
+  background: rgba(0,0,0,0.25);
   color: var(--text-main);
   padding: 0 12px;
-  font-size: 15px;
   outline: none;
-  margin: 6px 0 12px 0;
+  margin-bottom: 12px;
 }
-.edit-dialog-input:focus {
-  border-color: rgba(59,130,246,0.8);
-  box-shadow: 0 0 0 2px rgba(59,130,246,0.18);
-}
-
 .edit-dialog-btn {
   width: 100%;
   height: 44px;
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid var(--stroke);
-  background: rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.25);
   color: var(--text-main);
-  font-weight: 800;
-  cursor: pointer;
+  font-weight: 700;
   margin-top: 10px;
 }
-.edit-dialog-btn:active { transform: scale(0.99); }
-
-.edit-dialog-btn-primary {
-  border: none;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-}
-
-.edit-dialog-btn-danger {
-  border: none;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-}
-
-.edit-dialog-btn-secondary {
-  background: rgba(100,100,100,0.35);
-}
-
-.edit-dialog-btn-group {
-  display: flex;
-  gap: 10px;
-}
-.edit-dialog-btn-group .edit-dialog-btn {
-  margin-top: 0;
-  flex: 1;
-}
-
-.edit-dialog-message {
-  margin: 6px 0 12px 0;
-  opacity: 0.85;
-}
+.edit-dialog-btn-group { display: flex; gap: 10px; }
+.edit-dialog-btn-group .edit-dialog-btn { margin-top: 10px; }
+.edit-dialog-btn-primary { background: linear-gradient(135deg, #3b82f6, #2563eb); border: none; }
+.edit-dialog-btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); border: none; }
+.edit-dialog-btn-secondary { background: rgba(100,100,100,0.35); }
+.edit-dialog-message { opacity: 0.85; margin: 6px 0 4px 0; }
