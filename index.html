@@ -7,7 +7,7 @@
 <title>WalkNav</title>
 <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-<link rel="stylesheet" href="app.css?v=20251201-fix-edit-dialog" />
+<link rel="stylesheet" href="app.css?v=20251201-final" />
 </head>
 <body id="appBody">
 <div class="app">
@@ -165,13 +165,12 @@
 </div>
 </div>
 
-<script src="app.js?v=20251201-fix-edit-dialog"></script>
+<script src="app.js?v=20251201-final"></script>
 
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=marker,geometry&language=ja&region=JP&loading=async" async defer></script>
 
 <script>
 (function () {
-// ▼▼▼ 物理的なスクロール・バウンス防止（iOS Safari対策） ▼▼▼
 document.addEventListener('touchmove', function(e) {
   if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
 
@@ -181,7 +180,7 @@ document.addEventListener('touchmove', function(e) {
     if (e.cancelable) e.preventDefault();
     return;
   }
-  
+
   if (scrollable.scrollHeight <= scrollable.clientHeight) {
      if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
         if (e.cancelable) e.preventDefault();
@@ -203,7 +202,7 @@ function initPanelTabs() {
     if (paneNav) paneNav.classList.toggle('active', isNav);
     if (paneSettings) paneSettings.classList.toggle('active', isSettings);
     var target = isSettings ? 'settings' : (isNav ? 'nav' : 'search');
-    
+
     tabButtons.forEach(function(b) {
        b.classList.toggle('active', b.getAttribute('data-panel-tab') === target);
     });
