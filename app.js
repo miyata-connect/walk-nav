@@ -1,6 +1,6 @@
 'use strict';
 
-const ISSUE_ID = 'idx20251202_fix_search_and_alert_once_v1';
+const ISSUE_ID = 'idx20251202_results_slide_v1';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -44,19 +44,7 @@ const appState = {
   editingLocationIndex: null,
   isEditDialogOpen: false,
 
-  mapMode: 'roadmap',
-
-  // ===== 検索の多重実行 & 多重アラート対策 =====
-  searchInFlight: false,
-  alertGuard: Object.create(null),
-
-  // ===== 天気（既存のまま残す）=====
-  weatherLastFetchAt: 0,
-  weatherLastLat: null,
-  weatherLastLng: null,
-
-  // ===== 検索半径（UIに合わせる）=====
-  searchRadiusM: 10000 // 10km
+  mapMode: 'roadmap'
 };
 
 function getEl(id) {
@@ -77,14 +65,6 @@ function safeRemove(el) {
   try {
     if (el && el.parentNode) el.parentNode.removeChild(el);
   } catch (_) {}
-}
-
-function alertOnce(message, cooldownMs = 1500) {
-  const now = Date.now();
-  const last = appState.alertGuard[message] || 0;
-  if (now - last < cooldownMs) return;
-  appState.alertGuard[message] = now;
-  alert(message);
 }
 
 function loadSavedLocations() {
@@ -201,13 +181,7 @@ async function placesTextSearch(payload, fieldMask) {
     },
     body: JSON.stringify(payload)
   });
-
-  // ★ここで status / body を握っておく（原因調査が一気に楽になる）
-  if (!resp.ok) {
-    let t = '';
-    try { t = await resp.text(); } catch (_) {}
-    throw new Error(`TextSearch ${resp.status} ${t}`);
-  }
+  if (!resp.ok) throw new Error(`TextSearch ${resp.status}`);
   return await resp.json();
 }
 
@@ -242,7 +216,7 @@ function initMap(center) {
 
   } catch (e) {
     console.error('[WalkNav] Map initialization failed:', e);
-    alertOnce('地図の読み込みに失敗しました。APIキーの設定を確認してください。');
+    alert('地図の読み込みに失敗しました。APIキーの設定を確認してください。');
   }
 }
 
@@ -306,6 +280,17 @@ function setSearchPoint(lat, lng) {
   }
 
   fetchPointAddress(lat, lng).catch(() => {});
+}
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 }
 
 function drawRoutePolyline(route) {
@@ -464,51 +449,45 @@ async function fetchPointAddress(lat, lng) {
 }
 
 async function performSearch(query) {
-  const q = String(query || '').trim();
-  if (!q) return;
-
-  // ★検索の多重実行を完全に止める
-  if (appState.searchInFlight) return;
-  appState.searchInFlight = true;
+  if (!query) return;
 
   const center = appState.pointSearchMode && appState.searchPoint
     ? appState.searchPoint
     : (appState.currentPos || appState.map?.getCenter()?.toJSON());
 
   if (!center) {
-    appState.searchInFlight = false;
-    alertOnce('現在地が取得できていません');
+    alert('現在地が取得できていません');
     return;
   }
 
   try {
     const data = await placesTextSearch({
-      textQuery: q,
+      textQuery: query,
       locationBias: {
         circle: {
           center: { latitude: center.lat, longitude: center.lng },
-          radius: appState.searchRadiusM
+          radius: 5000
         }
       },
       languageCode: 'ja'
     }, DEFAULT_MASK);
 
     const results = data.places || [];
-    displayResults(results);
+    displayResults(results, center.lat, center.lng);
   } catch (e) {
-    console.error('[SearchFail]', e);
-    alertOnce('検索に失敗しました', 2000);
-  } finally {
-    appState.searchInFlight = false;
+    console.error(e);
+    alert('検索に失敗しました');
   }
 }
 
-function displayResults(places) {
+function displayResults(places, centerLat, centerLng) {
   const resDiv = getEl('results');
   if (!resDiv) return;
 
   resDiv.innerHTML = '';
-  setDisplay('results', 'block');
+  // 横スワイプ表示のため block ではなく flex にする
+  resDiv.style.display = 'flex';
+  setDisplay('instructionsSection', 'none');
 
   appState.searchMarkers.forEach(m => { try { m.map = null; } catch (_) {} });
   appState.searchMarkers = [];
@@ -523,7 +502,10 @@ function displayResults(places) {
 
     const item = document.createElement('div');
     item.className = 'result-item';
-    item.innerHTML = `<div>${i + 1}. ${name}</div><div style="font-size:0.8em;opacity:0.7">${addr}</div>`;
+    item.innerHTML =
+      `<div class="result-title">${i + 1}. ${escapeHtml(name)}</div>` +
+      `<div class="result-sub">${escapeHtml(addr)}</div>`;
+
     item.addEventListener('click', () => {
       if (typeof lat !== 'number' || typeof lng !== 'number') return;
       startNavigation({ name, lat, lng }).catch(() => {});
@@ -556,6 +538,15 @@ function displayResults(places) {
   });
 }
 
+function escapeHtml(s) {
+  return String(s || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 async function startNavigation(destination) {
   let originLat, originLng;
 
@@ -568,7 +559,7 @@ async function startNavigation(destination) {
     originLng = appState.currentPos.lng;
     appState.isSimulation = false;
   } else {
-    alertOnce('起点が取得できません');
+    alert('起点が取得できません');
     return;
   }
 
@@ -596,7 +587,7 @@ async function startNavigation(destination) {
 
     const result = await response.json();
     if (!result.routes || result.routes.length === 0) {
-      alertOnce('ルートが見つかりませんでした');
+      alert('ルートが見つかりませんでした');
       stopNavigation();
       return;
     }
@@ -609,7 +600,7 @@ async function startNavigation(destination) {
     if (l0?.duration?.text) setText('routeTime', `徒歩 ${l0.duration.text}`);
 
     setDisplay('routeInfoSection', 'block');
-    setDisplay('results', 'none');
+    setDisplay('results', 'none'); // ナビに入ったら非表示
     setDisplay('btnDestination', 'flex');
 
     const list = getEl('navPanelInstructions');
@@ -638,7 +629,7 @@ async function startNavigation(destination) {
 
   } catch (e) {
     console.error(e);
-    alertOnce('ルート検索エラー');
+    alert('ルート検索エラー');
     stopNavigation();
   }
 }
@@ -680,7 +671,7 @@ function stopNavigation() {
 
 function showSaveLocationDialog() {
   if (!appState.currentPos) {
-    alertOnce('現在地が取得できていません');
+    alert('現在地が取得できていません');
     return;
   }
 
@@ -692,9 +683,17 @@ function showSaveLocationDialog() {
   if (!name) return;
 
   loadSavedLocations();
-  appState.savedLocations.push({ name, address, lat, lng, timestamp: Date.now() });
+
+  appState.savedLocations.push({
+    name,
+    address,
+    lat,
+    lng,
+    timestamp: Date.now()
+  });
+
   saveSavedLocations();
-  alertOnce(`「${name}」を登録しました`, 800);
+  alert(`「${name}」を登録しました`);
 }
 
 function closeAnyEditOverlay() {
@@ -708,7 +707,7 @@ function showEditLocationDialog() {
     loadSavedLocations();
 
     if (appState.savedLocations.length === 0) {
-      alertOnce('登録地がありません', 1200);
+      alert('登録地がありません');
       return;
     }
 
@@ -779,7 +778,7 @@ function showEditLocationDialog() {
   } catch (e) {
     appState.isEditDialogOpen = false;
     console.error(e);
-    alertOnce('登録地編集ダイアログの表示に失敗しました');
+    alert('登録地編集ダイアログの表示に失敗しました');
   }
 }
 
@@ -787,7 +786,7 @@ function showLocationEditMenu(index) {
   loadSavedLocations();
   const location = appState.savedLocations[index];
   if (!location) {
-    alertOnce('対象の登録地が見つかりません');
+    alert('対象の登録地が見つかりません');
     return;
   }
 
@@ -850,7 +849,7 @@ function showLocationDeleteConfirm(index) {
   loadSavedLocations();
   const location = appState.savedLocations[index];
   if (!location) {
-    alertOnce('対象の登録地が見つかりません');
+    alert('対象の登録地が見つかりません');
     return;
   }
 
@@ -892,7 +891,7 @@ function showLocationDeleteConfirm(index) {
     saveSavedLocations();
     safeRemove(overlay);
     appState.isEditDialogOpen = false;
-    alertOnce('削除しました', 800);
+    alert('削除しました');
   });
 
   btnGroup.appendChild(btnNo);
@@ -915,7 +914,7 @@ function showLocationEditForm(index) {
   loadSavedLocations();
   const location = appState.savedLocations[index];
   if (!location) {
-    alertOnce('対象の登録地が見つかりません');
+    alert('対象の登録地が見つかりません');
     return;
   }
 
@@ -945,14 +944,14 @@ function showLocationEditForm(index) {
   btnComplete.addEventListener('click', () => {
     const newName = input.value.trim();
     if (!newName) {
-      alertOnce('登録地名を入力してください');
+      alert('登録地名を入力してください');
       return;
     }
     location.name = newName;
     saveSavedLocations();
     safeRemove(overlay);
     appState.isEditDialogOpen = false;
-    alertOnce('更新しました', 800);
+    alert('更新しました');
   });
 
   const btnCancel = document.createElement('button');
@@ -982,39 +981,32 @@ function showLocationEditForm(index) {
 }
 
 /* =========================
-   タップ取りこぼし／二重発火対策（iOS Safari 決定版）
-   - PointerEventがあるなら pointerup のみ
-   - ない場合は touchend + click をガード
+   タップ取りこぼし対策（iOS/固定レイアウト対策）
    ========================= */
 
 function bindReliableActivate(el, fn) {
   if (!el) return;
 
-  const hasPointer = ('PointerEvent' in window);
-  let lastTs = 0;
-
+  let last = 0;
   const run = (e) => {
     const now = Date.now();
-    if (now - lastTs < 900) return; // ★click遅延対策で長めに
-    lastTs = now;
+    if (e.type === 'click' && (now - last) < 700) return;
+    last = now;
 
-    try { if (e && e.cancelable) e.preventDefault(); } catch (_) {}
-    try { if (e && typeof e.stopPropagation === 'function') e.stopPropagation(); } catch (_) {}
-
+    try {
+      if (e && e.cancelable) e.preventDefault();
+    } catch (_) {}
     try {
       fn(e);
     } catch (err) {
       console.error(err);
-      alertOnce('操作の実行中にエラーが発生しました', 1500);
+      alert('操作の実行中にエラーが発生しました');
     }
   };
 
-  if (hasPointer) {
-    el.addEventListener('pointerup', run);
-  } else {
-    el.addEventListener('touchend', run, { passive: false });
-    el.addEventListener('click', run);
-  }
+  el.addEventListener('touchend', run, { passive: false });
+  el.addEventListener('pointerup', run);
+  el.addEventListener('click', run);
 }
 
 function bindUI() {
@@ -1084,7 +1076,6 @@ function bindUI() {
     r20 && r20.classList.remove('active');
     r30 && r30.classList.remove('active');
     setText('radiusLabel', '10km');
-    appState.searchRadiusM = 10000;
   });
 
   if (r20) bindReliableActivate(r20, () => {
@@ -1092,7 +1083,6 @@ function bindUI() {
     r10 && r10.classList.remove('active');
     r30 && r30.classList.remove('active');
     setText('radiusLabel', '20km');
-    appState.searchRadiusM = 20000;
   });
 
   if (r30) bindReliableActivate(r30, () => {
@@ -1100,7 +1090,6 @@ function bindUI() {
     r10 && r10.classList.remove('active');
     r20 && r20.classList.remove('active');
     setText('radiusLabel', '30km');
-    appState.searchRadiusM = 30000;
   });
 }
 
@@ -1110,6 +1099,9 @@ function startApp() {
   setDisplay('searchPanel', 'block');
   setDisplay('fabStack', 'none');
   setDisplay('btnSearch', 'flex');
+
+  // results は初期非表示
+  setDisplay('results', 'none');
 
   loadSavedLocations();
   loadMapMode();
