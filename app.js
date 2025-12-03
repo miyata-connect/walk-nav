@@ -1,6 +1,6 @@
 'use strict';
 
-const ISSUE_ID = 'idx20251202_results_slide_v1';
+const ISSUE_ID = 'idx20251203_fix_search_results_not_showing_v1';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -44,7 +44,11 @@ const appState = {
   editingLocationIndex: null,
   isEditDialogOpen: false,
 
-  mapMode: 'roadmap'
+  mapMode: 'roadmap',
+
+  // ★追加：検索の二重発火・多重アラート抑止
+  searchInFlight: false,
+  _alertGate: Object.create(null)
 };
 
 function getEl(id) {
@@ -65,6 +69,24 @@ function safeRemove(el) {
   try {
     if (el && el.parentNode) el.parentNode.removeChild(el);
   } catch (_) {}
+}
+
+function escapeHtml(s) {
+  return String(s || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+// ★追加：同じアラートを短時間に連発しない
+function alertOnce(key, message, cooldownMs = 1200) {
+  const now = Date.now();
+  const last = appState._alertGate[key] || 0;
+  if (now - last < cooldownMs) return;
+  appState._alertGate[key] = now;
+  alert(message);
 }
 
 function loadSavedLocations() {
@@ -216,7 +238,7 @@ function initMap(center) {
 
   } catch (e) {
     console.error('[WalkNav] Map initialization failed:', e);
-    alert('地図の読み込みに失敗しました。APIキーの設定を確認してください。');
+    alertOnce('map_fail', '地図の読み込みに失敗しました。APIキーの設定を確認してください。');
   }
 }
 
@@ -448,21 +470,40 @@ async function fetchPointAddress(lat, lng) {
   }
 }
 
+// ★追加：結果領域にメッセージを出す（0件や失敗が「出ない」に見えないように）
+function showResultsMessage(msg) {
+  const resDiv = getEl('results');
+  if (!resDiv) return;
+  resDiv.innerHTML = `<div class="result-item" style="flex:0 0 86%;max-width:86%;opacity:.9;">${escapeHtml(msg)}</div>`;
+  resDiv.style.display = 'flex';
+}
+
+// ★修正：検索をロックして「出ない」「多重」を潰す
 async function performSearch(query) {
-  if (!query) return;
+  const q = String(query || '').trim();
+  if (!q) return;
+
+  if (appState.searchInFlight) return;
+  appState.searchInFlight = true;
+
+  // 検索タブに寄せる（結果が見えない事故防止）
+  switchPanelTab('search');
 
   const center = appState.pointSearchMode && appState.searchPoint
     ? appState.searchPoint
     : (appState.currentPos || appState.map?.getCenter()?.toJSON());
 
   if (!center) {
-    alert('現在地が取得できていません');
+    appState.searchInFlight = false;
+    alertOnce('no_center', '現在地が取得できていません');
     return;
   }
 
+  showResultsMessage('検索中…');
+
   try {
     const data = await placesTextSearch({
-      textQuery: query,
+      textQuery: q,
       locationBias: {
         circle: {
           center: { latitude: center.lat, longitude: center.lng },
@@ -473,10 +514,18 @@ async function performSearch(query) {
     }, DEFAULT_MASK);
 
     const results = data.places || [];
+    if (results.length === 0) {
+      showResultsMessage('該当する結果がありません');
+      return;
+    }
     displayResults(results, center.lat, center.lng);
+
   } catch (e) {
     console.error(e);
-    alert('検索に失敗しました');
+    showResultsMessage('検索に失敗しました（通信/Worker/キー/権限を確認）');
+    alertOnce('search_fail', '検索に失敗しました');
+  } finally {
+    appState.searchInFlight = false;
   }
 }
 
@@ -535,15 +584,9 @@ function displayResults(places, centerLat, centerLng) {
       appState.searchMarkers.push(m);
     }
   });
-}
 
-function escapeHtml(s) {
-  return String(s || '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
+  // 先頭へ（「出てるのに見えない」対策）
+  try { resDiv.scrollTo({ left: 0, behavior: 'smooth' }); } catch (_) {}
 }
 
 async function startNavigation(destination) {
@@ -558,7 +601,7 @@ async function startNavigation(destination) {
     originLng = appState.currentPos.lng;
     appState.isSimulation = false;
   } else {
-    alert('起点が取得できません');
+    alertOnce('no_origin', '起点が取得できません');
     return;
   }
 
@@ -586,7 +629,7 @@ async function startNavigation(destination) {
 
     const result = await response.json();
     if (!result.routes || result.routes.length === 0) {
-      alert('ルートが見つかりませんでした');
+      alertOnce('no_route', 'ルートが見つかりませんでした');
       stopNavigation();
       return;
     }
@@ -628,7 +671,7 @@ async function startNavigation(destination) {
 
   } catch (e) {
     console.error(e);
-    alert('ルート検索エラー');
+    alertOnce('route_fail', 'ルート検索エラー');
     stopNavigation();
   }
 }
@@ -664,9 +707,13 @@ function stopNavigation() {
   }
 }
 
+/* =========================
+   登録地：追加／編集
+   ========================= */
+
 function showSaveLocationDialog() {
   if (!appState.currentPos) {
-    alert('現在地が取得できていません');
+    alertOnce('no_pos', '現在地が取得できていません');
     return;
   }
 
@@ -688,7 +735,7 @@ function showSaveLocationDialog() {
   });
 
   saveSavedLocations();
-  alert(`「${name}」を登録しました`);
+  alertOnce('saved_loc', `「${name}」を登録しました`, 400);
 }
 
 function closeAnyEditOverlay() {
@@ -702,7 +749,7 @@ function showEditLocationDialog() {
     loadSavedLocations();
 
     if (appState.savedLocations.length === 0) {
-      alert('登録地がありません');
+      alertOnce('no_saved', '登録地がありません');
       return;
     }
 
@@ -773,7 +820,7 @@ function showEditLocationDialog() {
   } catch (e) {
     appState.isEditDialogOpen = false;
     console.error(e);
-    alert('登録地編集ダイアログの表示に失敗しました');
+    alertOnce('edit_dialog_fail', '登録地編集ダイアログの表示に失敗しました');
   }
 }
 
@@ -781,7 +828,7 @@ function showLocationEditMenu(index) {
   loadSavedLocations();
   const location = appState.savedLocations[index];
   if (!location) {
-    alert('対象の登録地が見つかりません');
+    alertOnce('loc_missing', '対象の登録地が見つかりません');
     return;
   }
 
@@ -844,7 +891,7 @@ function showLocationDeleteConfirm(index) {
   loadSavedLocations();
   const location = appState.savedLocations[index];
   if (!location) {
-    alert('対象の登録地が見つかりません');
+    alertOnce('loc_missing2', '対象の登録地が見つかりません');
     return;
   }
 
@@ -886,7 +933,7 @@ function showLocationDeleteConfirm(index) {
     saveSavedLocations();
     safeRemove(overlay);
     appState.isEditDialogOpen = false;
-    alert('削除しました');
+    alertOnce('deleted_loc', '削除しました', 400);
   });
 
   btnGroup.appendChild(btnNo);
@@ -909,7 +956,7 @@ function showLocationEditForm(index) {
   loadSavedLocations();
   const location = appState.savedLocations[index];
   if (!location) {
-    alert('対象の登録地が見つかりません');
+    alertOnce('loc_missing3', '対象の登録地が見つかりません');
     return;
   }
 
@@ -939,14 +986,14 @@ function showLocationEditForm(index) {
   btnComplete.addEventListener('click', () => {
     const newName = input.value.trim();
     if (!newName) {
-      alert('登録地名を入力してください');
+      alertOnce('need_name', '登録地名を入力してください');
       return;
     }
     location.name = newName;
     saveSavedLocations();
     safeRemove(overlay);
     appState.isEditDialogOpen = false;
-    alert('更新しました');
+    alertOnce('updated_loc', '更新しました', 400);
   });
 
   const btnCancel = document.createElement('button');
@@ -975,6 +1022,10 @@ function showLocationEditForm(index) {
   setTimeout(() => input.focus(), 100);
 }
 
+/* =========================
+   タップ取りこぼし対策
+   ========================= */
+
 function bindReliableActivate(el, fn) {
   if (!el) return;
 
@@ -991,7 +1042,7 @@ function bindReliableActivate(el, fn) {
       fn(e);
     } catch (err) {
       console.error(err);
-      alert('操作の実行中にエラーが発生しました');
+      alertOnce('op_error', '操作の実行中にエラーが発生しました');
     }
   };
 
