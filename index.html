@@ -7,7 +7,7 @@
 <title>WalkNav</title>
 <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-<link rel="stylesheet" href="app.css?v=20251203-halfpanel" />
+<link rel="stylesheet" href="app.css?v=20251201-final" />
 </head>
 <body id="appBody">
 <div class="app">
@@ -80,9 +80,9 @@
 <div class="nav-section">
 <div class="nav-section-title">🌤️ 天気予報</div>
 <div id="navWeather" class="weather-grid">
-<div class="weather-card"><span>1H</span><span id="weather3h" class="weather-val">--</span></div>
-<div class="weather-card"><span>2H</span><span id="weather6h" class="weather-val">--</span></div>
-<div class="weather-card"><span>3H</span><span id="weather9h" class="weather-val">--</span></div>
+<div class="weather-card"><span>1H</span><span id="weather1h" class="weather-val">--</span></div>
+<div class="weather-card"><span>2H</span><span id="weather2h" class="weather-val">--</span></div>
+<div class="weather-card"><span>3H</span><span id="weather3h" class="weather-val">--</span></div>
 </div>
 </div>
 
@@ -170,16 +170,21 @@
 
 <script>
 (function () {
+// ▼▼▼ 物理的なスクロール・バウンス防止（iOS Safari対策） ▼▼▼
 document.addEventListener('touchmove', function(e) {
+  // 1. Googleマップは許可
   if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
-  if (e.target.closest('#results')) return;
 
+  // 2. パネル内のスクロールエリアのみ許可
   var scrollable = e.target.closest('.panel-tabs-body');
+
+  // 3. それ以外はすべてブロック（Body Lock）
   if (!scrollable) {
     if (e.cancelable) e.preventDefault();
     return;
   }
 
+  // 4. 中身が少なくてスクロール不要な場合のバウンス防止
   if (scrollable.scrollHeight <= scrollable.clientHeight) {
      if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
         if (e.cancelable) e.preventDefault();
@@ -201,6 +206,7 @@ function initPanelTabs() {
     if (paneNav) paneNav.classList.toggle('active', isNav);
     if (paneSettings) paneSettings.classList.toggle('active', isSettings);
     var target = isSettings ? 'settings' : (isNav ? 'nav' : 'search');
+
     tabButtons.forEach(function(b) {
        b.classList.toggle('active', b.getAttribute('data-panel-tab') === target);
     });
@@ -224,6 +230,7 @@ function initPanelTabs() {
 
   setMode('search');
 
+  // 親ウィンドウとの通信（iframe利用時）
   window.addEventListener('message', function (e) {
     if (e.data && e.data.type === 'WN_CURRENT_TAB_POS') {
       var pos = e.data.position || 'right';
