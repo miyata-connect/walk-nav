@@ -1,6 +1,6 @@
 'use strict';
 
-const ISSUE_ID = 'idx20251203_fix_search_results_not_showing_v1';
+const ISSUE_ID = 'idx20251203_fix_single_tap_and_search_v2';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -46,7 +46,7 @@ const appState = {
 
   mapMode: 'roadmap',
 
-  // ★追加：検索の二重発火・多重アラート抑止
+  // 二重発火・多重アラート抑止
   searchInFlight: false,
   _alertGate: Object.create(null)
 };
@@ -80,7 +80,6 @@ function escapeHtml(s) {
     .replaceAll("'", '&#39;');
 }
 
-// ★追加：同じアラートを短時間に連発しない
 function alertOnce(key, message, cooldownMs = 1200) {
   const now = Date.now();
   const last = appState._alertGate[key] || 0;
@@ -195,6 +194,7 @@ async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
 
 async function placesTextSearch(payload, fieldMask) {
   payload.languageCode = 'ja';
+
   const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
     method: 'POST',
     headers: {
@@ -203,8 +203,21 @@ async function placesTextSearch(payload, fieldMask) {
     },
     body: JSON.stringify(payload)
   });
-  if (!resp.ok) throw new Error(`TextSearch ${resp.status}`);
-  return await resp.json();
+
+  const raw = await resp.text().catch(() => '');
+
+  if (!resp.ok) {
+    let detail = raw || '';
+    try {
+      const j = JSON.parse(raw);
+      detail = j?.message || j?.error || j?.status || raw;
+    } catch (_) {}
+    const short = String(detail).slice(0, 220);
+    throw new Error(`TextSearch HTTP ${resp.status}${short ? ` / ${short}` : ''}`);
+  }
+
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch (_) { return {}; }
 }
 
 function initMap(center) {
@@ -302,17 +315,6 @@ function setSearchPoint(lat, lng) {
   }
 
   fetchPointAddress(lat, lng).catch(() => {});
-}
-
-function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371000;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
 }
 
 function drawRoutePolyline(route) {
@@ -470,15 +472,14 @@ async function fetchPointAddress(lat, lng) {
   }
 }
 
-// ★追加：結果領域にメッセージを出す（0件や失敗が「出ない」に見えないように）
 function showResultsMessage(msg) {
   const resDiv = getEl('results');
   if (!resDiv) return;
   resDiv.innerHTML = `<div class="result-item" style="flex:0 0 86%;max-width:86%;opacity:.9;">${escapeHtml(msg)}</div>`;
   resDiv.style.display = 'flex';
+  try { resDiv.scrollTo({ left: 0, behavior: 'auto' }); } catch (_) {}
 }
 
-// ★修正：検索をロックして「出ない」「多重」を潰す
 async function performSearch(query) {
   const q = String(query || '').trim();
   if (!q) return;
@@ -486,7 +487,6 @@ async function performSearch(query) {
   if (appState.searchInFlight) return;
   appState.searchInFlight = true;
 
-  // 検索タブに寄せる（結果が見えない事故防止）
   switchPanelTab('search');
 
   const center = appState.pointSearchMode && appState.searchPoint
@@ -518,11 +518,12 @@ async function performSearch(query) {
       showResultsMessage('該当する結果がありません');
       return;
     }
+
     displayResults(results, center.lat, center.lng);
 
   } catch (e) {
     console.error(e);
-    showResultsMessage('検索に失敗しました（通信/Worker/キー/権限を確認）');
+    showResultsMessage(`検索に失敗しました：${String(e.message || e).slice(0, 240)}`);
     alertOnce('search_fail', '検索に失敗しました');
   } finally {
     appState.searchInFlight = false;
@@ -585,8 +586,7 @@ function displayResults(places, centerLat, centerLng) {
     }
   });
 
-  // 先頭へ（「出てるのに見えない」対策）
-  try { resDiv.scrollTo({ left: 0, behavior: 'smooth' }); } catch (_) {}
+  try { resDiv.scrollTo({ left: 0, behavior: 'auto' }); } catch (_) {}
 }
 
 async function startNavigation(destination) {
@@ -1023,21 +1023,25 @@ function showLocationEditForm(index) {
 }
 
 /* =========================
-   タップ取りこぼし対策
+   ★最重要：二重発火を根絶する
+   - PointerEventがあるなら pointerup のみ
+   - 無いなら touchend のみ
+   - それも無いなら click のみ
    ========================= */
-
 function bindReliableActivate(el, fn) {
   if (!el) return;
 
-  let last = 0;
-  const run = (e) => {
+  let lastFire = 0;
+
+  const handler = (e) => {
     const now = Date.now();
-    if (e.type === 'click' && (now - last) < 700) return;
-    last = now;
+    if (now - lastFire < 700) return; // 二重抑止（全イベント共通）
+    lastFire = now;
 
     try {
       if (e && e.cancelable) e.preventDefault();
     } catch (_) {}
+
     try {
       fn(e);
     } catch (err) {
@@ -1046,9 +1050,23 @@ function bindReliableActivate(el, fn) {
     }
   };
 
-  el.addEventListener('touchend', run, { passive: false });
-  el.addEventListener('pointerup', run);
-  el.addEventListener('click', run);
+  // 既存が多重登録されると意味ないので、cloneでイベントを全消去して付け直す
+  // （同じDOMに前回コードのリスナが残っているケース対策）
+  try {
+    const clone = el.cloneNode(true);
+    el.parentNode.replaceChild(clone, el);
+    el = clone;
+  } catch (_) {
+    // clone失敗時はそのまま付ける（最悪でも700msガードで抑止）
+  }
+
+  if (window.PointerEvent) {
+    el.addEventListener('pointerup', handler);
+  } else if ('ontouchend' in window) {
+    el.addEventListener('touchend', handler, { passive: false });
+  } else {
+    el.addEventListener('click', handler);
+  }
 }
 
 function bindUI() {
@@ -1141,7 +1159,6 @@ function startApp() {
   setDisplay('searchPanel', 'block');
   setDisplay('fabStack', 'none');
   setDisplay('btnSearch', 'flex');
-
   setDisplay('results', 'none');
 
   loadSavedLocations();
