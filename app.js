@@ -1,6 +1,6 @@
 'use strict';
 
-const ISSUE_ID = 'idx20251201_fix_edit_location_button_v1__guard_v2';
+const ISSUE_ID = 'idx20251203_fix_multi_fire_and_search_alert_v3';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -16,11 +16,11 @@ const LOCATION_OPTIONS = {
 const SAVED_LOCATIONS_KEY = 'walknav_saved_locations';
 const MAP_MODE_KEY = 'walknav_map_mode';
 
-/* =========================================================
-   ★ 重要：二重起動ガード（キャッシュ/二重読み込み対策）
-   ========================================================= */
+/* =========================
+   二重起動ガード
+   ========================= */
 if (window.__WALKNAV_APP_JS_STARTED__) {
-  console.warn('[WalkNav] Duplicate app.js start blocked:', ISSUE_ID);
+  console.warn('[WalkNav] Duplicate app.js blocked:', ISSUE_ID);
 } else {
   window.__WALKNAV_APP_JS_STARTED__ = true;
 
@@ -28,9 +28,11 @@ if (window.__WALKNAV_APP_JS_STARTED__) {
     map: null,
     userMarker: null,
     currentPos: null,
+
     pointSearchMode: false,
     searchPoint: null,
     searchPointMarker: null,
+
     mapInitialized: false,
     searchMarkers: [],
     currentDestination: null,
@@ -43,6 +45,7 @@ if (window.__WALKNAV_APP_JS_STARTED__) {
     locationWatchId: null,
     compassWatchId: null,
     currentHeading: 0,
+
     isSimulation: false,
     currentRouteData: null,
 
@@ -54,9 +57,10 @@ if (window.__WALKNAV_APP_JS_STARTED__) {
 
     mapMode: 'roadmap',
 
-    // ★多重操作ガード
+    // 多重発火・多重アラート対策
     searchInFlight: false,
-    _alertGate: Object.create(null)
+    _alertGate: Object.create(null),
+    _cooldown: Object.create(null)
   };
 
   function getEl(id) {
@@ -79,15 +83,21 @@ if (window.__WALKNAV_APP_JS_STARTED__) {
     } catch (_) {}
   }
 
-  /* =========================================================
-     ★ 重要：アラート連発防止（キーごとに一定時間1回）
-     ========================================================= */
   function alertOnce(key, message, cooldownMs = 900) {
     const now = Date.now();
     const last = appState._alertGate[key] || 0;
     if (now - last < cooldownMs) return;
     appState._alertGate[key] = now;
     alert(message);
+  }
+
+  function setCooldown(key, ms) {
+    appState._cooldown[key] = Date.now() + ms;
+  }
+
+  function inCooldown(key) {
+    const until = appState._cooldown[key] || 0;
+    return Date.now() < until;
   }
 
   function loadSavedLocations() {
@@ -145,7 +155,7 @@ if (window.__WALKNAV_APP_JS_STARTED__) {
 
     if (mode === 'photo') {
       appState.map.setMapTypeId(google.maps.MapTypeId.SATELLITE);
-      appState.map.setTilt(0);
+      try { appState.map.setTilt(0); } catch (_) {}
     } else if (mode === '3d') {
       appState.map.setMapTypeId(google.maps.MapTypeId.HYBRID);
       try { appState.map.setTilt(45); } catch (_) {}
@@ -194,11 +204,9 @@ if (window.__WALKNAV_APP_JS_STARTED__) {
     }
   }
 
-  /* =========================================================
-     ★ 検索失敗の原因を握るため、HTTP詳細を拾って投げる
-     ========================================================= */
   async function placesTextSearch(payload, fieldMask) {
     payload.languageCode = 'ja';
+
     const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
       method: 'POST',
       headers: {
@@ -220,7 +228,6 @@ if (window.__WALKNAV_APP_JS_STARTED__) {
   function initMap(center) {
     if (appState.map) {
       appState.map.setCenter(center);
-      console.log('[WalkNav] Map center updated');
       return;
     }
     const mapEl = getEl('map');
@@ -244,7 +251,6 @@ if (window.__WALKNAV_APP_JS_STARTED__) {
       changeMapMode(appState.mapMode);
 
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized');
 
     } catch (e) {
       console.error('[WalkNav] Map initialization failed:', e);
@@ -314,22 +320,12 @@ if (window.__WALKNAV_APP_JS_STARTED__) {
     fetchPointAddress(lat, lng).catch(() => {});
   }
 
-  function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371000;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
   function drawRoutePolyline(route) {
     if (appState.currentPolyline) {
-      appState.currentPolyline.setMap(null);
+      try { appState.currentPolyline.setMap(null); } catch (_) {}
       appState.currentPolyline = null;
     }
+
     const encoded =
       route?.overview_polyline?.points ||
       route?.polyline?.encodedPolyline ||
@@ -483,7 +479,6 @@ if (window.__WALKNAV_APP_JS_STARTED__) {
   async function performSearch(query) {
     if (!query) return;
 
-    // ★検索の多重実行ガード
     if (appState.searchInFlight) return;
     appState.searchInFlight = true;
 
@@ -511,16 +506,16 @@ if (window.__WALKNAV_APP_JS_STARTED__) {
 
       const results = data.places || [];
       displayResults(results, center.lat, center.lng);
+
     } catch (e) {
       console.error(e);
-      // ★アラート連発防止
       alertOnce('search_fail', '検索に失敗しました', 1200);
     } finally {
       appState.searchInFlight = false;
     }
   }
 
-  function displayResults(places, centerLat, centerLng) {
+  function displayResults(places) {
     const resDiv = getEl('results');
     if (!resDiv) return;
 
@@ -665,9 +660,7 @@ if (window.__WALKNAV_APP_JS_STARTED__) {
     stopLocationWatcher();
     appState.isNavigating = false;
 
-    try {
-      appState.currentPolyline?.setMap(null);
-    } catch (_) {}
+    try { appState.currentPolyline?.setMap(null); } catch (_) {}
     appState.currentPolyline = null;
 
     setDisplay('routeInfoSection', 'none');
@@ -696,7 +689,16 @@ if (window.__WALKNAV_APP_JS_STARTED__) {
      登録地：追加／編集
      ========================= */
 
+  function closeAnyEditOverlay() {
+    const existing = document.querySelector('.edit-dialog-overlay');
+    if (existing) safeRemove(existing);
+    appState.isEditDialogOpen = false;
+  }
+
   function showSaveLocationDialog() {
+    if (inCooldown('save_loc')) return;
+    setCooldown('save_loc', 1200);
+
     if (!appState.currentPos) {
       alertOnce('no_pos', '現在地が取得できていません', 1200);
       return;
@@ -720,22 +722,17 @@ if (window.__WALKNAV_APP_JS_STARTED__) {
     });
 
     saveSavedLocations();
-    // ★これも連発防止
-    alertOnce('saved_ok', `「${name}」を登録しました`, 700);
-  }
-
-  function closeAnyEditOverlay() {
-    const existing = document.querySelector('.edit-dialog-overlay');
-    if (existing) safeRemove(existing);
-    appState.isEditDialogOpen = false;
+    alertOnce('saved_ok', `「${name}」を登録しました`, 900);
   }
 
   function showEditLocationDialog() {
+    if (inCooldown('edit_loc')) return;
+    setCooldown('edit_loc', 900);
+
     try {
       loadSavedLocations();
 
       if (appState.savedLocations.length === 0) {
-        // ★「登録地がありません」が2回出る原因＝多重発火。alertOnceで1回に固定
         alertOnce('no_saved_locations', '登録地がありません', 1200);
         return;
       }
@@ -1010,36 +1007,26 @@ if (window.__WALKNAV_APP_JS_STARTED__) {
   }
 
   /* =========================
-     ★ タップ取りこぼし＆多重発火対策（ここが本丸）
-     - 1要素1回だけバインド
-     - pointer/touch/click を全部付けない（環境に合わせて1本）
+     多重発火対策：1要素1回だけ＆イベントは1本だけ
      ========================= */
-
   function bindReliableActivate(el, fn) {
     if (!el) return;
-
-    // ★同じ要素に二重バインドしない
     if (el.__wn_bound__) return;
     el.__wn_bound__ = true;
 
     let last = 0;
     const run = (e) => {
       const now = Date.now();
-      if (now - last < 700) return;
+      if (now - last < 650) return;
       last = now;
 
-      try {
-        if (e && e.cancelable) e.preventDefault();
-      } catch (_) {}
-      try {
-        fn(e);
-      } catch (err) {
+      try { if (e && e.cancelable) e.preventDefault(); } catch (_) {}
+      try { fn(e); } catch (err) {
         console.error(err);
         alertOnce('op_error', '操作の実行中にエラーが発生しました', 1200);
       }
     };
 
-    // ★「全部登録」すると iOS/Chrome で多重発火するので1本に絞る
     if (window.PointerEvent) {
       el.addEventListener('pointerup', run);
     } else if ('ontouchend' in window) {
@@ -1086,7 +1073,6 @@ if (window.__WALKNAV_APP_JS_STARTED__) {
 
     bindReliableActivate(getEl('btnStopRoute'), () => stopNavigation());
 
-    // 登録地ボタン
     bindReliableActivate(getEl('btnSaveLocation'), () => showSaveLocationDialog());
     bindReliableActivate(getEl('btnEditLocation'), () => showEditLocationDialog());
 
