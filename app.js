@@ -485,7 +485,6 @@ function displayResults(places, centerLat, centerLng) {
   if (!resDiv) return;
 
   resDiv.innerHTML = '';
-  // 横スワイプ表示のため block ではなく flex にする
   resDiv.style.display = 'flex';
   setDisplay('instructionsSection', 'none');
 
@@ -600,7 +599,7 @@ async function startNavigation(destination) {
     if (l0?.duration?.text) setText('routeTime', `徒歩 ${l0.duration.text}`);
 
     setDisplay('routeInfoSection', 'block');
-    setDisplay('results', 'none'); // ナビに入ったら非表示
+    setDisplay('results', 'none');
     setDisplay('btnDestination', 'flex');
 
     const list = getEl('navPanelInstructions');
@@ -664,10 +663,6 @@ function stopNavigation() {
     appState.map.setZoom(17);
   }
 }
-
-/* =========================
-   登録地：追加／編集
-   ========================= */
 
 function showSaveLocationDialog() {
   if (!appState.currentPos) {
@@ -980,10 +975,6 @@ function showLocationEditForm(index) {
   setTimeout(() => input.focus(), 100);
 }
 
-/* =========================
-   タップ取りこぼし対策（iOS/固定レイアウト対策）
-   ========================= */
-
 function bindReliableActivate(el, fn) {
   if (!el) return;
 
@@ -1100,7 +1091,6 @@ function startApp() {
   setDisplay('fabStack', 'none');
   setDisplay('btnSearch', 'flex');
 
-  // results は初期非表示
   setDisplay('results', 'none');
 
   loadSavedLocations();
