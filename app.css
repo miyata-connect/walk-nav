@@ -1,6 +1,5 @@
 /* ==========================================================================
-   WalkNav - 元のデザイン + ボタン修正のみ
-   v20.0 - 最小限の修正
+   WalkNav - 元のデザイン + 検索結果を横スワイプ化（最小限）
    ========================================================================== */
 
 :root {
@@ -154,13 +153,8 @@ html, body {
   padding: 20px 24px 32px 24px;
 }
 
-.tab-pane {
-  display: none;
-}
-
-.tab-pane.active {
-  display: block;
-}
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
 
 h2, .section-title {
   font-size: 20px;
@@ -198,11 +192,7 @@ h2, .section-title {
   white-space: nowrap;
 }
 
-.chip:active {
-  background: rgba(255,255,255,0.15);
-  transform: scale(0.98);
-}
-
+.chip:active { background: rgba(255,255,255,0.15); transform: scale(0.98); }
 .chip.active {
   background: var(--text-main);
   color: #000;
@@ -210,12 +200,7 @@ h2, .section-title {
   font-weight: 700;
   box-shadow: var(--shadow-button);
 }
-
-.chip.small {
-  height: 28px;
-  font-size: 11px;
-  padding: 0 12px;
-}
+.chip.small { height: 28px; font-size: 11px; padding: 0 12px; }
 
 .btn {
   display: inline-flex;
@@ -238,21 +223,14 @@ h2, .section-title {
   text-overflow: ellipsis;
 }
 
-.btn:active {
-  transform: scale(0.98);
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
-}
+.btn:active { transform: scale(0.98); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
 
 .btn-primary {
-  background: var(--primary);
   background: linear-gradient(135deg, #3b82f6, #2563eb);
   border: none;
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255,255,255,0.1);
 }
-
-.btn-primary:active {
-  background: var(--primary-dark);
-}
+.btn-primary:active { background: var(--primary-dark); }
 
 .btn-danger, .btn-danger-block {
   background: linear-gradient(135deg, #ef4444, #dc2626);
@@ -261,18 +239,9 @@ h2, .section-title {
   box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3), inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
-.btn-secondary {
-  background: rgba(100, 100, 100, 0.5);
-}
-
-.btn-outline, .btn-outline-primary {
-  background: transparent;
-  border: 1px solid var(--stroke);
-}
-
-.btn-block {
-  width: 100%;
-}
+.btn-secondary { background: rgba(100, 100, 100, 0.5); }
+.btn-outline, .btn-outline-primary { background: transparent; border: 1px solid var(--stroke); }
+.btn-block { width: 100%; }
 
 .filter-chips-row {
   display: flex;
@@ -281,29 +250,11 @@ h2, .section-title {
   flex-wrap: wrap;
 }
 
-.action-buttons-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-}
+.action-buttons-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.action-buttons-row .btn { flex: 1; min-width: 0; padding: 0 8px !important; }
 
-.action-buttons-row .btn {
-  flex: 1;
-  min-width: 0;
-  padding: 0 8px !important;
-}
-
-.bottom-actions-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.bottom-actions-row .btn {
-  flex: 1;
-  min-width: 0;
-  padding: 0 8px !important;
-}
+.bottom-actions-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.bottom-actions-row .btn { flex: 1; min-width: 0; padding: 0 8px !important; }
 
 .tab-pos-buttons, .route-mode-toggle {
   display: flex;
@@ -312,9 +263,7 @@ h2, .section-title {
   flex-wrap: wrap;
 }
 
-.search-box-container {
-  margin-bottom: 16px;
-}
+.search-box-container { margin-bottom: 16px; }
 
 .input-wrapper {
   position: relative;
@@ -348,9 +297,7 @@ h2, .section-title {
   padding: 0 10px;
 }
 
-.input::placeholder {
-  color: rgba(255, 255, 255, 0.35);
-}
+.input::placeholder { color: rgba(255, 255, 255, 0.35); }
 
 .icon {
   display: flex;
@@ -365,7 +312,6 @@ h2, .section-title {
 }
 
 .icon:active { background: rgba(255,255,255,0.1); color: var(--text-main); }
-
 .icon svg { width: 22px; height: 22px; fill: currentColor; }
 
 .icon-g { color: #4285f4; }
@@ -382,108 +328,113 @@ h2, .section-title {
   line-height: 1.5;
 }
 
-.address-title {
-  color: #fbbf24;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
+.address-title { color: #fbbf24; font-weight: 600; margin-bottom: 6px; }
+.address-coords { color: var(--text-sub); font-size: 13px; }
 
-.address-coords {
-  color: var(--text-sub);
-  font-size: 13px;
-}
-
+/* ===== 検索結果（横スワイプ） ===== */
 .results-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 16px;
+  /* display は JS が切り替える（none / flex） */
   width: 100%;
+  margin-top: 14px;
+
+  /* 横スワイプの本体 */
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+
+  /* 端の余白（指が引っかからない） */
+  padding: 2px 2px 8px 2px;
+
+  /* スナップ（カード単位で止まる） */
+  scroll-snap-type: x mandatory;
 }
 
+.results-list::-webkit-scrollbar { height: 0; }
+
+.results-list::after {
+  content: '';
+  flex: 0 0 16px; /* 右端余白 */
+}
+
+.result-item {
+  flex: 0 0 86%;
+  max-width: 86%;
+  scroll-snap-align: start;
+
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--stroke-soft);
+  border-radius: 16px;
+  padding: 14px 14px;
+  line-height: 1.45;
+
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  cursor: pointer;
+  user-select: none;
+}
+
+.result-item:active {
+  transform: scale(0.99);
+  background: rgba(255,255,255,0.06);
+}
+
+.result-item .result-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-item .result-sub {
+  font-size: 13px;
+  color: rgba(255,255,255,0.75);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;          /* 2行まで */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (min-width: 700px) {
+  .result-item { flex-basis: 420px; max-width: 420px; }
+}
+
+/* ===== 既存のナビUI ===== */
 .nav-section {
   padding: 0 0 20px 0;
   margin-bottom: 20px;
   border-bottom: 1px solid var(--stroke-soft);
   width: 100%;
 }
-
 .nav-section:last-child { border-bottom: none; margin-bottom: 0; }
 
-.location-info {
-  font-size: 15px;
-  line-height: 1.6;
-}
+.location-info { font-size: 15px; line-height: 1.6; }
+.loc-coords { color: #fbbf24; margin-bottom: 6px; }
+.loc-address { color: var(--text-sub); font-size: 14px; }
 
-.loc-coords {
-  color: #fbbf24;
-  margin-bottom: 6px;
-}
-
-.loc-address {
-  color: var(--text-sub);
-  font-size: 14px;
-}
-
-.weather-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
+.weather-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .weather-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 12px;
   background: var(--surface-highlight);
   border-radius: 12px;
   font-size: 14px;
   font-weight: 500;
 }
+.weather-card span:first-child { font-size: 11px; color: var(--text-sub); margin-bottom: 6px; }
+.weather-val { font-weight: 600; }
 
-.weather-card span:first-child {
-  font-size: 11px;
-  color: var(--text-sub);
-  margin-bottom: 6px;
-}
-
-.weather-val {
-  font-weight: 600;
-}
-
-.route-summary-card {
-  background: var(--surface-highlight);
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 16px;
-}
-
-.route-dest {
-  font-size: 14px;
-  color: var(--text-sub);
-  margin-bottom: 8px;
-}
-
-.route-stats {
-  display: flex;
-  gap: 14px;
-  margin-bottom: 12px;
-}
-
-.stat-dist {
-  font-size: 26px;
-  font-weight: 800;
-  color: var(--text-main);
-}
-
-.stat-time {
-  font-size: 16px;
-  color: var(--text-sub);
-  font-weight: 500;
-  align-self: flex-end;
-}
+.route-summary-card { background: var(--surface-highlight); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+.route-dest { font-size: 14px; color: var(--text-sub); margin-bottom: 8px; }
+.route-stats { display: flex; gap: 14px; margin-bottom: 12px; }
+.stat-dist { font-size: 26px; font-weight: 800; color: var(--text-main); }
+.stat-time { font-size: 16px; color: var(--text-sub); font-weight: 500; align-self: flex-end; }
 
 .incident-alert {
   background: rgba(239, 68, 68, 0.15);
@@ -495,23 +446,10 @@ h2, .section-title {
   color: #fca5a5;
 }
 
-.instructions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+.instructions-list { display: flex; flex-direction: column; gap: 10px; }
+.settings-group { margin-bottom: 24px; }
 
-.settings-group {
-  margin-bottom: 24px;
-}
-
-.map-mode-buttons {
-  display: flex;
-  background: rgba(0,0,0,0.3);
-  padding: 5px;
-  border-radius: 16px;
-}
-
+.map-mode-buttons { display: flex; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 16px; }
 .map-mode-btn {
   flex: 1;
   padding: 12px;
@@ -525,26 +463,14 @@ h2, .section-title {
   border: none;
   background: transparent;
 }
-
 .map-mode-btn.active {
   background: rgba(80, 80, 80, 0.9);
   color: var(--text-main);
   box-shadow: 0 2px 10px rgba(0,0,0,0.15);
 }
 
-.nav-controls-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.app-version {
-  text-align: center;
-  font-size: 11px;
-  color: var(--text-sub);
-  margin-top: 16px;
-  opacity: 0.5;
-}
+.nav-controls-stack { display: flex; flex-direction: column; gap: 10px; }
+.app-version { text-align: center; font-size: 11px; color: var(--text-sub); margin-top: 16px; opacity: 0.5; }
 
 .fab-container {
   position: absolute;
@@ -576,15 +502,8 @@ h2, .section-title {
   border: none;
 }
 
-.fab-btn:active {
-  transform: scale(0.92);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.fab-btn.destination {
-  background: var(--primary);
-  color: #fff;
-}
+.fab-btn:active { transform: scale(0.92); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.fab-btn.destination { background: var(--primary); color: #fff; }
 
 .loading-overlay {
   position: absolute;
@@ -612,46 +531,8 @@ h2, .section-title {
   margin-bottom: 16px;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-.loading-text {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.loading-sub {
-  font-size: 13px;
-  color: var(--text-sub);
-}
-
-.loading-content {
-  text-align: center;
-}
-
-/* ==========================================================================
-   検索結果が見切れない & スワイプ（スクロール）できるようにする（最小限）
-   ※デザイン変更ではなく「表示領域/操作性の修正」
-   ========================================================================== */
-
-/* パネル下部（安全領域＋ボタン分）を確実に空ける */
-.panel-tabs-body {
-  padding-bottom: calc(var(--safe-area-bottom) + 140px);
-}
-
-/* 結果リスト自体も独立してスワイプで縦スクロールできるようにする */
-#results.results-list {
-  max-height: 52dvh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
-  padding-bottom: calc(var(--safe-area-bottom) + 120px);
-}
-
-/* iOSで「引っ掛かって動かない」を避ける保険 */
-#results.results-list > * {
-  touch-action: pan-y;
-}
+.loading-text { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.loading-sub { font-size: 13px; color: var(--text-sub); }
+.loading-content { text-align: center; }
