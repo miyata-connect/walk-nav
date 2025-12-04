@@ -1,7 +1,7 @@
 'use strict';
 
-const ISSUE_ID = 'idx20251203_searchfix_placesService_geocoder_v1';
-const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
+const ISSUE_ID = 'idx20251205_results_scroll_fix_v1';
+const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0'; // 直叩きは原則しない（Worker優先）
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
@@ -21,6 +21,7 @@ const MAP_MODE_KEY = 'walknav_map_mode';
    ========================= */
 const WN = (window.__WN_GLOBAL__ = window.__WN_GLOBAL__ || {
   booted: false,
+  appStarted: false,
   locks: Object.create(null),
   alerts: Object.create(null)
 });
@@ -102,6 +103,113 @@ if (WN.booted) {
     try { if (el && el.parentNode) el.parentNode.removeChild(el); } catch (_) {}
   }
 
+  /* =========================
+     UIホットフィックス（HTML/CSSを触らずJS側で整形）
+     - 検索窓下の余白を増やす
+     - 10/20/30km と ポイント選択 を横並び
+     ========================= */
+  function applySearchUiHotfix() {
+    // 検索窓下の余白を確保
+    const q = getEl('q');
+    if (q) {
+      const box =
+        q.closest('.search-box') ||
+        q.closest('.searchbar') ||
+        q.closest('.search-bar') ||
+        q.parentElement;
+
+      if (box && !box.__wnSpaced) {
+        box.__wnSpaced = true;
+        box.style.marginBottom = '14px';
+      } else if (!q.__wnSpaced) {
+        q.__wnSpaced = true;
+        q.style.marginBottom = '14px';
+      }
+    }
+
+    // 10/20/30 と ポイント選択を同じ行へ寄せる（DOM移動）
+    const r10 = getEl('r10');
+    const r20 = getEl('r20');
+    const r30 = getEl('r30');
+    const btnP = getEl('btnPointSearch');
+    if (!r10 || !r20 || !r30 || !btnP) return;
+
+    const row = r10.parentElement;
+    if (!row) return;
+    if (r20.parentElement !== row || r30.parentElement !== row) return;
+
+    if (btnP.parentElement !== row) {
+      try { row.appendChild(btnP); } catch (_) {}
+    }
+
+    row.style.display = 'flex';
+    row.style.flexWrap = 'wrap';
+    row.style.alignItems = 'center';
+    row.style.gap = '10px';
+
+    [r10, r20, r30, btnP].forEach(el => {
+      if (!el) return;
+      el.style.flex = '0 0 auto';
+    });
+
+    if (!btnP.__wnSized) {
+      btnP.__wnSized = true;
+      btnP.style.paddingLeft = '14px';
+      btnP.style.paddingRight = '14px';
+      btnP.style.whiteSpace = 'nowrap';
+    }
+  }
+
+  /* =========================
+     検索結果スクロール修正（1件しか見えない/スクロール不可の対策）
+     - flex親で min-height:0 が無いと overflow scroll が効かない典型
+     ========================= */
+  function applyResultsScrollHotfix() {
+    const paneSearch = getEl('tabPaneSearch');
+    const resDiv = getEl('results');
+
+    if (paneSearch && !paneSearch.__wnFlexed) {
+      paneSearch.__wnFlexed = true;
+      paneSearch.style.display = 'flex';
+      paneSearch.style.flexDirection = 'column';
+      paneSearch.style.minHeight = '0';
+      // 親が overflow hidden でも子スクロールは効くが、明示して安定させる
+      paneSearch.style.overflow = 'hidden';
+    }
+
+    if (resDiv && !resDiv.__wnScrollable) {
+      resDiv.__wnScrollable = true;
+      resDiv.style.flex = '1 1 auto';
+      resDiv.style.minHeight = '0';
+      resDiv.style.overflowY = 'auto';
+      resDiv.style.webkitOverflowScrolling = 'touch';
+      resDiv.style.touchAction = 'pan-y';
+      // 余白少し（誤操作防止）
+      resDiv.style.paddingBottom = '12px';
+    }
+
+    fitResultsScroller();
+  }
+
+  function fitResultsScroller() {
+    const resDiv = getEl('results');
+    if (!resDiv) return;
+    if (resDiv.style.display === 'none') return;
+
+    // 表示領域に応じて maxHeight を与える（親レイアウト崩れ時の保険）
+    try {
+      const top = resDiv.getBoundingClientRect().top;
+      const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+      // 下部の固定UI/セーフエリアを見越して控えめに確保
+      const reserve = 140;
+      const maxH = Math.max(140, Math.floor(vh - top - reserve));
+      resDiv.style.maxHeight = `${maxH}px`;
+    } catch (_) {}
+  }
+
+  /* =========================
+     Storage
+     ========================= */
   function loadSavedLocations() {
     try {
       const saved = localStorage.getItem(SAVED_LOCATIONS_KEY);
@@ -188,8 +296,16 @@ if (WN.booted) {
       const active = btn.dataset.panelTab === target;
       btn.classList.toggle('active', active);
     });
+
+    // 検索タブに戻った時にスクロール領域を再計算
+    if (target === 'search') {
+      applyResultsScrollHotfix();
+    }
   }
 
+  /* =========================
+     fetch helper
+     ========================= */
   async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
     for (let i = 0; i < retries; i++) {
       try {
@@ -207,99 +323,9 @@ if (WN.booted) {
   }
 
   /* =========================
-     検索：最優先 PlacesService（Maps JS / places）
-     失敗時：Worker REST → 直叩きREST
+     Places / Geocode：Worker ONLY
      ========================= */
-
-  function placesTextSearchViaPlacesService(query, centerLat, centerLng, radiusMeters) {
-    return new Promise((resolve, reject) => {
-      try {
-        if (!google?.maps?.places?.PlacesService || !appState.map) {
-          reject(new Error('PlacesService unavailable'));
-          return;
-        }
-
-        const service = new google.maps.places.PlacesService(appState.map);
-
-        const request = {
-          query,
-          location: new google.maps.LatLng(centerLat, centerLng),
-          radius: radiusMeters
-        };
-
-        service.textSearch(request, (results, status) => {
-          if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
-            reject(new Error(`PlacesService ${status}`));
-            return;
-          }
-
-          // v1互換形式へ寄せる（displayResultsがそのまま使える）
-          const places = results.slice(0, 5).map(r => {
-            const lat = r.geometry?.location?.lat?.();
-            const lng = r.geometry?.location?.lng?.();
-            return {
-              displayName: { text: r.name || r.formatted_address || '(名称不明)' },
-              formattedAddress: r.formatted_address || '',
-              location: { latitude: lat, longitude: lng },
-              id: r.place_id || '',
-              types: r.types || []
-            };
-          });
-
-          resolve({ places });
-        });
-      } catch (e) {
-        reject(e);
-      }
-    });
-  }
-
-  async function placesTextSearchViaWorker(payload, fieldMask) {
-    payload.languageCode = 'ja';
-    const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(fieldMask ? { 'X-Goog-FieldMask': fieldMask } : {})
-      },
-      body: JSON.stringify(payload)
-    });
-    if (!resp.ok) {
-      let body = '';
-      try { body = await resp.text(); } catch (_) {}
-      throw new Error(`WORKER_TextSearch ${resp.status} ${body.slice(0, 220)}`);
-    }
-    return await resp.json();
-  }
-
-  async function placesTextSearchDirect(payload, fieldMask) {
-    payload.languageCode = 'ja';
-    const resp = await fetchWithRetry(`https://places.googleapis.com/v1/places:searchText`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': API_KEY,
-        ...(fieldMask ? { 'X-Goog-FieldMask': fieldMask } : {})
-      },
-      body: JSON.stringify(payload)
-    });
-    if (!resp.ok) {
-      let body = '';
-      try { body = await resp.text(); } catch (_) {}
-      throw new Error(`DIRECT_TextSearch ${resp.status} ${body.slice(0, 220)}`);
-    }
-    return await resp.json();
-  }
-
-  async function placesTextSearch(query, centerLat, centerLng) {
-    // 1) PlacesService
-    try {
-      return await placesTextSearchViaPlacesService(query, centerLat, centerLng, appState.searchRadiusMeters);
-    } catch (e0) {
-      console.warn('[WalkNav] PlacesService failed:', e0?.message || e0);
-    }
-
-    // 2) Worker REST
+  async function placesTextSearchViaWorker(query, centerLat, centerLng) {
     const payload = {
       textQuery: query,
       locationBias: {
@@ -311,15 +337,41 @@ if (WN.booted) {
       languageCode: 'ja'
     };
 
-    try {
-      return await placesTextSearchViaWorker(payload, DEFAULT_MASK);
-    } catch (e1) {
-      console.warn('[WalkNav] Worker search failed, fallback to direct:', e1?.message || e1);
-      // 3) Direct REST
-      return await placesTextSearchDirect(payload, DEFAULT_MASK);
+    const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-FieldMask': DEFAULT_MASK
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!resp.ok) {
+      let body = '';
+      try { body = await resp.text(); } catch (_) {}
+      throw new Error(`WORKER_TextSearch ${resp.status} ${body.slice(0, 240)}`);
     }
+    return await resp.json();
   }
 
+  async function geocodeViaWorker(lat, lng) {
+    const resp = await fetchWithRetry(`${WORKER_ORIGIN}/geocode`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latlng: { lat, lng }, language: 'ja' })
+    });
+
+    if (!resp.ok) {
+      let body = '';
+      try { body = await resp.text(); } catch (_) {}
+      throw new Error(`WORKER_Geocode ${resp.status} ${body.slice(0, 240)}`);
+    }
+    return await resp.json();
+  }
+
+  /* =========================
+     Map
+     ========================= */
   function initMap(center) {
     if (appState.map) {
       appState.map.setCenter(center);
@@ -444,6 +496,9 @@ if (WN.booted) {
     }
   }
 
+  /* =========================
+     Sensors
+     ========================= */
   function startCompassListener() {
     if (!window.DeviceOrientationEvent) return;
 
@@ -496,8 +551,9 @@ if (WN.booted) {
   }
 
   function acquireLocation() {
-    const onSuccess = (pos) => {
+    const onSuccess = async (pos) => {
       const { latitude, longitude } = pos.coords;
+
       const loadingEl = getEl('loading');
       if (loadingEl) loadingEl.remove();
 
@@ -508,11 +564,12 @@ if (WN.booted) {
       }
 
       setUserMarker(latitude, longitude);
-      fetchLocationNameGoogle(latitude, longitude).catch(() => {});
+      await fetchLocationNameGoogle(latitude, longitude);
     };
 
     const onError = (error) => {
       console.warn('[WalkNav] Geolocation error:', error);
+
       const loadingEl = getEl('loading');
       if (loadingEl) loadingEl.remove();
 
@@ -536,72 +593,13 @@ if (WN.booted) {
   }
 
   /* =========================
-     住所：最優先 Geocoder（Maps JS）
-     失敗時：Worker geocode → 直叩きgeocode
+     Address（Worker ONLY）
      ========================= */
-  function geocodeViaMapsJS(lat, lng) {
-    return new Promise((resolve, reject) => {
-      try {
-        if (!google?.maps?.Geocoder) {
-          reject(new Error('Geocoder unavailable'));
-          return;
-        }
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-          if (status !== 'OK' || !results || results.length === 0) {
-            reject(new Error(`Geocoder ${status}`));
-            return;
-          }
-          resolve({ results });
-        });
-      } catch (e) {
-        reject(e);
-      }
-    });
-  }
-
-  async function geocodeViaWorker(lat, lng) {
-    const res = await fetchWithRetry(`${WORKER_ORIGIN}/geocode`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ latlng: { lat, lng }, language: 'ja' })
-    });
-    if (!res.ok) {
-      let body = '';
-      try { body = await res.text(); } catch (_) {}
-      throw new Error(`WORKER_Geocode ${res.status} ${body.slice(0, 220)}`);
-    }
-    return await res.json();
-  }
-
-  async function geocodeDirect(lat, lng) {
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${encodeURIComponent(lat + ',' + lng)}&language=ja&key=${encodeURIComponent(API_KEY)}`;
-    const res = await fetchWithRetry(url, { method: 'GET' });
-    if (!res.ok) {
-      let body = '';
-      try { body = await res.text(); } catch (_) {}
-      throw new Error(`DIRECT_Geocode ${res.status} ${body.slice(0, 220)}`);
-    }
-    return await res.json();
-  }
-
   async function fetchLocationNameGoogle(lat, lng) {
     setText('locCoords', `Lat: ${lat.toFixed(5)} / Lng: ${lng.toFixed(5)}`);
     try {
-      let data;
-      try {
-        data = await geocodeViaMapsJS(lat, lng);
-      } catch (e0) {
-        console.warn('[WalkNav] Geocoder failed:', e0?.message || e0);
-        try {
-          data = await geocodeViaWorker(lat, lng);
-        } catch (e1) {
-          console.warn('[WalkNav] Worker geocode failed, fallback to direct:', e1?.message || e1);
-          data = await geocodeDirect(lat, lng);
-        }
-      }
-
-      if (data.results?.[0]) {
+      const data = await geocodeViaWorker(lat, lng);
+      if (data?.results?.[0]) {
         setText('locAddress', String(data.results[0].formatted_address || '').replace(/^日本、\s*/, ''));
       } else {
         setText('locAddress', '');
@@ -618,29 +616,21 @@ if (WN.booted) {
     setText('pointCoords', `Lat: ${lat.toFixed(5)}`);
 
     try {
-      let data;
-      try {
-        data = await geocodeViaMapsJS(lat, lng);
-      } catch (e0) {
-        console.warn('[WalkNav] Point Geocoder failed:', e0?.message || e0);
-        try {
-          data = await geocodeViaWorker(lat, lng);
-        } catch (e1) {
-          console.warn('[WalkNav] Worker point geocode failed, fallback to direct:', e1?.message || e1);
-          data = await geocodeDirect(lat, lng);
-        }
-      }
-
-      if (data.results?.[0]) {
+      const data = await geocodeViaWorker(lat, lng);
+      if (data?.results?.[0]) {
         setText('pointAddress', String(data.results[0].formatted_address || '').replace(/^日本、\s*/, ''));
       } else {
         setText('pointAddress', '取得できません');
       }
-    } catch (_) {
+    } catch (e) {
+      console.error(e);
       setText('pointAddress', '取得エラー');
     }
   }
 
+  /* =========================
+     Search（Worker ONLY）
+     ========================= */
   async function performSearch(query) {
     if (!query) return;
 
@@ -659,7 +649,7 @@ if (WN.booted) {
     }
 
     try {
-      const data = await placesTextSearch(query, center.lat, center.lng);
+      const data = await placesTextSearchViaWorker(query, center.lat, center.lng);
       const results = data.places || [];
       displayResults(results);
       if (results.length === 0) alertOnce('no_results', '検索結果がありません');
@@ -681,6 +671,9 @@ if (WN.booted) {
     resDiv.innerHTML = '';
     setDisplay('results', 'block');
     setDisplay('instructionsSection', 'none');
+
+    // スクロール化を必ず適用（表示タイミングの差で効かないのを防ぐ）
+    applyResultsScrollHotfix();
 
     appState.searchMarkers.forEach(m => { try { m.map = null; } catch (_) {} });
     appState.searchMarkers = [];
@@ -726,8 +719,15 @@ if (WN.booted) {
         appState.searchMarkers.push(m);
       }
     });
+
+    // 描画後にもう一度フィット（iOSの再レイアウト遅延対策）
+    setTimeout(fitResultsScroller, 0);
+    setTimeout(fitResultsScroller, 80);
   }
 
+  /* =========================
+     Navigation
+     ========================= */
   async function startNavigation(destination) {
     let originLat, originLng;
 
@@ -845,10 +845,10 @@ if (WN.booted) {
   }
 
   /* =========================
-     登録地：追加／編集（2回表示/2回起動をlockで吸収）
+     登録地：追加／編集
      ========================= */
   function showSaveLocationDialog() {
-    if (!lock('save_location', 1200)) return;
+    if (!lock('save_location', 900)) return;
 
     if (!appState.currentPos) {
       alertOnce('no_pos', '現在地が取得できていません');
@@ -1078,8 +1078,8 @@ if (WN.booted) {
 
     btnGroup.appendChild(btnNo);
     btnGroup.appendChild(btnYes);
-
     dialog.appendChild(btnGroup);
+
     overlay.appendChild(dialog);
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) {
@@ -1191,7 +1191,8 @@ if (WN.booted) {
     const inputQ = getEl('q');
 
     bindReliableActivate(getEl('btnSearchIcon'), () => performSearch(inputQ ? inputQ.value : ''));
-    if (inputQ) {
+    if (inputQ && !inputQ.__wnEnterBound) {
+      inputQ.__wnEnterBound = true;
       inputQ.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') performSearch(inputQ.value);
       });
@@ -1207,6 +1208,7 @@ if (WN.booted) {
         btnP.style.background = '';
         btnP.style.color = '';
       }
+      applyResultsScrollHotfix();
     });
 
     bindReliableActivate(getEl('btnLocatePanel'), () => acquireLocation());
@@ -1220,6 +1222,7 @@ if (WN.booted) {
     bindReliableActivate(getEl('btnSearch'), () => {
       setDisplay('searchPanel', 'block');
       setDisplay('fabStack', 'none');
+      applyResultsScrollHotfix();
     });
 
     bindReliableActivate(getEl('btnStopRoute'), () => stopNavigation());
@@ -1274,6 +1277,9 @@ if (WN.booted) {
   }
 
   function startApp() {
+    if (WN.appStarted) return;
+    WN.appStarted = true;
+
     console.log('[WalkNav] Starting app…', ISSUE_ID);
 
     setDisplay('searchPanel', 'block');
@@ -1285,6 +1291,24 @@ if (WN.booted) {
     bindUI();
     updateMapModeButtons(appState.mapMode);
     switchPanelTab('search');
+
+    // UI整形
+    applySearchUiHotfix();
+    applyResultsScrollHotfix();
+
+    // 画面回転/アドレスバー変動でも崩れないように再計算
+    if (!window.__wnResizeBound) {
+      window.__wnResizeBound = true;
+      window.addEventListener('resize', () => {
+        if (!lock('resize_fit', 120)) return;
+        applyResultsScrollHotfix();
+      });
+      window.addEventListener('orientationchange', () => {
+        applyResultsScrollHotfix();
+        setTimeout(applyResultsScrollHotfix, 120);
+      });
+    }
+
     acquireLocation();
     startCompassListener();
   }
