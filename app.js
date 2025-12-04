@@ -1,6 +1,6 @@
 'use strict';
 
-const ISSUE_ID = 'idx20251203_search_and_doublefire_fix_v2';
+const ISSUE_ID = 'idx20251203_searchfix_placesService_geocoder_v1';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -22,8 +22,7 @@ const MAP_MODE_KEY = 'walknav_map_mode';
 const WN = (window.__WN_GLOBAL__ = window.__WN_GLOBAL__ || {
   booted: false,
   locks: Object.create(null),
-  alerts: Object.create(null),
-  once: Object.create(null)
+  alerts: Object.create(null)
 });
 
 function lock(key, ms) {
@@ -80,9 +79,11 @@ if (WN.booted) {
 
     mapMode: 'roadmap',
 
-    // 検索連打・二重発火防止
+    // 検索重複防止
     searchInFlight: false,
-    lastSearchAt: 0
+
+    // 10/20/30km
+    searchRadiusMeters: 10000
   };
 
   function getEl(id) { return document.getElementById(id); }
@@ -206,11 +207,55 @@ if (WN.booted) {
   }
 
   /* =========================
-     検索：Worker優先 → 失敗ならGoogle直叩きフォールバック
+     検索：最優先 PlacesService（Maps JS / places）
+     失敗時：Worker REST → 直叩きREST
      ========================= */
+
+  function placesTextSearchViaPlacesService(query, centerLat, centerLng, radiusMeters) {
+    return new Promise((resolve, reject) => {
+      try {
+        if (!google?.maps?.places?.PlacesService || !appState.map) {
+          reject(new Error('PlacesService unavailable'));
+          return;
+        }
+
+        const service = new google.maps.places.PlacesService(appState.map);
+
+        const request = {
+          query,
+          location: new google.maps.LatLng(centerLat, centerLng),
+          radius: radiusMeters
+        };
+
+        service.textSearch(request, (results, status) => {
+          if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
+            reject(new Error(`PlacesService ${status}`));
+            return;
+          }
+
+          // v1互換形式へ寄せる（displayResultsがそのまま使える）
+          const places = results.slice(0, 5).map(r => {
+            const lat = r.geometry?.location?.lat?.();
+            const lng = r.geometry?.location?.lng?.();
+            return {
+              displayName: { text: r.name || r.formatted_address || '(名称不明)' },
+              formattedAddress: r.formatted_address || '',
+              location: { latitude: lat, longitude: lng },
+              id: r.place_id || '',
+              types: r.types || []
+            };
+          });
+
+          resolve({ places });
+        });
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
   async function placesTextSearchViaWorker(payload, fieldMask) {
     payload.languageCode = 'ja';
-
     const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
       method: 'POST',
       headers: {
@@ -219,20 +264,16 @@ if (WN.booted) {
       },
       body: JSON.stringify(payload)
     });
-
-    // Workerが 400/403/500 を返しているなら本文も取る
     if (!resp.ok) {
       let body = '';
       try { body = await resp.text(); } catch (_) {}
       throw new Error(`WORKER_TextSearch ${resp.status} ${body.slice(0, 220)}`);
     }
-
     return await resp.json();
   }
 
   async function placesTextSearchDirect(payload, fieldMask) {
     payload.languageCode = 'ja';
-
     const resp = await fetchWithRetry(`https://places.googleapis.com/v1/places:searchText`, {
       method: 'POST',
       headers: {
@@ -242,22 +283,40 @@ if (WN.booted) {
       },
       body: JSON.stringify(payload)
     });
-
     if (!resp.ok) {
       let body = '';
       try { body = await resp.text(); } catch (_) {}
       throw new Error(`DIRECT_TextSearch ${resp.status} ${body.slice(0, 220)}`);
     }
-
     return await resp.json();
   }
 
-  async function placesTextSearch(payload, fieldMask) {
+  async function placesTextSearch(query, centerLat, centerLng) {
+    // 1) PlacesService
     try {
-      return await placesTextSearchViaWorker(payload, fieldMask);
+      return await placesTextSearchViaPlacesService(query, centerLat, centerLng, appState.searchRadiusMeters);
+    } catch (e0) {
+      console.warn('[WalkNav] PlacesService failed:', e0?.message || e0);
+    }
+
+    // 2) Worker REST
+    const payload = {
+      textQuery: query,
+      locationBias: {
+        circle: {
+          center: { latitude: centerLat, longitude: centerLng },
+          radius: appState.searchRadiusMeters
+        }
+      },
+      languageCode: 'ja'
+    };
+
+    try {
+      return await placesTextSearchViaWorker(payload, DEFAULT_MASK);
     } catch (e1) {
       console.warn('[WalkNav] Worker search failed, fallback to direct:', e1?.message || e1);
-      return await placesTextSearchDirect(payload, fieldMask);
+      // 3) Direct REST
+      return await placesTextSearchDirect(payload, DEFAULT_MASK);
     }
   }
 
@@ -476,6 +535,31 @@ if (WN.booted) {
     }
   }
 
+  /* =========================
+     住所：最優先 Geocoder（Maps JS）
+     失敗時：Worker geocode → 直叩きgeocode
+     ========================= */
+  function geocodeViaMapsJS(lat, lng) {
+    return new Promise((resolve, reject) => {
+      try {
+        if (!google?.maps?.Geocoder) {
+          reject(new Error('Geocoder unavailable'));
+          return;
+        }
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+          if (status !== 'OK' || !results || results.length === 0) {
+            reject(new Error(`Geocoder ${status}`));
+            return;
+          }
+          resolve({ results });
+        });
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
   async function geocodeViaWorker(lat, lng) {
     const res = await fetchWithRetry(`${WORKER_ORIGIN}/geocode`, {
       method: 'POST',
@@ -506,10 +590,15 @@ if (WN.booted) {
     try {
       let data;
       try {
-        data = await geocodeViaWorker(lat, lng);
-      } catch (e1) {
-        console.warn('[WalkNav] Worker geocode failed, fallback to direct:', e1?.message || e1);
-        data = await geocodeDirect(lat, lng);
+        data = await geocodeViaMapsJS(lat, lng);
+      } catch (e0) {
+        console.warn('[WalkNav] Geocoder failed:', e0?.message || e0);
+        try {
+          data = await geocodeViaWorker(lat, lng);
+        } catch (e1) {
+          console.warn('[WalkNav] Worker geocode failed, fallback to direct:', e1?.message || e1);
+          data = await geocodeDirect(lat, lng);
+        }
       }
 
       if (data.results?.[0]) {
@@ -531,10 +620,15 @@ if (WN.booted) {
     try {
       let data;
       try {
-        data = await geocodeViaWorker(lat, lng);
-      } catch (e1) {
-        console.warn('[WalkNav] Worker point geocode failed, fallback to direct:', e1?.message || e1);
-        data = await geocodeDirect(lat, lng);
+        data = await geocodeViaMapsJS(lat, lng);
+      } catch (e0) {
+        console.warn('[WalkNav] Point Geocoder failed:', e0?.message || e0);
+        try {
+          data = await geocodeViaWorker(lat, lng);
+        } catch (e1) {
+          console.warn('[WalkNav] Worker point geocode failed, fallback to direct:', e1?.message || e1);
+          data = await geocodeDirect(lat, lng);
+        }
       }
 
       if (data.results?.[0]) {
@@ -550,10 +644,8 @@ if (WN.booted) {
   async function performSearch(query) {
     if (!query) return;
 
-    // 連打/二重発火でも1回に固定
     if (!lock('search_click', 900)) return;
     if (appState.searchInFlight) return;
-
     appState.searchInFlight = true;
 
     const center = appState.pointSearchMode && appState.searchPoint
@@ -567,41 +659,22 @@ if (WN.booted) {
     }
 
     try {
-      const data = await placesTextSearch({
-        textQuery: query,
-        locationBias: {
-          circle: {
-            center: { latitude: center.lat, longitude: center.lng },
-            radius: 5000
-          }
-        },
-        languageCode: 'ja'
-      }, DEFAULT_MASK);
-
+      const data = await placesTextSearch(query, center.lat, center.lng);
       const results = data.places || [];
-      displayResults(results, center.lat, center.lng);
-
-      if (results.length === 0) {
-        alertOnce('no_results', '検索結果がありません');
-      }
-
+      displayResults(results);
+      if (results.length === 0) alertOnce('no_results', '検索結果がありません');
     } catch (e) {
       console.error(e);
-      // 失敗理由を分かる範囲で1回だけ出す
       const msg = String(e?.message || '');
-      if (msg.includes('403')) {
-        alertOnce('search_403', '検索に失敗しました（403）。Worker/CORS/キー制限の可能性があります。');
-      } else if (msg.includes('400')) {
-        alertOnce('search_400', '検索に失敗しました（400）。リクエスト形式またはAPI設定の可能性があります。');
-      } else {
-        alertOnce('search_fail', '検索に失敗しました');
-      }
+      if (msg.includes('403')) alertOnce('search_403', '検索に失敗しました（403）');
+      else if (msg.includes('400')) alertOnce('search_400', '検索に失敗しました（400）');
+      else alertOnce('search_fail', '検索に失敗しました');
     } finally {
       appState.searchInFlight = false;
     }
   }
 
-  function displayResults(places, centerLat, centerLng) {
+  function displayResults(places) {
     const resDiv = getEl('results');
     if (!resDiv) return;
 
@@ -772,7 +845,7 @@ if (WN.booted) {
   }
 
   /* =========================
-     登録地：追加／編集（重複表示はlockで吸収）
+     登録地：追加／編集（2回表示/2回起動をlockで吸収）
      ========================= */
   function showSaveLocationDialog() {
     if (!lock('save_location', 1200)) return;
@@ -1004,19 +1077,7 @@ if (WN.booted) {
     });
 
     btnGroup.appendChild(btnNo);
-    btnGroup.appendChild(btnYes);
-    dialog.appendChild(btnGroup);
-
-    overlay.appendChild(dialog);
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        safeRemove(overlay);
-        appState.isEditDialogOpen = false;
-      }
-    });
-
-    document.body.appendChild(overlay);
-    appState.isEditDialogOpen = true;
+    btnGroup.appendChild(btnbtnYes;
   }
 
   function showLocationEditForm(index) {
@@ -1091,9 +1152,6 @@ if (WN.booted) {
 
   /* =========================
      イベント：二重発火の根本対策
-     - pointerup があるなら pointerup だけ
-     - なければ touchend だけ
-     - なければ click だけ
      ========================= */
   function bindReliableActivate(el, fn) {
     if (!el) return;
@@ -1170,7 +1228,6 @@ if (WN.booted) {
     const btnMapPhoto = getEl('btnMapPhoto');
     const btnMapRoadmap = getEl('btnMapRoadmap');
     const btnMap3D = getEl('btnMap3D');
-
     if (btnMapPhoto) bindReliableActivate(btnMapPhoto, () => changeMapMode('photo'));
     if (btnMapRoadmap) bindReliableActivate(btnMapRoadmap, () => changeMapMode('roadmap'));
     if (btnMap3D) bindReliableActivate(btnMap3D, () => changeMapMode('3d'));
@@ -1183,6 +1240,7 @@ if (WN.booted) {
       r10.classList.add('active');
       r20 && r20.classList.remove('active');
       r30 && r30.classList.remove('active');
+      appState.searchRadiusMeters = 10000;
       setText('radiusLabel', '10km');
     });
 
@@ -1190,6 +1248,7 @@ if (WN.booted) {
       r20.classList.add('active');
       r10 && r10.classList.remove('active');
       r30 && r30.classList.remove('active');
+      appState.searchRadiusMeters = 20000;
       setText('radiusLabel', '20km');
     });
 
@@ -1197,6 +1256,7 @@ if (WN.booted) {
       r30.classList.add('active');
       r10 && r10.classList.remove('active');
       r20 && r20.classList.remove('active');
+      appState.searchRadiusMeters = 30000;
       setText('radiusLabel', '30km');
     });
   }
