@@ -7,7 +7,7 @@
 <title>WalkNav</title>
 <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-<link rel="stylesheet" href="app.css?v=20251201-final" />
+<link rel="stylesheet" href="app.css?v=20251204-fix1" />
 </head>
 <body id="appBody">
 <div class="app">
@@ -39,11 +39,7 @@
 <div class="address-coords" id="pointCoords"></div>
 </div>
 
-<div class="action-buttons-row">
-<button class="btn btn-outline" id="btnSaveLocation">現在地登録</button>
-<button class="btn btn-outline" id="btnEditLocation">登録地修正</button>
-</div>
-
+<!-- 検索窓をここに移動 -->
 <div class="search-box-container">
 <div class="input-wrapper">
 <span class="icon icon-g">
@@ -60,6 +56,11 @@
 </div>
 
 <div id="results" class="results-list" style="display:none"></div>
+
+<div class="action-buttons-row">
+<button class="btn btn-outline" id="btnSaveLocation">現在地登録</button>
+<button class="btn btn-outline" id="btnEditLocation">登録地修正</button>
+</div>
 
 <div class="bottom-actions-row">
 <button id="btnReset" class="btn btn-danger">リセット</button>
@@ -144,7 +145,7 @@
 </div>
 </div>
 
-<div class="app-version">v=embedless-walknav</div>
+<div class="app-version">v=20251204-fix1</div>
 </div>
 </div>
 </section>
@@ -164,8 +165,7 @@
 </div>
 </div>
 
-<!-- JSは必ずバージョン付け（iOS Safari / GitHub Pages キャッシュ対策） -->
-<script src="app.js?v=20251203-searchfix3"></script>
+<script src="app.js?v=20251204-fix1"></script>
 
 <!-- ★places を追加（これでブラウザ内のPlacesService検索が使える） -->
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&language=ja&region=JP&loading=async" async defer></script>
