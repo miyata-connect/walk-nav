@@ -229,7 +229,7 @@ if (WN.booted) {
 
         service.textSearch(request, (results, status) => {
           if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
-            reject(new Error('PlacesService ' + status));
+            reject(new Error(`PlacesService ${status}`));
             return;
           }
 
@@ -256,7 +256,7 @@ if (WN.booted) {
 
   async function placesTextSearchViaWorker(payload, fieldMask) {
     payload.languageCode = 'ja';
-    const resp = await fetchWithRetry(WORKER_ORIGIN + '/places:searchText', {
+    const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -267,14 +267,14 @@ if (WN.booted) {
     if (!resp.ok) {
       let body = '';
       try { body = await resp.text(); } catch (_) {}
-      throw new Error('WORKER_TextSearch ' + resp.status + ' ' + body.slice(0, 220));
+      throw new Error(`WORKER_TextSearch ${resp.status} ${body.slice(0, 220)}`);
     }
     return await resp.json();
   }
 
   async function placesTextSearchDirect(payload, fieldMask) {
     payload.languageCode = 'ja';
-    const resp = await fetchWithRetry('https://places.googleapis.com/v1/places:searchText', {
+    const resp = await fetchWithRetry(`https://places.googleapis.com/v1/places:searchText`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -286,7 +286,7 @@ if (WN.booted) {
     if (!resp.ok) {
       let body = '';
       try { body = await resp.text(); } catch (_) {}
-      throw new Error('DIRECT_TextSearch ' + resp.status + ' ' + body.slice(0, 220));
+      throw new Error(`DIRECT_TextSearch ${resp.status} ${body.slice(0, 220)}`);
     }
     return await resp.json();
   }
@@ -363,7 +363,10 @@ if (WN.booted) {
       const pin = document.createElement('div');
       pin.style.width = '32px';
       pin.style.height = '32px';
-      pin.innerHTML = '<svg id="user-marker-icon" viewBox="0 0 24 24" style="width:100%;height:100%;transform:rotate(' + appState.currentHeading + 'deg);transition:transform 0.2s ease-out;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));"><path d="M12 2L4.5 20.5L12 16.5L19.5 20.5L12 2Z" fill="#3aa0ff" stroke="#ffffff" stroke-width="2" stroke-linejoin="round" /></svg>';
+      pin.innerHTML = `\
+<svg id="user-marker-icon" viewBox="0 0 24 24" style="width:100%;height:100%;transform:rotate(${appState.currentHeading}deg);transition:transform 0.2s ease-out;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));">\
+<path d="M12 2L4.5 20.5L12 16.5L19.5 20.5L12 2Z" fill="#3aa0ff" stroke="#ffffff" stroke-width="2" stroke-linejoin="round" />\
+</svg>`;
 
       try {
         appState.userMarker = new google.maps.marker.AdvancedMarkerElement({
@@ -451,7 +454,7 @@ if (WN.booted) {
 
       appState.currentHeading = heading;
       const icon = getEl('user-marker-icon');
-      if (icon) icon.style.transform = 'rotate(' + heading + 'deg)';
+      if (icon) icon.style.transform = `rotate(${heading}deg)`;
     };
 
     if (typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -546,7 +549,7 @@ if (WN.booted) {
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ location: { lat, lng } }, (results, status) => {
           if (status !== 'OK' || !results || results.length === 0) {
-            reject(new Error('Geocoder ' + status));
+            reject(new Error(`Geocoder ${status}`));
             return;
           }
           resolve({ results });
@@ -558,7 +561,7 @@ if (WN.booted) {
   }
 
   async function geocodeViaWorker(lat, lng) {
-    const res = await fetchWithRetry(WORKER_ORIGIN + '/geocode', {
+    const res = await fetchWithRetry(`${WORKER_ORIGIN}/geocode`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ latlng: { lat, lng }, language: 'ja' })
@@ -566,24 +569,24 @@ if (WN.booted) {
     if (!res.ok) {
       let body = '';
       try { body = await res.text(); } catch (_) {}
-      throw new Error('WORKER_Geocode ' + res.status + ' ' + body.slice(0, 220));
+      throw new Error(`WORKER_Geocode ${res.status} ${body.slice(0, 220)}`);
     }
     return await res.json();
   }
 
   async function geocodeDirect(lat, lng) {
-    const url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=' + encodeURIComponent(lat + ',' + lng) + '&language=ja&key=' + encodeURIComponent(API_KEY);
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${encodeURIComponent(lat + ',' + lng)}&language=ja&key=${encodeURIComponent(API_KEY)}`;
     const res = await fetchWithRetry(url, { method: 'GET' });
     if (!res.ok) {
       let body = '';
       try { body = await res.text(); } catch (_) {}
-      throw new Error('DIRECT_Geocode ' + res.status + ' ' + body.slice(0, 220));
+      throw new Error(`DIRECT_Geocode ${res.status} ${body.slice(0, 220)}`);
     }
     return await res.json();
   }
 
   async function fetchLocationNameGoogle(lat, lng) {
-    setText('locCoords', 'Lat: ' + lat.toFixed(5) + ' / Lng: ' + lng.toFixed(5));
+    setText('locCoords', `Lat: ${lat.toFixed(5)} / Lng: ${lng.toFixed(5)}`);
     try {
       let data;
       try {
@@ -612,7 +615,7 @@ if (WN.booted) {
   async function fetchPointAddress(lat, lng) {
     setText('pointAddress', '取得中…');
     setDisplay('pointAddressBlock', 'flex');
-    setText('pointCoords', 'Lat: ' + lat.toFixed(5));
+    setText('pointCoords', `Lat: ${lat.toFixed(5)}`);
 
     try {
       let data;
@@ -692,7 +695,7 @@ if (WN.booted) {
 
       const item = document.createElement('div');
       item.className = 'result-item';
-      item.innerHTML = '<div>' + (i + 1) + '. ' + name + '</div><div style="font-size:0.8em;opacity:0.7">' + addr + '</div>';
+      item.innerHTML = `<div>${i + 1}. ${name}</div><div style="font-size:0.8em;opacity:0.7">${addr}</div>`;
       item.addEventListener('click', () => {
         if (typeof lat !== 'number' || typeof lng !== 'number') return;
         startNavigation({ name, lat, lng }).catch(() => {});
@@ -751,12 +754,12 @@ if (WN.booted) {
     setDisplay('routeControlSection', 'block');
 
     try {
-      const response = await fetchWithRetry(WORKER_ORIGIN + '/directions', {
+      const response = await fetchWithRetry(`${WORKER_ORIGIN}/directions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          origin: originLat + ',' + originLng,
-          destination: destination.lat + ',' + destination.lng,
+          origin: `${originLat},${originLng}`,
+          destination: `${destination.lat},${destination.lng}`,
           mode: 'walking',
           language: 'ja'
         })
@@ -775,7 +778,7 @@ if (WN.booted) {
 
       setText('destinationName', destination.name);
       if (l0?.distance?.text) setText('routeDistance', l0.distance.text);
-      if (l0?.duration?.text) setText('routeTime', '徒歩 ' + l0.duration.text);
+      if (l0?.duration?.text) setText('routeTime', `徒歩 ${l0.duration.text}`);
 
       setDisplay('routeInfoSection', 'block');
       setDisplay('results', 'none');
@@ -789,7 +792,7 @@ if (WN.booted) {
           d.className = 'nav-instruction-item';
           const inst = String(step.html_instructions || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
           const dist = step.distance?.text || '';
-          d.textContent = inst + (dist ? ' (' + dist + ')' : '');
+          d.textContent = `${inst}${dist ? ` (${dist})` : ''}`;
           list.appendChild(d);
         });
       }
@@ -870,7 +873,7 @@ if (WN.booted) {
     });
 
     saveSavedLocations();
-    alertOnce('saved_ok', '「' + name + '」を登録しました', 900);
+    alertOnce('saved_ok', `「${name}」を登録しました`, 900);
   }
 
   function closeAnyEditOverlay() {
@@ -978,7 +981,7 @@ if (WN.booted) {
     dialog.className = 'edit-dialog';
 
     const title = document.createElement('h3');
-    title.textContent = '「' + (location.name || '(名称未設定)') + '」を編集';
+    title.textContent = `「${location.name || '(名称未設定)'}」を編集`;
     dialog.appendChild(title);
 
     const btnEdit = document.createElement('button');
@@ -1046,7 +1049,7 @@ if (WN.booted) {
 
     const message = document.createElement('div');
     message.className = 'edit-dialog-message';
-    message.textContent = '「' + (location.name || '(名称未設定)') + '」';
+    message.textContent = `「${location.name || '(名称未設定)'}」`;
     dialog.appendChild(message);
 
     const btnGroup = document.createElement('div');
