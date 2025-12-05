@@ -1,8 +1,21 @@
 'use strict';
 
-const ISSUE_ID = 'idx20251205_results_scroll_fix_v1';
-const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0'; // 直叩きは原則しない（Worker優先）
+/**
+ * WalkNav app.js
+ * Fix pack:
+ * - 検索結果が1件しか見えない/スクロールできない → results を確実に scroll 可能化＋高さ動的調整
+ * - 10/20/30km と ポイント選択 を横並び（横スライド）に再配置
+ * - 二重発火（alert/promptが二回出る）を lock + stopImmediatePropagation + click追撃抑止で封じる
+ * - Google側でREQUEST_DENIEDが出ているため、Places/Geocoderのブラウザ直呼びは主経路から外してWorker優先
+ */
+
+const ISSUE_ID = 'idx20251204_fix_scroll_and_worker_first_v1';
+
+// ユーザー指定
+const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
+
+// Places API v1 field mask (workerが利用する想定)
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
 const RETRY_DELAY = 1000;
@@ -21,9 +34,9 @@ const MAP_MODE_KEY = 'walknav_map_mode';
    ========================= */
 const WN = (window.__WN_GLOBAL__ = window.__WN_GLOBAL__ || {
   booted: false,
-  appStarted: false,
   locks: Object.create(null),
-  alerts: Object.create(null)
+  alerts: Object.create(null),
+  styles: Object.create(null)
 });
 
 function lock(key, ms) {
@@ -40,6 +53,15 @@ function alertOnce(key, msg, ms = 1200) {
   if (now - last < ms) return;
   WN.alerts[key] = now;
   alert(msg);
+}
+
+function injectStyleOnce(key, cssText) {
+  if (WN.styles[key]) return;
+  WN.styles[key] = true;
+  const style = document.createElement('style');
+  style.id = `wn-style-${key}`;
+  style.textContent = cssText;
+  document.head.appendChild(style);
 }
 
 if (WN.booted) {
@@ -87,6 +109,9 @@ if (WN.booted) {
     searchRadiusMeters: 10000
   };
 
+  /* =========================
+     DOM helpers
+     ========================= */
   function getEl(id) { return document.getElementById(id); }
 
   function setDisplay(id, displayVal) {
@@ -104,111 +129,112 @@ if (WN.booted) {
   }
 
   /* =========================
-     UIホットフィックス（HTML/CSSを触らずJS側で整形）
-     - 検索窓下の余白を増やす
-     - 10/20/30km と ポイント選択 を横並び
+     UI Fix: パネル高さ/スクロール/並び替え
      ========================= */
-  function applySearchUiHotfix() {
-    // 検索窓下の余白を確保
-    const q = getEl('q');
-    if (q) {
-      const box =
-        q.closest('.search-box') ||
-        q.closest('.searchbar') ||
-        q.closest('.search-bar') ||
-        q.parentElement;
-
-      if (box && !box.__wnSpaced) {
-        box.__wnSpaced = true;
-        box.style.marginBottom = '14px';
-      } else if (!q.__wnSpaced) {
-        q.__wnSpaced = true;
-        q.style.marginBottom = '14px';
+  function applyUiFixes() {
+    // 1) パネルは画面の半分（max-height）& スクロールは内部に寄せる
+    injectStyleOnce('panel_half_scroll', `
+      /* 操作パネルは液晶の半分で抑える（要求） */
+      #searchPanel{
+        max-height: 50vh !important;
+        height: 50vh !important;
+        overflow: hidden !important;
       }
-    }
 
-    // 10/20/30 と ポイント選択を同じ行へ寄せる（DOM移動）
+      /* タブ中身は内部スクロール前提 */
+      #tabPaneSearch, #tabPaneNav, #tabPaneSettings{
+        height: 100% !important;
+        overflow: hidden !important;
+      }
+
+      /* 検索入力の下に余白追加（要求） */
+      #q, input#q{
+        margin-bottom: 12px !important;
+      }
+
+      /* 検索結果/案内リストは縦スクロール */
+      #results, #navPanelInstructions{
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+
+      /* チップ列（10/20/30/ポイント）を横並びスライド */
+      .wn-chip-row{
+        display: flex !important;
+        gap: 10px !important;
+        align-items: center !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding: 4px 2px 10px !important;
+        margin: 0 0 6px !important;
+      }
+      .wn-chip-row > *{
+        flex: 0 0 auto !important;
+        white-space: nowrap !important;
+      }
+    `);
+
+    // 2) 10/20/30km と ポイント選択を、同一行（横スクロール）に構築
+    buildSearchChipRow();
+
+    // 3) results 高さを「見えてる領域」に自動フィット
+    updateScrollableHeights();
+    window.addEventListener('resize', () => updateScrollableHeights(), { passive: true });
+  }
+
+  function buildSearchChipRow() {
     const r10 = getEl('r10');
     const r20 = getEl('r20');
     const r30 = getEl('r30');
-    const btnP = getEl('btnPointSearch');
-    if (!r10 || !r20 || !r30 || !btnP) return;
+    const btnPoint = getEl('btnPointSearch');
 
-    const row = r10.parentElement;
-    if (!row) return;
-    if (r20.parentElement !== row || r30.parentElement !== row) return;
+    // すでに作成済みなら何もしない
+    if (getEl('wnChipRow')) return;
 
-    if (btnP.parentElement !== row) {
-      try { row.appendChild(btnP); } catch (_) {}
-    }
+    // 4要素が揃っている場合のみ再配置（不要な改変禁止のため、揃わないなら触らない）
+    if (!r10 || !r20 || !r30 || !btnPoint) return;
 
-    row.style.display = 'flex';
-    row.style.flexWrap = 'wrap';
-    row.style.alignItems = 'center';
-    row.style.gap = '10px';
+    // 置き場所：r10がいるブロックの直前に挿入
+    const anchorParent = r10.parentElement;
+    if (!anchorParent || !anchorParent.parentElement) return;
 
-    [r10, r20, r30, btnP].forEach(el => {
-      if (!el) return;
-      el.style.flex = '0 0 auto';
-    });
+    const row = document.createElement('div');
+    row.id = 'wnChipRow';
+    row.className = 'wn-chip-row';
 
-    if (!btnP.__wnSized) {
-      btnP.__wnSized = true;
-      btnP.style.paddingLeft = '14px';
-      btnP.style.paddingRight = '14px';
-      btnP.style.whiteSpace = 'nowrap';
-    }
+    // 先に row をDOMへ（位置確定）
+    anchorParent.parentElement.insertBefore(row, anchorParent);
+
+    // 既存のボタンを row に移動（見た目だけの再配置）
+    row.appendChild(r10);
+    row.appendChild(r20);
+    row.appendChild(r30);
+    row.appendChild(btnPoint);
   }
 
-  /* =========================
-     検索結果スクロール修正（1件しか見えない/スクロール不可の対策）
-     - flex親で min-height:0 が無いと overflow scroll が効かない典型
-     ========================= */
-  function applyResultsScrollHotfix() {
+  function updateScrollableHeights() {
+    // results を確実にスクロールさせる：offsetTop基準で残り高さを maxHeight に入れる
+    const panel = getEl('searchPanel');
     const paneSearch = getEl('tabPaneSearch');
-    const resDiv = getEl('results');
+    const results = getEl('results');
 
-    if (paneSearch && !paneSearch.__wnFlexed) {
-      paneSearch.__wnFlexed = true;
-      paneSearch.style.display = 'flex';
-      paneSearch.style.flexDirection = 'column';
-      paneSearch.style.minHeight = '0';
-      // 親が overflow hidden でも子スクロールは効くが、明示して安定させる
-      paneSearch.style.overflow = 'hidden';
+    if (!panel || !paneSearch || !results) return;
+
+    // 見えてるパネル内の残り高を計算
+    const panelRect = panel.getBoundingClientRect();
+    const resRect = results.getBoundingClientRect();
+
+    // results の上端から panel 下端まで
+    const available = Math.floor(panelRect.bottom - resRect.top - 10);
+    if (available > 80) {
+      results.style.maxHeight = `${available}px`;
+      results.style.overflowY = 'auto';
+      results.style.webkitOverflowScrolling = 'touch';
     }
-
-    if (resDiv && !resDiv.__wnScrollable) {
-      resDiv.__wnScrollable = true;
-      resDiv.style.flex = '1 1 auto';
-      resDiv.style.minHeight = '0';
-      resDiv.style.overflowY = 'auto';
-      resDiv.style.webkitOverflowScrolling = 'touch';
-      resDiv.style.touchAction = 'pan-y';
-      // 余白少し（誤操作防止）
-      resDiv.style.paddingBottom = '12px';
-    }
-
-    fitResultsScroller();
-  }
-
-  function fitResultsScroller() {
-    const resDiv = getEl('results');
-    if (!resDiv) return;
-    if (resDiv.style.display === 'none') return;
-
-    // 表示領域に応じて maxHeight を与える（親レイアウト崩れ時の保険）
-    try {
-      const top = resDiv.getBoundingClientRect().top;
-      const vh = window.innerHeight || document.documentElement.clientHeight || 0;
-      // 下部の固定UI/セーフエリアを見越して控えめに確保
-      const reserve = 140;
-      const maxH = Math.max(140, Math.floor(vh - top - reserve));
-      resDiv.style.maxHeight = `${maxH}px`;
-    } catch (_) {}
   }
 
   /* =========================
-     Storage
+     LocalStorage
      ========================= */
   function loadSavedLocations() {
     try {
@@ -297,14 +323,12 @@ if (WN.booted) {
       btn.classList.toggle('active', active);
     });
 
-    // 検索タブに戻った時にスクロール領域を再計算
-    if (target === 'search') {
-      applyResultsScrollHotfix();
-    }
+    // タブ切替で高さ再計算
+    setTimeout(updateScrollableHeights, 50);
   }
 
   /* =========================
-     fetch helper
+     fetch retry
      ========================= */
   async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
     for (let i = 0; i < retries; i++) {
@@ -323,15 +347,15 @@ if (WN.booted) {
   }
 
   /* =========================
-     Places / Geocode：Worker ONLY
+     Places search: Worker first
      ========================= */
-  async function placesTextSearchViaWorker(query, centerLat, centerLng) {
+  async function placesTextSearchViaWorker(query, centerLat, centerLng, radiusMeters) {
     const payload = {
       textQuery: query,
       locationBias: {
         circle: {
           center: { latitude: centerLat, longitude: centerLng },
-          radius: appState.searchRadiusMeters
+          radius: radiusMeters
         }
       },
       languageCode: 'ja'
@@ -349,28 +373,83 @@ if (WN.booted) {
     if (!resp.ok) {
       let body = '';
       try { body = await resp.text(); } catch (_) {}
-      throw new Error(`WORKER_TextSearch ${resp.status} ${body.slice(0, 240)}`);
+      throw new Error(`WORKER_TextSearch ${resp.status} ${body.slice(0, 220)}`);
     }
     return await resp.json();
   }
 
-  async function geocodeViaWorker(lat, lng) {
-    const resp = await fetchWithRetry(`${WORKER_ORIGIN}/geocode`, {
+  // 最終手段：ブラウザ直 REST（このキーがPlaces許可されてないと失敗する可能性が高い）
+  async function placesTextSearchDirect(query, centerLat, centerLng, radiusMeters) {
+    const payload = {
+      textQuery: query,
+      locationBias: {
+        circle: {
+          center: { latitude: centerLat, longitude: centerLng },
+          radius: radiusMeters
+        }
+      },
+      languageCode: 'ja'
+    };
+
+    const resp = await fetchWithRetry(`https://places.googleapis.com/v1/places:searchText`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ latlng: { lat, lng }, language: 'ja' })
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': API_KEY,
+        'X-Goog-FieldMask': DEFAULT_MASK
+      },
+      body: JSON.stringify(payload)
     });
 
     if (!resp.ok) {
       let body = '';
       try { body = await resp.text(); } catch (_) {}
-      throw new Error(`WORKER_Geocode ${resp.status} ${body.slice(0, 240)}`);
+      throw new Error(`DIRECT_TextSearch ${resp.status} ${body.slice(0, 220)}`);
     }
     return await resp.json();
   }
 
+  async function placesTextSearch(query, centerLat, centerLng) {
+    // Worker優先（キー制限の影響を避ける）
+    try {
+      return await placesTextSearchViaWorker(query, centerLat, centerLng, appState.searchRadiusMeters);
+    } catch (e1) {
+      console.warn('[WalkNav] Worker search failed, fallback direct:', e1?.message || e1);
+      return await placesTextSearchDirect(query, centerLat, centerLng, appState.searchRadiusMeters);
+    }
+  }
+
   /* =========================
-     Map
+     Geocode: Worker first
+     ========================= */
+  async function geocodeViaWorker(lat, lng) {
+    const res = await fetchWithRetry(`${WORKER_ORIGIN}/geocode`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latlng: { lat, lng }, language: 'ja' })
+    });
+    if (!res.ok) {
+      let body = '';
+      try { body = await res.text(); } catch (_) {}
+      throw new Error(`WORKER_Geocode ${res.status} ${body.slice(0, 220)}`);
+    }
+    return await res.json();
+  }
+
+  // 最終手段：ブラウザ直（このキーがGeocoding許可されてないと失敗する可能性あり）
+  async function geocodeDirect(lat, lng) {
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${encodeURIComponent(lat + ',' + lng)}&language=ja&key=${encodeURIComponent(API_KEY)}`;
+    const res = await fetchWithRetry(url, { method: 'GET' });
+    if (!res.ok) {
+      let body = '';
+      try { body = await res.text(); } catch (_) {}
+      throw new Error(`DIRECT_Geocode ${res.status} ${body.slice(0, 220)}`);
+    }
+    return await res.json();
+  }
+
+  /* =========================
+     Map init / markers
      ========================= */
   function initMap(center) {
     if (appState.map) {
@@ -397,7 +476,6 @@ if (WN.booted) {
       });
 
       changeMapMode(appState.mapMode);
-
       appState.mapInitialized = true;
       console.log('[WalkNav] Map initialized');
 
@@ -415,10 +493,10 @@ if (WN.booted) {
       const pin = document.createElement('div');
       pin.style.width = '32px';
       pin.style.height = '32px';
-      pin.innerHTML = `\
-<svg id="user-marker-icon" viewBox="0 0 24 24" style="width:100%;height:100%;transform:rotate(${appState.currentHeading}deg);transition:transform 0.2s ease-out;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));">\
-<path d="M12 2L4.5 20.5L12 16.5L19.5 20.5L12 2Z" fill="#3aa0ff" stroke="#ffffff" stroke-width="2" stroke-linejoin="round" />\
-</svg>`;
+      pin.innerHTML =
+        `<svg id="user-marker-icon" viewBox="0 0 24 24" style="width:100%;height:100%;transform:rotate(${appState.currentHeading}deg);transition:transform 0.2s ease-out;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));">
+          <path d="M12 2L4.5 20.5L12 16.5L19.5 20.5L12 2Z" fill="#3aa0ff" stroke="#ffffff" stroke-width="2" stroke-linejoin="round" />
+        </svg>`;
 
       try {
         appState.userMarker = new google.maps.marker.AdvancedMarkerElement({
@@ -497,7 +575,7 @@ if (WN.booted) {
   }
 
   /* =========================
-     Sensors
+     Compass / location
      ========================= */
   function startCompassListener() {
     if (!window.DeviceOrientationEvent) return;
@@ -551,9 +629,8 @@ if (WN.booted) {
   }
 
   function acquireLocation() {
-    const onSuccess = async (pos) => {
+    const onSuccess = (pos) => {
       const { latitude, longitude } = pos.coords;
-
       const loadingEl = getEl('loading');
       if (loadingEl) loadingEl.remove();
 
@@ -564,12 +641,11 @@ if (WN.booted) {
       }
 
       setUserMarker(latitude, longitude);
-      await fetchLocationNameGoogle(latitude, longitude);
+      fetchLocationNameGoogle(latitude, longitude).catch(() => {});
     };
 
     const onError = (error) => {
       console.warn('[WalkNav] Geolocation error:', error);
-
       const loadingEl = getEl('loading');
       if (loadingEl) loadingEl.remove();
 
@@ -592,14 +668,18 @@ if (WN.booted) {
     }
   }
 
-  /* =========================
-     Address（Worker ONLY）
-     ========================= */
   async function fetchLocationNameGoogle(lat, lng) {
     setText('locCoords', `Lat: ${lat.toFixed(5)} / Lng: ${lng.toFixed(5)}`);
     try {
-      const data = await geocodeViaWorker(lat, lng);
-      if (data?.results?.[0]) {
+      let data;
+      try {
+        data = await geocodeViaWorker(lat, lng);
+      } catch (e1) {
+        console.warn('[WalkNav] Worker geocode failed, fallback direct:', e1?.message || e1);
+        data = await geocodeDirect(lat, lng);
+      }
+
+      if (data.results?.[0]) {
         setText('locAddress', String(data.results[0].formatted_address || '').replace(/^日本、\s*/, ''));
       } else {
         setText('locAddress', '');
@@ -616,24 +696,31 @@ if (WN.booted) {
     setText('pointCoords', `Lat: ${lat.toFixed(5)}`);
 
     try {
-      const data = await geocodeViaWorker(lat, lng);
-      if (data?.results?.[0]) {
+      let data;
+      try {
+        data = await geocodeViaWorker(lat, lng);
+      } catch (e1) {
+        console.warn('[WalkNav] Worker point geocode failed, fallback direct:', e1?.message || e1);
+        data = await geocodeDirect(lat, lng);
+      }
+
+      if (data.results?.[0]) {
         setText('pointAddress', String(data.results[0].formatted_address || '').replace(/^日本、\s*/, ''));
       } else {
         setText('pointAddress', '取得できません');
       }
-    } catch (e) {
-      console.error(e);
+    } catch (_) {
       setText('pointAddress', '取得エラー');
     }
   }
 
   /* =========================
-     Search（Worker ONLY）
+     Search
      ========================= */
   async function performSearch(query) {
     if (!query) return;
 
+    // クリック追撃対策
     if (!lock('search_click', 900)) return;
     if (appState.searchInFlight) return;
     appState.searchInFlight = true;
@@ -649,9 +736,11 @@ if (WN.booted) {
     }
 
     try {
-      const data = await placesTextSearchViaWorker(query, center.lat, center.lng);
+      const data = await placesTextSearch(query, center.lat, center.lng);
       const results = data.places || [];
       displayResults(results);
+      updateScrollableHeights();
+
       if (results.length === 0) alertOnce('no_results', '検索結果がありません');
     } catch (e) {
       console.error(e);
@@ -672,15 +761,12 @@ if (WN.booted) {
     setDisplay('results', 'block');
     setDisplay('instructionsSection', 'none');
 
-    // スクロール化を必ず適用（表示タイミングの差で効かないのを防ぐ）
-    applyResultsScrollHotfix();
-
     appState.searchMarkers.forEach(m => { try { m.map = null; } catch (_) {} });
     appState.searchMarkers = [];
 
-    places.forEach((p, i) => {
-      if (i >= 5) return;
-
+    // 5件（UI表示仕様）
+    const slice = Array.isArray(places) ? places.slice(0, 5) : [];
+    slice.forEach((p, i) => {
       const lat = p.location?.latitude;
       const lng = p.location?.longitude;
       const name = p.displayName?.text || '(名称不明)';
@@ -689,10 +775,13 @@ if (WN.booted) {
       const item = document.createElement('div');
       item.className = 'result-item';
       item.innerHTML = `<div>${i + 1}. ${name}</div><div style="font-size:0.8em;opacity:0.7">${addr}</div>`;
-      item.addEventListener('click', () => {
+
+      item.addEventListener('click', (ev) => {
+        try { ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation(); } catch (_) {}
+        if (!lock('result_click', 600)) return;
         if (typeof lat !== 'number' || typeof lng !== 'number') return;
         startNavigation({ name, lat, lng }).catch(() => {});
-      });
+      }, { passive: false });
 
       resDiv.appendChild(item);
 
@@ -720,9 +809,9 @@ if (WN.booted) {
       }
     });
 
-    // 描画後にもう一度フィット（iOSの再レイアウト遅延対策）
-    setTimeout(fitResultsScroller, 0);
-    setTimeout(fitResultsScroller, 80);
+    // コンテナを確実にスクロール可能にする
+    resDiv.style.overflowY = 'auto';
+    resDiv.style.webkitOverflowScrolling = 'touch';
   }
 
   /* =========================
@@ -795,6 +884,10 @@ if (WN.booted) {
           d.textContent = `${inst}${dist ? ` (${dist})` : ''}`;
           list.appendChild(d);
         });
+
+        // 縦スクロール確保
+        list.style.overflowY = 'auto';
+        list.style.webkitOverflowScrolling = 'touch';
       }
       setDisplay('instructionsSection', 'block');
 
@@ -807,6 +900,8 @@ if (WN.booted) {
       bounds.extend({ lat: originLat, lng: originLng });
       bounds.extend({ lat: destination.lat, lng: destination.lng });
       appState.map.fitBounds(bounds, { padding: 50 });
+
+      setTimeout(updateScrollableHeights, 50);
 
     } catch (e) {
       console.error(e);
@@ -842,13 +937,15 @@ if (WN.booted) {
       appState.map.panTo(appState.currentPos);
       appState.map.setZoom(17);
     }
+
+    setTimeout(updateScrollableHeights, 50);
   }
 
   /* =========================
-     登録地：追加／編集
+     登録地：追加／編集（prompt/alert二重抑止）
      ========================= */
   function showSaveLocationDialog() {
-    if (!lock('save_location', 900)) return;
+    if (!lock('save_location', 1200)) return;
 
     if (!appState.currentPos) {
       alertOnce('no_pos', '現在地が取得できていません');
@@ -860,12 +957,17 @@ if (WN.booted) {
     const lng = appState.currentPos.lng;
 
     const name = prompt('登録地名を入力してください:', address);
-    if (!name) return;
+
+    // キャンセルで終了（再表示させない）
+    if (name === null) return;
+
+    const trimmed = String(name).trim();
+    if (!trimmed) return;
 
     loadSavedLocations();
 
     appState.savedLocations.push({
-      name,
+      name: trimmed,
       address,
       lat,
       lng,
@@ -873,7 +975,9 @@ if (WN.booted) {
     });
 
     saveSavedLocations();
-    alertOnce('saved_ok', `「${name}」を登録しました`, 900);
+
+    // 登録後に再promptしない（alertOnce）
+    alertOnce('saved_ok', `「${trimmed}」を登録しました`, 900);
   }
 
   function closeAnyEditOverlay() {
@@ -926,11 +1030,13 @@ if (WN.booted) {
         item.appendChild(itemTitle);
         item.appendChild(itemSubtitle);
 
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (ev) => {
+          try { ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation(); } catch (_) {}
+          if (!lock('edit_select', 600)) return;
           safeRemove(overlay);
           appState.isEditDialogOpen = false;
           showLocationEditMenu(index);
-        });
+        }, { passive: false });
 
         list.appendChild(item);
       });
@@ -941,10 +1047,11 @@ if (WN.booted) {
       btnClose.className = 'edit-dialog-btn edit-dialog-btn-secondary';
       btnClose.type = 'button';
       btnClose.textContent = 'キャンセル';
-      btnClose.addEventListener('click', () => {
+      btnClose.addEventListener('click', (ev) => {
+        try { ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation(); } catch (_) {}
         safeRemove(overlay);
         appState.isEditDialogOpen = false;
-      });
+      }, { passive: false });
 
       dialog.appendChild(btnClose);
 
@@ -988,28 +1095,31 @@ if (WN.booted) {
     btnEdit.className = 'edit-dialog-btn edit-dialog-btn-primary';
     btnEdit.type = 'button';
     btnEdit.textContent = '修正';
-    btnEdit.addEventListener('click', () => {
+    btnEdit.addEventListener('click', (ev) => {
+      try { ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation(); } catch (_) {}
       safeRemove(overlay);
       showLocationEditForm(index);
-    });
+    }, { passive: false });
 
     const btnDelete = document.createElement('button');
     btnDelete.className = 'edit-dialog-btn edit-dialog-btn-danger';
     btnDelete.type = 'button';
     btnDelete.textContent = '削除';
-    btnDelete.addEventListener('click', () => {
+    btnDelete.addEventListener('click', (ev) => {
+      try { ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation(); } catch (_) {}
       safeRemove(overlay);
       showLocationDeleteConfirm(index);
-    });
+    }, { passive: false });
 
     const btnCancel = document.createElement('button');
     btnCancel.className = 'edit-dialog-btn edit-dialog-btn-secondary';
     btnCancel.type = 'button';
     btnCancel.textContent = 'キャンセル';
-    btnCancel.addEventListener('click', () => {
+    btnCancel.addEventListener('click', (ev) => {
+      try { ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation(); } catch (_) {}
       safeRemove(overlay);
       appState.isEditDialogOpen = false;
-    });
+    }, { passive: false });
 
     dialog.appendChild(btnEdit);
     dialog.appendChild(btnDelete);
@@ -1059,22 +1169,24 @@ if (WN.booted) {
     btnNo.className = 'edit-dialog-btn edit-dialog-btn-secondary';
     btnNo.type = 'button';
     btnNo.textContent = 'いいえ';
-    btnNo.addEventListener('click', () => {
+    btnNo.addEventListener('click', (ev) => {
+      try { ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation(); } catch (_) {}
       safeRemove(overlay);
       appState.isEditDialogOpen = false;
-    });
+    }, { passive: false });
 
     const btnYes = document.createElement('button');
     btnYes.className = 'edit-dialog-btn edit-dialog-btn-danger';
     btnYes.type = 'button';
     btnYes.textContent = 'はい';
-    btnYes.addEventListener('click', () => {
+    btnYes.addEventListener('click', (ev) => {
+      try { ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation(); } catch (_) {}
       appState.savedLocations.splice(index, 1);
       saveSavedLocations();
       safeRemove(overlay);
       appState.isEditDialogOpen = false;
       alertOnce('deleted_ok', '削除しました', 900);
-    });
+    }, { passive: false });
 
     btnGroup.appendChild(btnNo);
     btnGroup.appendChild(btnYes);
@@ -1123,7 +1235,8 @@ if (WN.booted) {
     btnComplete.className = 'edit-dialog-btn edit-dialog-btn-primary';
     btnComplete.type = 'button';
     btnComplete.textContent = '完了';
-    btnComplete.addEventListener('click', () => {
+    btnComplete.addEventListener('click', (ev) => {
+      try { ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation(); } catch (_) {}
       const newName = input.value.trim();
       if (!newName) {
         alertOnce('name_required', '登録地名を入力してください');
@@ -1134,16 +1247,17 @@ if (WN.booted) {
       safeRemove(overlay);
       appState.isEditDialogOpen = false;
       alertOnce('updated_ok', '更新しました', 900);
-    });
+    }, { passive: false });
 
     const btnCancel = document.createElement('button');
     btnCancel.className = 'edit-dialog-btn edit-dialog-btn-secondary';
     btnCancel.type = 'button';
     btnCancel.textContent = 'キャンセル';
-    btnCancel.addEventListener('click', () => {
+    btnCancel.addEventListener('click', (ev) => {
+      try { ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation(); } catch (_) {}
       safeRemove(overlay);
       appState.isEditDialogOpen = false;
-    });
+    }, { passive: false });
 
     dialog.appendChild(btnComplete);
     dialog.appendChild(btnCancel);
@@ -1165,34 +1279,55 @@ if (WN.booted) {
   /* =========================
      イベント：二重発火の根本対策
      ========================= */
-  function bindReliableActivate(el, fn) {
+  function bindReliableActivate(el, fn, lockKey) {
     if (!el) return;
     if (el.__wnBound) return;
     el.__wnBound = true;
 
-    const handler = (e) => {
-      try { if (e && e.cancelable) e.preventDefault(); } catch (_) {}
-      try { fn(e); } catch (err) {
+    let last = 0;
+
+    const run = (e) => {
+      const now = Date.now();
+
+      // pointer/touchの後に click が追撃してくる → click を黙らせる
+      if (e && e.type === 'click' && (now - last) < 750) return;
+
+      last = now;
+
+      try {
+        if (e && e.cancelable) e.preventDefault();
+      } catch (_) {}
+
+      try {
+        if (e) {
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+        }
+      } catch (_) {}
+
+      // ボタン個別 lock（指定があれば）
+      if (lockKey) {
+        if (!lock(lockKey, 700)) return;
+      }
+
+      try {
+        fn(e);
+      } catch (err) {
         console.error(err);
         alertOnce('op_error', '操作の実行中にエラーが発生しました');
       }
     };
 
-    if (window.PointerEvent) {
-      el.addEventListener('pointerup', handler);
-    } else if ('ontouchend' in window) {
-      el.addEventListener('touchend', handler, { passive: false });
-    } else {
-      el.addEventListener('click', handler);
-    }
+    el.addEventListener('touchend', run, { passive: false });
+    el.addEventListener('pointerup', run, { passive: false });
+    el.addEventListener('click', run, { passive: false });
   }
 
   function bindUI() {
     const inputQ = getEl('q');
 
-    bindReliableActivate(getEl('btnSearchIcon'), () => performSearch(inputQ ? inputQ.value : ''));
-    if (inputQ && !inputQ.__wnEnterBound) {
-      inputQ.__wnEnterBound = true;
+    bindReliableActivate(getEl('btnSearchIcon'), () => performSearch(inputQ ? inputQ.value : ''), 'btn_search');
+    if (inputQ) {
       inputQ.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') performSearch(inputQ.value);
       });
@@ -1208,27 +1343,27 @@ if (WN.booted) {
         btnP.style.background = '';
         btnP.style.color = '';
       }
-      applyResultsScrollHotfix();
-    });
+      setTimeout(updateScrollableHeights, 50);
+    }, 'btn_reset');
 
-    bindReliableActivate(getEl('btnLocatePanel'), () => acquireLocation());
-    bindReliableActivate(getEl('btnLocate'), () => acquireLocation());
+    bindReliableActivate(getEl('btnLocatePanel'), () => acquireLocation(), 'btn_locate_panel');
+    bindReliableActivate(getEl('btnLocate'), () => acquireLocation(), 'btn_locate');
 
     bindReliableActivate(getEl('btnClosePanel'), () => {
       setDisplay('searchPanel', 'none');
       setDisplay('fabStack', appState.isNavigating ? 'flex' : 'none');
-    });
+    }, 'btn_close_panel');
 
     bindReliableActivate(getEl('btnSearch'), () => {
       setDisplay('searchPanel', 'block');
       setDisplay('fabStack', 'none');
-      applyResultsScrollHotfix();
-    });
+      setTimeout(updateScrollableHeights, 50);
+    }, 'btn_open_panel');
 
-    bindReliableActivate(getEl('btnStopRoute'), () => stopNavigation());
+    bindReliableActivate(getEl('btnStopRoute'), () => stopNavigation(), 'btn_stop_route');
 
-    bindReliableActivate(getEl('btnSaveLocation'), () => showSaveLocationDialog());
-    bindReliableActivate(getEl('btnEditLocation'), () => showEditLocationDialog());
+    bindReliableActivate(getEl('btnSaveLocation'), () => showSaveLocationDialog(), 'btn_save_loc');
+    bindReliableActivate(getEl('btnEditLocation'), () => showEditLocationDialog(), 'btn_edit_loc');
 
     const btnPoint = getEl('btnPointSearch');
     if (btnPoint) {
@@ -1237,15 +1372,15 @@ if (WN.booted) {
         btnPoint.textContent = appState.pointSearchMode ? '📍 選択中...' : '📍 ポイント選択';
         btnPoint.style.background = appState.pointSearchMode ? '#25d07a' : '';
         btnPoint.style.color = appState.pointSearchMode ? '#fff' : '';
-      });
+      }, 'btn_point');
     }
 
     const btnMapPhoto = getEl('btnMapPhoto');
     const btnMapRoadmap = getEl('btnMapRoadmap');
     const btnMap3D = getEl('btnMap3D');
-    if (btnMapPhoto) bindReliableActivate(btnMapPhoto, () => changeMapMode('photo'));
-    if (btnMapRoadmap) bindReliableActivate(btnMapRoadmap, () => changeMapMode('roadmap'));
-    if (btnMap3D) bindReliableActivate(btnMap3D, () => changeMapMode('3d'));
+    if (btnMapPhoto) bindReliableActivate(btnMapPhoto, () => changeMapMode('photo'), 'btn_map_photo');
+    if (btnMapRoadmap) bindReliableActivate(btnMapRoadmap, () => changeMapMode('roadmap'), 'btn_map_road');
+    if (btnMap3D) bindReliableActivate(btnMap3D, () => changeMapMode('3d'), 'btn_map_3d');
 
     const r10 = getEl('r10');
     const r20 = getEl('r20');
@@ -1257,7 +1392,7 @@ if (WN.booted) {
       r30 && r30.classList.remove('active');
       appState.searchRadiusMeters = 10000;
       setText('radiusLabel', '10km');
-    });
+    }, 'radius_10');
 
     if (r20) bindReliableActivate(r20, () => {
       r20.classList.add('active');
@@ -1265,7 +1400,7 @@ if (WN.booted) {
       r30 && r30.classList.remove('active');
       appState.searchRadiusMeters = 20000;
       setText('radiusLabel', '20km');
-    });
+    }, 'radius_20');
 
     if (r30) bindReliableActivate(r30, () => {
       r30.classList.add('active');
@@ -1273,14 +1408,13 @@ if (WN.booted) {
       r20 && r20.classList.remove('active');
       appState.searchRadiusMeters = 30000;
       setText('radiusLabel', '30km');
-    });
+    }, 'radius_30');
   }
 
   function startApp() {
-    if (WN.appStarted) return;
-    WN.appStarted = true;
-
     console.log('[WalkNav] Starting app…', ISSUE_ID);
+
+    applyUiFixes();
 
     setDisplay('searchPanel', 'block');
     setDisplay('fabStack', 'none');
@@ -1291,26 +1425,11 @@ if (WN.booted) {
     bindUI();
     updateMapModeButtons(appState.mapMode);
     switchPanelTab('search');
-
-    // UI整形
-    applySearchUiHotfix();
-    applyResultsScrollHotfix();
-
-    // 画面回転/アドレスバー変動でも崩れないように再計算
-    if (!window.__wnResizeBound) {
-      window.__wnResizeBound = true;
-      window.addEventListener('resize', () => {
-        if (!lock('resize_fit', 120)) return;
-        applyResultsScrollHotfix();
-      });
-      window.addEventListener('orientationchange', () => {
-        applyResultsScrollHotfix();
-        setTimeout(applyResultsScrollHotfix, 120);
-      });
-    }
-
     acquireLocation();
     startCompassListener();
+
+    // 初回高さ調整
+    setTimeout(updateScrollableHeights, 150);
   }
 
   function initializeWhenReady() {
