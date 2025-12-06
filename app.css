@@ -1,124 +1,149 @@
-/* =========================
-   WalkNav app.css 2025-12-05
-   ========================= */
+/* app.css  (WalkNav) */
 
-/* ---- 基本色 ---- */
-:root {
-  --primary: #2563eb;
-  --primary-soft: rgba(37, 99, 235, 0.16);
-  --danger: #ef4444;
-  --danger-soft: rgba(239, 68, 68, 0.12);
-  --muted: #9ca3af;
-  --text: #f9fafb;
-  --bg-panel: rgba(17, 24, 39, 0.94);
-  --bg-panel-elevated: rgba(15, 23, 42, 0.96);
-  --stroke-soft: rgba(148, 163, 184, 0.35);
-  --chip-bg: rgba(31, 41, 55, 0.96);
+/* --------------------
+   基本リセット
+-------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-/* ---- レイアウト全体 ---- */
 html,
 body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-    "Hiragino Sans", "Yu Gothic", sans-serif;
-  background: #020617;
-  color: var(--text);
   overscroll-behavior: none;
-}
-
-body {
   -webkit-text-size-adjust: 100%;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+    Arial, "Noto Sans JP", "Yu Gothic", sans-serif;
+  background: #000;
 }
 
+/* --------------------
+   カラートークン
+-------------------- */
+:root {
+  --primary: #2563eb;
+  --primary-soft: rgba(37, 99, 235, 0.08);
+  --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.08);
+  --secondary: #4b5563;
+  --accent: #25d07a;
+  --text-main: #f9fafb;
+  --text-muted: #9ca3af;
+  --panel-bg: rgba(20, 20, 24, 0.96);
+  --panel-elevated: rgba(31, 31, 36, 0.98);
+  --stroke-soft: rgba(255, 255, 255, 0.12);
+  --chip-bg: rgba(55, 65, 81, 0.9);
+  --chip-bg-active: #ffffff;
+  --chip-text: #e5e7eb;
+  --chip-text-active: #111827;
+}
+
+/* --------------------
+   レイアウト
+-------------------- */
 .app {
-  position: fixed;
-  inset: 0;
+  position: relative;
   width: 100%;
-  height: 100%;
+  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
-  background: #020617;
+  background: #000;
 }
 
-/* ---- 地図 ---- */
 #map {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
 }
 
-/* ---- 下部パネル ---- */
+/* --------------------
+   下部パネル
+-------------------- */
 .panel {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
+  height: 50vh;
   max-height: 60vh;
-  height: 50vh; /* ← デフォルトで画面の約半分 */
-  background: radial-gradient(circle at top, #111827 0, #020617 60%);
-  border-radius: 20px 20px 0 0;
-  box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.6);
-  padding: 6px 0  env(safe-area-inset-bottom, 10px);
-  box-sizing: border-box;
+  background: linear-gradient(
+    to bottom,
+    rgba(10, 10, 12, 0.96),
+    rgba(8, 8, 10, 0.98)
+  );
+  box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.8);
+  padding: 8px 0 12px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  border-radius: 0; /* ←上端のRを完全に削除 */
+  color: var(--text-main);
   display: flex;
   flex-direction: column;
 }
 
-/* パネルをスクロール可能にする */
-.panel-tabs-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 6px 16px 12px;
-  box-sizing: border-box;
-}
-
-/* ---- ハンドル ---- */
+/* パネル上部のつまみ */
 .panel-handle-area {
-  padding: 4px 0 2px;
   display: flex;
   justify-content: center;
+  align-items: center;
+  padding: 2px 0 6px;
 }
 
 .panel-handle {
   width: 64px;
-  height: 5px;
+  height: 4px;
   border-radius: 999px;
   background: rgba(148, 163, 184, 0.6);
 }
 
-/* ---- タブヘッダ ---- */
+/* --------------------
+   タブ（操作 / 案内 / 設定）
+   ※ボタン厚み統一
+-------------------- */
 .panel-tabs-header {
-  padding: 6px 12px 4px;
   display: flex;
-  gap: 8px;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 16px 8px;
 }
 
 .tab-btn {
   flex: 1 1 0;
-  padding: 8px 4px;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.45);
-  background: rgba(15, 23, 42, 0.96);
-  color: var(--muted);
   text-align: center;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  user-select: none;
+  border-radius: 999px;
+  padding: 10px 0;
+  min-height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  color: var(--text-muted);
+  background: rgba(31, 41, 55, 0.9);
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.6);
+  outline: none;
 }
 
 .tab-btn.active {
-  background: #f9fafb;
-  color: #020617;
+  background: #ffffff;
+  color: #111827;
   border-color: transparent;
 }
 
-/* ---- タブ内容 ---- */
+/* --------------------
+   パネルボディ（スクロール）
+-------------------- */
+.panel-tabs-body {
+  position: relative;
+  flex: 1 1 auto;
+  margin-top: 4px;
+  padding: 0 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* タブコンテンツ切り替え */
 .tab-pane {
   display: none;
 }
@@ -127,335 +152,393 @@ body {
   display: block;
 }
 
-/* ---- 見出し ---- */
+/* --------------------
+   見出し
+-------------------- */
 .section-title {
-  margin: 4px 0 8px;
-  font-size: 16px;
-  font-weight: 600;
+  margin: 4px 0 10px;
+  font-size: 18px;
+  font-weight: 700;
 }
 
-/* =========================
-   ★ 検索半径ボタン行（10km / 20km / 30km / ポイント選択）
-   - 1 行に収める
-   - 各ボタンをセンタリング
-   - 横並びが見切れないようにする
-   ========================= */
+/* --------------------
+   距離チップ列（10km / 20km / 30km / ポイント選択）
+   ※厚みをタブと揃える
+-------------------- */
 .filter-chips-row {
   display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
   flex-wrap: nowrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin: 4px 0 6px;
-  padding: 0 4px;
-  box-sizing: border-box;
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
 
-/* km ボタン + ポイント選択ボタン共通 */
-.filter-chips-row .chip {
-  flex: 1 1 0;
-  min-width: 0;
-  padding: 8px 0;
-  font-size: 13px;
-  font-weight: 500;
+.filter-chips-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  flex: 0 0 auto;
+  min-width: 76px;
   border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.5);
   background: var(--chip-bg);
-  color: #e5e7eb;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: pointer;
-}
-
-.filter-chips-row .chip.active {
-  border-color: #ffffff;
-  background: #f9fafb;
-  color: #020617;
-}
-
-/* ポイント選択は若干強調 */
-.filter-chips-row .chip.point-select {
-  border-style: dashed;
-}
-
-/* =========================
-   ★ 検索窓の下のボーダーを細く
-   ========================= */
-.search-box-container {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(148, 163, 184, 0.45); /* 細い 1px ライン */
-}
-
-/* ---- 検索インプット ---- */
-.input-wrapper {
-  position: relative;
+  color: var(--chip-text);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 10px 12px;
+  min-height: 44px; /* ←タブと厚み統一 */
   display: flex;
-  align-items: center;
-  padding: 0 10px;
-  border-radius: 12px;
-  background: rgba(15, 23, 42, 0.98);
-  border: 1px solid rgba(148, 163, 184, 0.7);
-}
-
-.input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  color: #f9fafb;
-  font-size: 14px;
-  padding: 10px 32px 10px 32px;
-  outline: none;
-}
-
-.input::placeholder {
-  color: rgba(148, 163, 184, 0.85);
-}
-
-.icon {
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.9;
+  outline: none;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.6);
 }
 
-.icon-g {
-  left: 10px;
+.chip.active {
+  background: var(--chip-bg-active);
+  color: var(--chip-text-active);
+  border-color: transparent;
 }
 
-.icon-search {
-  right: 34px;
+.chip.point-select {
+  min-width: 120px;
+  padding-inline: 14px;
 }
 
-.icon-mic {
-  right: 8px;
+/* km の下のバー（細め） */
+.radius-bar,
+.radius-slider {
+  margin: 4px 0 12px;
+  height: 3px; /* 細く */
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.4);
+  overflow: hidden;
 }
 
-/* ---- アドレスカード ---- */
+/* --------------------
+   アドレスカード（ポイント選択時）
+-------------------- */
 .address-card {
-  margin-top: 8px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.6);
-  display: flex;
+  display: none;
   flex-direction: column;
   gap: 2px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  background: var(--panel-elevated);
+  border: 1px solid rgba(148, 163, 184, 0.4);
 }
 
 .address-title {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .address-coords {
-  font-size: 11px;
-  color: var(--muted);
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
-/* ---- アクションボタン行 ---- */
-.action-buttons-row {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-}
-
+/* --------------------
+   ボタン（汎用）
+   ※厚みを揃える
+-------------------- */
 .btn {
   border-radius: 999px;
-  padding: 9px 12px;
-  font-size: 13px;
-  font-weight: 500;
   border: none;
+  min-height: 44px;
+  padding: 10px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  white-space: nowrap;
-}
-
-.btn-outline {
-  flex: 1;
-  background: transparent;
-  border: 1px solid rgba(148, 163, 184, 0.7);
-  color: #e5e7eb;
-}
-
-.btn-outline-primary {
-  flex: 1;
-  background: var(--primary-soft);
-  border: 1px solid var(--primary);
-  color: #e5e7eb;
-}
-
-.btn-danger {
-  flex: 1;
-  background: var(--danger-soft);
-  border: 1px solid var(--danger);
-  color: #fee2e2;
+  outline: none;
+  box-shadow: 0 3px 7px rgba(15, 23, 42, 0.7);
 }
 
 .btn-primary {
-  flex: 1;
-  background: #1d4ed8;
-  color: #f9fafb;
+  background: var(--primary);
+  color: #fff;
 }
 
 .btn-secondary {
-  flex: 1;
-  background: rgba(31, 41, 55, 0.95);
+  background: rgba(55, 65, 81, 0.9);
   color: #e5e7eb;
+}
+
+.btn-outline {
+  background: rgba(31, 41, 55, 0.9);
+  color: #e5e7eb;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+}
+
+.btn-outline-primary {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1px solid rgba(129, 140, 248, 0.7);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.btn-danger-block {
+  background: var(--danger);
+  color: #fff;
+  width: 100%;
 }
 
 .btn-block {
   width: 100%;
 }
 
-/* ---- 下部操作ボタン ---- */
+/* 検索パネル下部（リセット / 現在地 / 閉じる） */
 .bottom-actions-row {
   display: flex;
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 14px;
 }
 
-/* ---- 検索結果リスト ---- */
+.bottom-actions-row .btn {
+  flex: 1 1 0;
+}
+
+/* 現在地登録 / 登録地修正 */
+.action-buttons-row {
+  display: flex;
+  gap: 10px;
+  margin: 8px 0 10px;
+}
+
+.action-buttons-row .btn {
+  flex: 1 1 0;
+}
+
+/* --------------------
+   検索ボックス
+-------------------- */
+.search-box-container {
+  margin-top: 4px;
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  min-height: 46px;
+}
+
+.input {
+  flex: 1 1 auto;
+  border: none;
+  background: transparent;
+  color: #f9fafb;
+  font-size: 15px;
+  outline: none;
+}
+
+.input::placeholder {
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.icon {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
+}
+
+.icon svg {
+  width: 100%;
+  height: 100%;
+  fill: #e5e7eb;
+}
+
+.icon-g svg {
+  fill: #4285f4;
+}
+
+.icon-mic svg {
+  fill: #f97316;
+}
+
+/* --------------------
+   検索結果リスト（スクロール）
+-------------------- */
 .results-list {
-  margin-top: 8px;
-  max-height: 200px;
+  margin-top: 10px;
+  padding: 4px 0 8px;
+  border-radius: 14px;
+  background: rgba(17, 24, 39, 0.96);
+  max-height: 32vh;
   overflow-y: auto;
-  padding: 4px 0 2px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .result-item {
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.96);
-  border: 1px solid rgba(55, 65, 81, 0.9);
-  margin-bottom: 6px;
-  font-size: 13px;
-  cursor: pointer;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(55, 65, 81, 0.9);
+  font-size: 14px;
 }
 
 .result-item:last-child {
-  margin-bottom: 0;
+  border-bottom: none;
 }
 
-/* ---- 案内タブ ---- */
+.result-item:hover {
+  background: rgba(31, 41, 55, 0.9);
+}
+
+/* --------------------
+   ナビ情報
+-------------------- */
 .nav-section {
-  margin-top: 8px;
-  padding: 8px 10px;
-  border-radius: 12px;
-  background: var(--bg-panel-elevated);
-  border: 1px solid rgba(55, 65, 81, 0.85);
+  margin: 6px 0 12px;
 }
 
 .nav-section-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  margin-bottom: 4px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
 }
 
 .location-info {
-  font-size: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--panel-elevated);
+  border: 1px solid rgba(75, 85, 99, 0.8);
 }
 
 .loc-coords {
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
+  color: #facc15;
 }
 
 .loc-address {
-  margin-top: 2px;
-  color: var(--muted);
+  font-size: 13px;
+  margin-top: 4px;
 }
 
-/* ---- 天気 ---- */
+/* 天気カード */
 .weather-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 4px;
+  gap: 10px;
 }
 
 .weather-card {
-  padding: 8px 6px;
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.96);
-  border: 1px solid rgba(55, 65, 81, 0.8);
-  font-size: 11px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: center;
+  padding: 10px 8px;
+  border-radius: 16px;
+  background: var(--panel-elevated);
+  border: 1px solid rgba(75, 85, 99, 0.8);
+  text-align: center;
+  font-size: 13px;
 }
 
 .weather-val {
-  font-size: 12px;
+  display: block;
+  margin-top: 4px;
+  font-size: 16px;
   font-weight: 600;
 }
 
-/* ---- ルート情報 ---- */
+/* ルートカード */
 .route-summary-card {
-  margin-top: 4px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.96);
-  border: 1px solid rgba(55, 65, 81, 0.9);
-  font-size: 12px;
+  padding: 12px 12px 10px;
+  border-radius: 16px;
+  background: var(--panel-elevated);
+  border: 1px solid rgba(75, 85, 99, 0.8);
+  margin-bottom: 10px;
+}
+
+.route-dest {
+  font-size: 14px;
+  margin-bottom: 6px;
 }
 
 .route-stats {
-  margin-top: 4px;
   display: flex;
-  gap: 8px;
-  font-size: 12px;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.stat-dist {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.stat-time {
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 .route-mode-toggle {
-  margin-top: 6px;
-  display: flex;
+  display: inline-flex;
   gap: 6px;
 }
 
-/* ---- chip 小サイズ ---- */
-.chip.small {
-  padding: 5px 8px;
-  font-size: 11px;
+.route-mode-toggle .chip.small {
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 13px;
+  box-shadow: none;
 }
 
-/* ---- インシデント／ステップ ---- */
+/* インシデント */
 .incident-alert {
-  font-size: 12px;
-  line-height: 1.5;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.8);
+  font-size: 13px;
 }
 
+/* ステップバイステップ */
 .instructions-list {
-  margin-top: 4px;
-  max-height: 180px;
+  max-height: 26vh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  background: rgba(17, 24, 39, 0.96);
+  padding: 6px 0;
 }
 
 .nav-instruction-item {
-  padding: 6px 8px;
-  border-radius: 8px;
-  background: rgba(15, 23, 42, 0.96);
-  border: 1px solid rgba(55, 65, 81, 0.85);
-  font-size: 12px;
-  margin-bottom: 4px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(55, 65, 81, 0.9);
+  font-size: 13px;
 }
 
-/* ---- 設定タブ ---- */
+.nav-instruction-item:last-child {
+  border-bottom: none;
+}
+
+/* --------------------
+   設定タブ内
+-------------------- */
 .settings-group {
-  margin-top: 10px;
-  padding: 8px 10px;
-  border-radius: 12px;
-  background: var(--bg-panel-elevated);
-  border: 1px solid rgba(55, 65, 81, 0.85);
+  margin-bottom: 14px;
 }
 
 .settings-label {
   font-size: 13px;
-  font-weight: 500;
+  color: var(--text-muted);
   margin-bottom: 6px;
 }
 
@@ -467,85 +550,96 @@ body {
 
 .map-mode-btn {
   flex: 1 1 0;
-  padding: 8px 4px;
   border-radius: 999px;
   border: 1px solid rgba(148, 163, 184, 0.6);
-  background: var(--chip-bg);
+  background: rgba(31, 41, 55, 0.9);
   color: #e5e7eb;
-  font-size: 12px;
-  cursor: pointer;
+  min-height: 44px;
+  padding: 10px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.7);
 }
 
 .map-mode-btn.active {
-  background: #f9fafb;
-  color: #020617;
+  background: #ffffff;
+  color: #111827;
   border-color: transparent;
 }
 
-/* ---- ルート操作 ---- */
+.tab-pos-buttons .chip {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* ナビ操作ボタン縦並び */
 .nav-controls-stack {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 4px;
+  gap: 8px;
 }
 
-.btn-danger-block {
-  width: 100%;
-  padding: 9px 0;
-  border-radius: 999px;
-  border: 1px solid var(--danger);
-  background: var(--danger);
-  color: #fee2e2;
-  font-size: 13px;
-  font-weight: 600;
+/* バージョン表示 */
+.app-version {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
-/* ---- FAB ---- */
+/* --------------------
+   FAB ボタン（検索パネル / 現在地 / 目的地）
+-------------------- */
 .fab-container {
   position: absolute;
   right: 12px;
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  display: none;
-  flex-direction: column;
-  gap: 10px;
-  z-index: 10;
-}
-
-.fab-btn {
-  min-width: 80px;
-  border-radius: 999px;
-  border: none;
-  background: rgba(15, 23, 42, 0.98);
-  color: #e5e7eb;
-  font-size: 12px;
-  padding: 8px 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
-  cursor: pointer;
-}
-
-/* ---- ローディング ---- */
-.loading-overlay {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at center, rgba(15,23,42,0.85), rgba(15,23,42,0.98));
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
   z-index: 20;
 }
 
+.fab-btn {
+  border-radius: 999px;
+  border: none;
+  padding: 10px 14px;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  background: rgba(15, 23, 42, 0.95);
+  color: #e5e7eb;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.9);
+}
+
+/* --------------------
+   ローディング
+-------------------- */
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+}
+
 .loading-content {
+  background: rgba(15, 23, 42, 0.98);
+  padding: 18px 22px;
+  border-radius: 18px;
   text-align: center;
+  color: var(--text-main);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.9);
 }
 
 .loading-spinner {
-  width: 40px;
-  height: 40px;
-  margin: 0 auto 10px;
+  width: 28px;
+  height: 28px;
+  margin: 0 auto 8px;
   border-radius: 999px;
-  border: 4px solid rgba(148, 163, 184, 0.2);
-  border-top-color: #3b82f6;
+  border: 3px solid rgba(148, 163, 184, 0.5);
+  border-top-color: #ffffff;
   animation: spin 0.9s linear infinite;
 }
 
@@ -556,133 +650,138 @@ body {
 
 .loading-sub {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
-/* ---- 登録地編集ダイアログ ---- */
-.edit-dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 30;
-}
-
-.edit-dialog {
-  width: min(360px, 90vw);
-  max-height: 70vh;
-  padding: 14px 14px 12px;
-  background: #020617;
-  border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.6);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.edit-dialog h3 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.edit-dialog-list {
-  margin: 4px 0;
-  max-height: 260px;
-  overflow-y: auto;
-}
-
-.edit-dialog-item {
-  padding: 8px 8px;
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.96);
-  border: 1px solid rgba(55, 65, 81, 0.9);
-  margin-bottom: 6px;
-  cursor: pointer;
-}
-
-.edit-dialog-item-title {
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.edit-dialog-item-subtitle {
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 2px;
-}
-
-.edit-dialog-btn {
-  width: 100%;
-  padding: 9px 0;
-  border-radius: 999px;
-  border: none;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.edit-dialog-btn-primary {
-  background: #1d4ed8;
-  color: #f9fafb;
-}
-
-.edit-dialog-btn-secondary {
-  background: rgba(31, 41, 55, 0.96);
-  color: #e5e7eb;
-}
-
-.edit-dialog-btn-danger {
-  background: var(--danger);
-  color: #fee2e2;
-}
-
-.edit-dialog-btn-group {
-  display: flex;
-  gap: 8px;
-}
-
-.edit-dialog-message {
-  font-size: 13px;
-}
-
-.edit-dialog-input {
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.7);
-  background: #020617;
-  color: #f9fafb;
-  font-size: 13px;
-}
-
-/* ---- バージョン表示 ---- */
-.app-version {
-  margin-top: 12px;
-  font-size: 11px;
-  text-align: right;
-  color: var(--muted);
-}
-
-/* ---- アニメーション ---- */
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-/* ---- 小さな画面向け調整 ---- */
-@media (max-height: 640px) {
-  .panel {
-    max-height: 65vh;
-    height: 52vh;
-  }
+/* --------------------
+   編集ダイアログ（登録地修正）
+-------------------- */
+.edit-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
 
-  .results-list {
-    max-height: 160px;
+.edit-dialog {
+  width: min(520px, 92vw);
+  max-height: 70vh;
+  padding: 14px 16px 12px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.98);
+  box-shadow: 0 22px 45px rgba(0, 0, 0, 0.9);
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+}
+
+.edit-dialog h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.edit-dialog-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -4px 10px;
+  padding-right: 4px;
+}
+
+.edit-dialog-item {
+  padding: 8px 6px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.edit-dialog-item:hover {
+  background: rgba(31, 41, 55, 0.95);
+  border-color: rgba(55, 65, 81, 0.9);
+}
+
+.edit-dialog-item-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.edit-dialog-item-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.edit-dialog-input {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: rgba(15, 23, 42, 0.96);
+  color: var(--text-main);
+  padding: 8px 10px;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.edit-dialog-input::placeholder {
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.edit-dialog-btn {
+  border-radius: 999px;
+  border: none;
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.edit-dialog-btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.edit-dialog-btn-secondary {
+  background: rgba(55, 65, 81, 0.95);
+  color: #e5e7eb;
+}
+
+.edit-dialog-btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.edit-dialog-btn-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.edit-dialog-message {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+/* --------------------
+   バージョンが小さいデバイス向け微調整
+-------------------- */
+@media (max-width: 360px) {
+  .tab-btn {
+    font-size: 14px;
+  }
+  .chip,
+  .btn {
+    font-size: 14px;
+  }
+  .section-title {
+    font-size: 17px;
   }
 }
