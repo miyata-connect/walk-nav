@@ -50,6 +50,13 @@ function getEl(id) {
 return document.getElementById(id);
 }
 
+const alerted = {};
+function alertOnce(key, message) {
+    if (alerted[key]) return;
+    alerted[key] = true;
+    alert(message);
+}
+
 function setDisplay(id, displayVal) {
 const el = document.getElementById(id);
 if (el) el.style.display = displayVal;
@@ -488,39 +495,39 @@ throw error;
 }
 
 function initMap(center) {
-if (appState.map) {
-appState.map.setCenter(center);
-console.log('[WalkNav] Map center updated');
-return;
-}
-const mapEl = getEl('map');
-if (!mapEl) return;
+    if (appState.map) {
+      appState.map.setCenter(center);
+      console.log('[WalkNav] Map center updated');
+      return;
+    }
+    const mapEl = getEl('map');
+    if (!mapEl) return;
 
-try {
-appState.map = new google.maps.Map(mapEl, {
-center,
-zoom: 17,
-// mapId: 'DEMO_MAP', // Commented out per instruction
-gestureHandling: 'greedy',
-clickableIcons: true,
-disableDefaultUI: true
-});
+    try {
+      appState.map = new google.maps.Map(mapEl, {
+        center,
+        zoom: 17,
+        // mapId: 'DEMO_MAP', // Map ID を削除し、デフォルトタイル表示を確実にする
+        gestureHandling: 'greedy',
+        clickableIcons: true,
+        disableDefaultUI: true
+      });
 
-appState.map.addListener('click', (e) => {
-  if (!appState.pointSearchMode) return;
-  if (e.latLng) setSearchPoint(e.latLng.lat(), e.latLng.lng());
-});
+      appState.map.addListener('click', (e) => {
+        if (!appState.pointSearchMode) return;
+        if (e.latLng) setSearchPoint(e.latLng.lat(), e.latLng.lng());
+      });
 
-changeMapMode(appState.mapMode);
+      changeMapMode(appState.mapMode);
 
-appState.mapInitialized = true;
-console.log('[WalkNav] Map initialized');
+      appState.mapInitialized = true;
+      console.log('[WalkNav] Map initialized');
 
-} catch (e) {
-console.error('[WalkNav] Map initialization failed:', e);
-alert('地図の読み込みに失敗しました。APIキーの設定を確認してください。');
-}
-}
+    } catch (e) {
+      console.error('[WalkNav] Map initialization failed:', e);
+      alertOnce('map_fail', '地図の読み込みに失敗しました。APIキーの設定を確認してください。');
+    }
+  }
 
 function setUserMarker(lat, lng) {
 appState.currentPos = { lat, lng };
@@ -832,50 +839,49 @@ appState.map.setZoom(17);
 }
 
 function acquireLocation() {
-const onSuccess = (pos) => {
-const { latitude, longitude } = pos.coords;
-const loadingEl = getEl('loading');
-if (loadingEl) loadingEl.remove();
+    const onSuccess = (pos) => {
+      const { latitude, longitude } = pos.coords;
+      const loadingEl = getEl('loading');
+      if (loadingEl) loadingEl.remove();
 
-if (!appState.mapInitialized) {
-  initMap({ lat: latitude, lng: longitude });
-} else {
-  appState.map.setCenter({ lat: latitude, lng: longitude });
-}
-setUserMarker(latitude, longitude);
-fetchLocationNameGoogle(latitude, longitude);
+      if (!appState.mapInitialized) {
+        initMap({ lat: latitude, lng: longitude });
+      } else if (appState.map) {
+        appState.map.setCenter({ lat: latitude, lng: longitude });
+      }
 
-};
+      setUserMarker(latitude, longitude);
+      fetchLocationNameGoogle(latitude, longitude).catch(() => {});
+    };
 
-const onError = (error) => {
-console.warn('[WalkNav] Geolocation error:', error);
-const loadingEl = getEl('loading');
-if (loadingEl) loadingEl.remove();
+    const onError = (error) => {
+      console.warn('[WalkNav] Geolocation error:', error);
+      const loadingEl = getEl('loading');
+      if (loadingEl) loadingEl.remove();
 
-const defaultPos = { lat: 34.0344, lng: 134.0577 }; 
+      const defaultPos = { lat: 34.0344, lng: 134.0577 }; // 失敗時のフォールバック座標
+      if (!appState.mapInitialized) {
+        initMap(defaultPos);
+      } else if (appState.map) {
+        appState.map.setCenter(defaultPos);
+      }
+      setUserMarker(defaultPos.lat, defaultPos.lng); // マーカーも確実に表示
 
-if (!appState.mapInitialized) {
-  initMap(defaultPos);
-} else {
-  appState.map.setCenter(defaultPos);
-}
-setUserMarker(defaultPos.lat, defaultPos.lng);
+      setText('locAddress', '現在地取得失敗');
+      setText('locCoords', 'GPSエラー');
+    };
 
-setText('locAddress', '現在地取得失敗 (つるぎ町を表示)');
-setText('locCoords', 'GPSエラー');
+    if (!navigator.geolocation) {
+      onError('Geolocation not supported');
+      return;
+    }
 
-};
-
-if (!navigator.geolocation) {
-onError('Geolocation not supported');
-return;
-}
-try {
-navigator.geolocation.getCurrentPosition(onSuccess, onError, LOCATION_OPTIONS);
-} catch (e) {
-onError(e);
-}
-}
+    try {
+      navigator.geolocation.getCurrentPosition(onSuccess, onError, LOCATION_OPTIONS);
+    } catch (e) {
+      onError(e);
+    }
+  }
 
 async function fetchLocationNameGoogle(lat, lng) {
 setText('locCoords', `Lat: ${lat.toFixed(5)} / Lng: ${lng.toFixed(5)}`);
