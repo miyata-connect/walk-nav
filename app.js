@@ -500,7 +500,7 @@ try {
 appState.map = new google.maps.Map(mapEl, {
 center,
 zoom: 17,
-mapId: 'DEMO_MAP',
+// mapId: 'DEMO_MAP', // Commented out per instruction
 gestureHandling: 'greedy',
 clickableIcons: true,
 disableDefaultUI: true
@@ -856,7 +856,11 @@ const defaultPos = { lat: 34.0344, lng: 134.0577 };
 
 if (!appState.mapInitialized) {
   initMap(defaultPos);
+} else {
+  appState.map.setCenter(defaultPos);
 }
+setUserMarker(defaultPos.lat, defaultPos.lng);
+
 setText('locAddress', '現在地取得失敗 (つるぎ町を表示)');
 setText('locCoords', 'GPSエラー');
 
