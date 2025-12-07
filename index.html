@@ -7,7 +7,7 @@
 <title>WalkNav</title>
 <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-<link rel="stylesheet" href="app.css?v=20251204-fix1" />
+<link rel="stylesheet" href="app.css?v=20251207-mvp2" />
 </head>
 <body id="appBody">
 <div class="app">
@@ -39,7 +39,6 @@
 <div class="address-coords" id="pointCoords"></div>
 </div>
 
-<!-- 検索窓をここに移動 -->
 <div class="search-box-container">
 <div class="input-wrapper">
 <span class="icon icon-g">
@@ -118,6 +117,38 @@
 <h2 class="section-title">アプリケーション設定</h2>
 
 <div class="settings-group">
+<div class="nav-section-title">👤 ユーザープロファイル</div>
+<div class="row" style="margin-bottom:8px;">
+<div style="flex:1;">
+<label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">手荷物</label>
+<select id="userLuggage" class="input" style="background:rgba(255,255,255,0.1);border:1px solid var(--stroke-soft);border-radius:8px;padding:6px;width:100%;">
+<option value="None">なし</option>
+<option value="Light_Pack">軽量</option>
+<option value="Suitcase">スーツケース</option>
+</select>
+</div>
+<div style="flex:1;">
+<label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">体調</label>
+<select id="userCondition" class="input" style="background:rgba(255,255,255,0.1);border:1px solid var(--stroke-soft);border-radius:8px;padding:6px;width:100%;">
+<option value="Excellent">良好</option>
+<option value="Normal" selected>普通</option>
+<option value="Poor">不調</option>
+</select>
+</div>
+</div>
+<div class="row">
+<div style="flex:1;">
+<label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">同行者</label>
+<select id="userCompanion" class="input" style="background:rgba(255,255,255,0.1);border:1px solid var(--stroke-soft);border-radius:8px;padding:6px;width:100%;">
+<option value="None">なし</option>
+<option value="Child">子供</option>
+<option value="Elderly">高齢者</option>
+</select>
+</div>
+</div>
+</div>
+
+<div class="settings-group">
 <div class="settings-label">地図表示モード</div>
 <div class="map-mode-buttons">
 <button id="btnMapPhoto" class="map-mode-btn" data-mode="photo">写真</button>
@@ -145,7 +176,7 @@
 </div>
 </div>
 
-<div class="app-version">v=20251204-fix1</div>
+<div class="app-version">v=20251207-mvp2</div>
 </div>
 </div>
 </section>
@@ -165,80 +196,79 @@
 </div>
 </div>
 
-<script src="app.js?v=20251204-fix1"></script>
-
-<!-- ★places を追加（これでブラウザ内のPlacesService検索が使える） -->
+<script src="RouteEvaluator.js"></script>
+<script src="app.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&language=ja&region=JP&loading=async" async defer></script>
 
 <script>
 (function () {
 document.addEventListener('touchmove', function(e) {
-  if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
-  var scrollable = e.target.closest('.panel-tabs-body');
-  if (!scrollable) {
-    if (e.cancelable) e.preventDefault();
-    return;
-  }
-  if (scrollable.scrollHeight <= scrollable.clientHeight) {
-     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-        if (e.cancelable) e.preventDefault();
-     }
-  }
+  if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
+  var scrollable = e.target.closest('.panel-tabs-body');
+  if (!scrollable) {
+    if (e.cancelable) e.preventDefault();
+    return;
+  }
+  if (scrollable.scrollHeight <= scrollable.clientHeight) {
+     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        if (e.cancelable) e.preventDefault();
+     }
+  }
 }, { passive: false });
 
 function initPanelTabs() {
-  var tabButtons = document.querySelectorAll('[data-panel-tab]');
-  var paneSearch = document.getElementById('tabPaneSearch');
-  var paneNav = document.getElementById('tabPaneNav');
-  var paneSettings = document.getElementById('tabPaneSettings');
-  var posButtons = document.querySelectorAll('[data-pos]');
+  var tabButtons = document.querySelectorAll('[data-panel-tab]');
+  var paneSearch = document.getElementById('tabPaneSearch');
+  var paneNav = document.getElementById('tabPaneNav');
+  var paneSettings = document.getElementById('tabPaneSettings');
+  var posButtons = document.querySelectorAll('[data-pos]');
 
-  function setMode(mode) {
-    var isNav = (mode === 'nav');
-    var isSettings = (mode === 'settings');
-    if (paneSearch) paneSearch.classList.toggle('active', !isNav && !isSettings);
-    if (paneNav) paneNav.classList.toggle('active', isNav);
-    if (paneSettings) paneSettings.classList.toggle('active', isSettings);
-    var target = isSettings ? 'settings' : (isNav ? 'nav' : 'search');
+  function setMode(mode) {
+    var isNav = (mode === 'nav');
+    var isSettings = (mode === 'settings');
+    if (paneSearch) paneSearch.classList.toggle('active', !isNav && !isSettings);
+    if (paneNav) paneNav.classList.toggle('active', isNav);
+    if (paneSettings) paneSettings.classList.toggle('active', isSettings);
+    var target = isSettings ? 'settings' : (isNav ? 'nav' : 'search');
 
-    tabButtons.forEach(function(b) {
-       b.classList.toggle('active', b.getAttribute('data-panel-tab') === target);
-    });
-  }
+    tabButtons.forEach(function(b) {
+       b.classList.toggle('active', b.getAttribute('data-panel-tab') === target);
+    });
+  }
 
-  tabButtons.forEach(function(btn) {
-    btn.addEventListener('click', function () {
-      setMode(btn.getAttribute('data-panel-tab') || 'search');
-    });
-  });
+  tabButtons.forEach(function(btn) {
+    btn.addEventListener('click', function () {
+      setMode(btn.getAttribute('data-panel-tab') || 'search');
+    });
+  });
 
-  posButtons.forEach(function(btnPos) {
-    btnPos.addEventListener('click', function () {
-      posButtons.forEach(b => b.classList.remove('active'));
-      btnPos.classList.add('active');
-      if (window.parent !== window) {
-        window.parent.postMessage({ type: 'WN_SET_TAB_POS', position: btnPos.getAttribute('data-pos') }, '*');
-      }
-    });
-  });
+  posButtons.forEach(function(btnPos) {
+    btnPos.addEventListener('click', function () {
+      posButtons.forEach(b => b.classList.remove('active'));
+      btnPos.classList.add('active');
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: 'WN_SET_TAB_POS', position: btnPos.getAttribute('data-pos') }, '*');
+      }
+    });
+  });
 
-  setMode('search');
+  setMode('search');
 
-  window.addEventListener('message', function (e) {
-    if (e.data && e.data.type === 'WN_CURRENT_TAB_POS') {
-      var pos = e.data.position || 'right';
-      posButtons.forEach(b => b.classList.toggle('active', b.getAttribute('data-pos') === pos));
-    }
-  });
-  if (window.parent !== window) {
-    window.parent.postMessage({ type: 'WN_REQUEST_TAB_POS' }, '*');
-  }
+  window.addEventListener('message', function (e) {
+    if (e.data && e.data.type === 'WN_CURRENT_TAB_POS') {
+      var pos = e.data.position || 'right';
+      posButtons.forEach(b => b.classList.toggle('active', b.getAttribute('data-pos') === pos));
+    }
+  });
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'WN_REQUEST_TAB_POS' }, '*');
+  }
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initPanelTabs);
+  document.addEventListener('DOMContentLoaded', initPanelTabs);
 } else {
-  initPanelTabs();
+  initPanelTabs();
 }
 })();
 </script>
