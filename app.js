@@ -762,12 +762,6 @@ if (WN.booted) {
     setDisplay('routeControlSection', 'block');
 
     try {
-      // MVP: WBGT取得
-      let currentWBGT = 25; // default
-      if (window.RouteEvaluator) {
-        currentWBGT = await window.RouteEvaluator.fetchWBGT();
-      }
-
       const response = await fetchWithRetry(`${WORKER_ORIGIN}/directions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -775,8 +769,7 @@ if (WN.booted) {
           origin: `${originLat},${originLng}`,
           destination: `${destination.lat},${destination.lng}`,
           mode: 'walking',
-          language: 'ja',
-          alternatives: true // 複数ルートを取得して評価する
+          language: 'ja'
         })
       });
       if (!response.ok) throw new Error('Route API Error');
@@ -788,24 +781,6 @@ if (WN.booted) {
         return;
       }
 
-      // MVP: ストレススコア計算と並べ替え
-      if (window.RouteEvaluator) {
-        const luggage = getEl('userLuggage')?.value || 'None';
-        const condition = getEl('userCondition')?.value || 'Normal';
-        const companion = getEl('userCompanion')?.value || 'None';
-        const userProfile = { luggage, condition, companion };
-
-        console.log('[WalkNav] Calculating scores with profile:', userProfile, 'WBGT:', currentWBGT);
-
-        result.routes.forEach(r => {
-          r._stressScore = window.RouteEvaluator.calculateStressScore(r, userProfile, currentWBGT);
-        });
-
-        // スコアが低い順（ストレスが少ない順）にソート
-        result.routes.sort((a, b) => a._stressScore - b._stressScore);
-      }
-
-      // 最適なルートを選択
       const r0 = result.routes[0];
       const l0 = r0.legs ? r0.legs[0] : null;
 
@@ -1292,7 +1267,7 @@ if (WN.booted) {
     if (r20) bindReliableActivate(r20, () => {
       r20.classList.add('active');
       r10 && r10.classList.remove('active');
-      r30 && r30.classList.remove('active');
+      r20 && r20.classList.remove('active');
       appState.searchRadiusMeters = 20000;
       setText('radiusLabel', '20km');
     });

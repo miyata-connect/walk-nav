@@ -3,7 +3,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>WalkNav</title>
 <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
 <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
@@ -103,37 +103,6 @@
 </div>
 </div><div class="tab-pane" id="tabPaneSettings">
 <h2>設定</h2>
-<div class="settings-section" style="margin-bottom:16px; border-bottom:1px solid var(--stroke); padding-bottom:16px;">
-<div class="nav-section-title" style="margin-bottom:8px;">👤 ユーザープロファイル</div>
-<div class="row" style="margin-bottom:8px;">
-<div style="flex:1;">
-<label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">手荷物</label>
-<select id="userLuggage" class="input" style="background:rgba(255,255,255,0.1);border:1px solid var(--stroke);border-radius:8px;padding:6px;width:100%;">
-<option value="None">なし</option>
-<option value="Light_Pack">軽量</option>
-<option value="Suitcase">スーツケース</option>
-</select>
-</div>
-<div style="flex:1;">
-<label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">体調</label>
-<select id="userCondition" class="input" style="background:rgba(255,255,255,0.1);border:1px solid var(--stroke);border-radius:8px;padding:6px;width:100%;">
-<option value="Excellent">良好</option>
-<option value="Normal" selected>普通</option>
-<option value="Poor">不調</option>
-</select>
-</div>
-</div>
-<div class="row">
-<div style="flex:1;">
-<label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">同行者</label>
-<select id="userCompanion" class="input" style="background:rgba(255,255,255,0.1);border:1px solid var(--stroke);border-radius:8px;padding:6px;width:100%;">
-<option value="None">なし</option>
-<option value="Child">子供</option>
-<option value="Elderly">高齢者</option>
-</select>
-</div>
-</div>
-</div>
 <div class="map-mode-section">
 <div class="map-mode-label">地図表示モード</div>
 <div class="map-mode-buttons">
@@ -173,8 +142,7 @@
 <div style="font-size:16px;opacity:0.8;">しばらくお待ちください...</div>
 </div>
 </div>
-</div><script src="RouteEvaluator.js"></script>
-<script src="app.js"></script>
+</div><script src="app.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=marker,geometry&language=ja&region=JP&loading=async" async defer></script>
 <script>
 (function () {
