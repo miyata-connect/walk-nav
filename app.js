@@ -516,7 +516,7 @@ if (WN.booted) {
       const loadingEl = getEl('loading');
       if (loadingEl) loadingEl.remove();
 
-      // Geolocation失敗時にデフォルト座標を使うように修正
+      // 失敗時のフォールバック座標を確実に利用
       const defaultPos = { lat: 34.0344, lng: 134.0577 };
       if (!appState.mapInitialized) {
         initMap(defaultPos);
@@ -762,6 +762,12 @@ if (WN.booted) {
     setDisplay('routeControlSection', 'block');
 
     try {
+      // MVP: WBGT取得
+      let currentWBGT = 25; // default
+      if (window.RouteEvaluator) {
+        currentWBGT = await window.RouteEvaluator.fetchWBGT();
+      }
+
       const response = await fetchWithRetry(`${WORKER_ORIGIN}/directions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -769,7 +775,8 @@ if (WN.booted) {
           origin: `${originLat},${originLng}`,
           destination: `${destination.lat},${destination.lng}`,
           mode: 'walking',
-          language: 'ja'
+          language: 'ja',
+          alternatives: true // 複数ルートを取得して評価する
         })
       });
       if (!response.ok) throw new Error('Route API Error');
@@ -781,6 +788,24 @@ if (WN.booted) {
         return;
       }
 
+      // MVP: ストレススコア計算と並べ替え
+      if (window.RouteEvaluator) {
+        const luggage = getEl('userLuggage')?.value || 'None';
+        const condition = getEl('userCondition')?.value || 'Normal';
+        const companion = getEl('userCompanion')?.value || 'None';
+        const userProfile = { luggage, condition, companion };
+
+        console.log('[WalkNav] Calculating scores with profile:', userProfile, 'WBGT:', currentWBGT);
+
+        result.routes.forEach(r => {
+          r._stressScore = window.RouteEvaluator.calculateStressScore(r, userProfile, currentWBGT);
+        });
+
+        // スコアが低い順（ストレスが少ない順）にソート
+        result.routes.sort((a, b) => a._stressScore - b._stressScore);
+      }
+
+      // 最適なルートを選択
       const r0 = result.routes[0];
       const l0 = r0.legs ? r0.legs[0] : null;
 
