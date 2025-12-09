@@ -1,13 +1,28 @@
+原因はシンプルで、**app.css が効いていない状態**なので、素の HTML が出て巨大な「G」だけが拡大表示されています。
+これを、
+
+* app.css が **正しく読み込まれているときは何もしない**
+* 読み込めていないときだけ **JS側でフォールバックCSSを注入してレイアウトを整える**
+
+という方式に変更した app.js を丸ごと出します。
+
+副作用の可能性:
+
+* `app.css` が「読み込めているが中身が空」のような異常状態だと、このフォールバックCSSが想定より強く効いて、細部のデザインが多少ズレる可能性があります。
+
+下記をそのまま `app.js` として差し替えてください。
+
+```javascript
 'use strict';
 
 /**
- * WalkNav app.js - v7 Emergency Logic Only
+ * WalkNav app.js - v7 Logic + Fallback CSS
  * [方針]
- * - レイアウトは app.css に完全委譲（JSからのCSS強制注入は廃止）
- * - 検索／ナビ／マップモード切替などロジックのみ保持
+ * - 通常: app.css にレイアウトを委譲（JSはロジックのみ）
+ * - 例外: app.css が読み込めていない場合のみ、フォールバックCSSを注入してUI崩壊を防止
  */
 
-const ISSUE_ID = 'idx20251209_emergency_fix_v7_logic_only';
+const ISSUE_ID = 'idx20251209_emergency_fix_v7_logic_fallback_css';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -57,6 +72,285 @@ function injectStyleOnce(key, cssText) {
     style.textContent = cssText;
     document.head.appendChild(style);
 }
+
+/* =========================
+   Fallback Design (CSS不適用時のみ)
+   ========================= */
+function applyFallbackDesign() {
+    injectStyleOnce('fallback_layout', `
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+        }
+        .app {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #f5f5f5;
+        }
+        #map {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        .panel {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            max-height: 55vh;
+            height: 55vh;
+            background: #ffffff;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -2px 15px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .panel.collapsed {
+            height: 56px;
+        }
+        .panel-handle-area {
+            padding-top: 6px;
+            padding-bottom: 2px;
+            display: flex;
+            justify-content: center;
+        }
+        .panel-handle {
+            width: 40px;
+            height: 4px;
+            border-radius: 999px;
+            background: #e0e0e0;
+        }
+        .panel-tabs-header {
+            display: flex;
+            border-bottom: 1px solid #e5e5e5;
+            background: #fafafa;
+        }
+        .panel-tabs-header .tab-btn {
+            flex: 1;
+            text-align: center;
+            padding: 10px 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .panel-tabs-header .tab-btn.active {
+            font-weight: 600;
+            border-bottom: 3px solid #25d07a;
+            background: #ffffff;
+        }
+        .panel-tabs-body {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 12px 16px 16px;
+            box-sizing: border-box;
+        }
+        .tab-pane {
+            display: none;
+        }
+        .tab-pane.active {
+            display: block;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 8px;
+        }
+        .filter-chips-row {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+        .filter-chips-row::-webkit-scrollbar {
+            display: none;
+        }
+        .chip {
+            flex: 0 0 auto;
+            border-radius: 16px;
+            border: 1px solid #ccc;
+            padding: 6px 12px;
+            font-size: 12px;
+            background: #fff;
+            cursor: pointer;
+        }
+        .chip.active {
+            background: #25d07a;
+            color: #fff;
+            border-color: #25d07a;
+        }
+        .search-box-container {
+            margin-top: 4px;
+            margin-bottom: 8px;
+        }
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            border-radius: 999px;
+            border: 1px solid #ccc;
+            padding: 2px 8px;
+            background: #fff;
+        }
+        .input-wrapper .input {
+            border: none;
+            flex: 1;
+            font-size: 14px;
+            padding: 8px 6px;
+            outline: none;
+        }
+        .icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .icon svg {
+            width: 18px;
+            height: 18px;
+        }
+        .results-list {
+            margin-top: 4px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            overflow: hidden;
+            background: #fff;
+        }
+        .result-item {
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        .result-item:active {
+            background: #f0f0f0;
+        }
+        .address-card {
+            margin-top: 4px;
+            margin-bottom: 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: #f1f5f9;
+            font-size: 12px;
+        }
+        .address-title {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        .action-buttons-row,
+        .bottom-actions-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .btn {
+            flex: 1;
+            border-radius: 999px;
+            border: 1px solid #ccc;
+            padding: 8px 10px;
+            font-size: 13px;
+            background: #fff;
+            cursor: pointer;
+        }
+        .btn-primary {
+            border-color: #25d07a;
+            background: #25d07a;
+            color: #fff;
+        }
+        .btn-danger {
+            border-color: #f97373;
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        .btn-secondary {
+            background: #e5e7eb;
+        }
+        .fab-container {
+            position: absolute;
+            right: 12px;
+            bottom: 58vh;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 900;
+            pointer-events: none;
+        }
+        .fab-container .fab-btn {
+            pointer-events: auto;
+            min-width: 48px;
+            height: 40px;
+            border-radius: 999px;
+            border: none;
+            padding: 0 12px;
+            font-size: 12px;
+            background: #ffffff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            cursor: pointer;
+        }
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.9);
+            z-index: 1100;
+        }
+        .loading-content {
+            text-align: center;
+            font-size: 14px;
+        }
+    `);
+    console.warn('[WalkNav] Fallback CSS applied (app.css not detected)');
+}
+
+function maybeApplyFallbackDesign() {
+    try {
+        const link = document.querySelector('link[rel="stylesheet"][href*="app.css"]');
+        if (!link) {
+            applyFallbackDesign();
+            return;
+        }
+        const check = () => {
+            let hasRules = false;
+            try {
+                const sheet = link.sheet;
+                if (sheet && sheet.cssRules && sheet.cssRules.length > 0) {
+                    hasRules = true;
+                }
+            } catch (e) {
+                // CORS 等の場合は読み込めている前提で何もしない
+                hasRules = true;
+            }
+            if (!hasRules) applyFallbackDesign();
+        };
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => setTimeout(check, 200));
+        } else {
+            setTimeout(check, 200);
+        }
+    } catch (_) {
+        // 何かおかしければ黙ってフォールバック
+        applyFallbackDesign();
+    }
+}
+
+/* =========================
+   メインロジック
+   ========================= */
 
 if (WN.booted) {
     console.warn('[WalkNav] duplicate app.js blocked:', ISSUE_ID);
@@ -577,7 +871,8 @@ if (WN.booted) {
     }
 
     function startApp() {
-        console.log('[WalkNav] Starting Logic-Only v7...');
+        console.log('[WalkNav] Starting Logic+Fallback v7...');
+        maybeApplyFallbackDesign();
         bindUI();
         appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
         switchPanelTab('search');
@@ -599,3 +894,4 @@ if (WN.booted) {
         initializeWhenReady();
     }
 }
+```
