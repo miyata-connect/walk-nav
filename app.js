@@ -312,14 +312,17 @@ if (WN.booted) {
         };
 
         appState.searchPointMarker = new google.maps.Marker({
-            map: appState.map, position: { lat, lng }, icon: pinIcon, zIndex: 999
+            map: appState.map,
+            position: { lat, lng },
+            icon: pinIcon,
+            zIndex: 999
         });
         
         setText('pointAddress', '取得中…');
         setDisplay('pointAddressBlock', 'flex');
         setText('pointCoords', `Lat: ${lat.toFixed(5)}`);
         geocode(lat, lng).then(data => {
-            if(data.results?.[0]) setText('pointAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
+            if (data.results?.[0]) setText('pointAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
             else setText('pointAddress', '不明な場所');
         }).catch(() => setText('pointAddress', '取得エラー'));
     }
@@ -335,7 +338,7 @@ if (WN.booted) {
             
             setText('locCoords', `Lat: ${latitude.toFixed(5)}`);
             geocode(latitude, longitude).then(data => {
-                if(data.results?.[0]) setText('locAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
+                if (data.results?.[0]) setText('locAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
             });
         };
 
@@ -364,9 +367,9 @@ if (WN.booted) {
             const h = e.webkitCompassHeading || (e.absolute ? e.alpha : null);
             if (h != null) {
                 appState.currentHeading = h;
-                if(appState.userMarker) {
+                if (appState.userMarker) {
                     const icon = appState.userMarker.getIcon();
-                    if(icon && typeof icon === 'object') {
+                    if (icon && typeof icon === 'object') {
                         icon.rotation = h;
                         appState.userMarker.setIcon(icon);
                     }
@@ -447,7 +450,7 @@ if (WN.booted) {
             
             const item = document.createElement('div');
             item.className = 'result-item';
-            item.innerHTML = `<div>${i+1}. ${name}</div><div style="font-size:0.8em;opacity:0.7">${p.formattedAddress}</div>`;
+            item.innerHTML = `<div>${i + 1}. ${name}</div><div style="font-size:0.8em;opacity:0.7">${p.formattedAddress}</div>`;
             item.onclick = () => startNavigation({ name, lat, lng });
             div.appendChild(item);
 
@@ -461,7 +464,7 @@ if (WN.booted) {
         
         // 検索結果が出たらパネルを広げる
         const panel = getEl('searchPanel');
-        if(panel) panel.style.height = '60vh';
+        if (panel) panel.style.height = '60vh';
     }
 
     async function startNavigation(dest) {
@@ -494,7 +497,7 @@ if (WN.booted) {
             setText('routeTime', `徒歩 ${leg.duration?.text || ''}`);
             
             const list = getEl('navPanelInstructions');
-            if(list) {
+            if (list) {
                 list.innerHTML = '';
                 leg.steps.forEach(s => {
                     const d = document.createElement('div');
@@ -510,7 +513,10 @@ if (WN.booted) {
             if (appState.currentPolyline) appState.currentPolyline.setMap(null);
             const path = google.maps.geometry.encoding.decodePath(r.overview_polyline.points);
             appState.currentPolyline = new google.maps.Polyline({
-                path, map: appState.map, strokeColor: '#62b5ff', strokeWeight: 6
+                path,
+                map: appState.map,
+                strokeColor: '#62b5ff',
+                strokeWeight: 6
             });
             
             const b = new google.maps.LatLngBounds();
@@ -538,7 +544,7 @@ if (WN.booted) {
         setDisplay('fabStack', 'none');
         setDisplay('btnSearch', 'flex');
         switchPanelTab('search');
-        if(appState.currentPos) {
+        if (appState.currentPos && appState.map) {
             appState.map.panTo(appState.currentPos);
             appState.map.setZoom(17);
         }
@@ -551,12 +557,12 @@ if (WN.booted) {
         const isNav = mode === 'nav';
         const isSettings = mode === 'settings';
         const s = getEl('tabPaneSearch'), n = getEl('tabPaneNav'), st = getEl('tabPaneSettings');
-        if(s) s.classList.toggle('active', !isNav && !isSettings);
-        if(n) n.classList.toggle('active', isNav);
-        if(st) st.classList.toggle('active', isSettings);
+        if (s) s.classList.toggle('active', !isNav && !isSettings);
+        if (n) n.classList.toggle('active', isNav);
+        if (st) st.classList.toggle('active', isSettings);
         
         document.querySelectorAll('.nav-item').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.panelTab === (isSettings?'settings':(isNav?'nav':'search')));
+            btn.classList.toggle('active', btn.dataset.panelTab === (isSettings ? 'settings' : (isNav ? 'nav' : 'search')));
         });
     }
 
@@ -570,7 +576,7 @@ if (WN.booted) {
         appState.map.setTilt(mode === '3d' ? 45 : 0);
         ['btnMapPhoto', 'btnMapRoadmap', 'btnMap3D'].forEach(id => {
             const el = getEl(id);
-            if(el) el.classList.toggle('active', el.dataset.mode === mode);
+            if (el) el.classList.toggle('active', el.dataset.mode === mode);
         });
     }
 
@@ -580,28 +586,55 @@ if (WN.booted) {
 
         const q = getEl('q');
         const btnSearchIcon = getEl('btnSearchIcon');
-        if(btnSearchIcon) btnSearchIcon.onclick = () => performSearch(q ? q.value : '');
-        if(q) q.onkeypress = (e) => { if(e.key==='Enter') performSearch(q.value); };
+        if (btnSearchIcon) btnSearchIcon.onclick = () => performSearch(q ? q.value : '');
+        if (q) q.onkeypress = (e) => { if (e.key === 'Enter') performSearch(q.value); };
         
-        getEl('btnReset').onclick = () => {
-            if(q) q.value = '';
-            setDisplay('results', 'none');
-            appState.pointSearchMode = false;
-            const btnP = getEl('btnPointSearch');
-            if(btnP) { btnP.textContent = '📍 ポイント選択'; btnP.style.background=''; btnP.style.color=''; }
-        };
+        const btnReset = getEl('btnReset');
+        if (btnReset) {
+            btnReset.onclick = () => {
+                if (q) q.value = '';
+                setDisplay('results', 'none');
+                appState.pointSearchMode = false;
+                const btnPInner = getEl('btnPointSearch');
+                if (btnPInner) {
+                    btnPInner.textContent = '📍 ポイント選択';
+                    btnPInner.style.background = '';
+                    btnPInner.style.color = '';
+                }
+            };
+        }
 
-        getEl('btnLocate').onclick = () => acquireLocation();
-        getEl('btnLocatePanel').onclick = () => acquireLocation();
-        getEl('btnClosePanel').onclick = () => { getEl('searchPanel').style.height = '60px'; setDisplay('fabStack','flex'); };
-        getEl('btnSearch').onclick = () => { getEl('searchPanel').style.height = '50vh'; setDisplay('fabStack','none'); };
-        getEl('btnStopRoute').onclick = () => stopNavigation();
+        const btnLocate = getEl('btnLocate');
+        if (btnLocate) btnLocate.onclick = () => acquireLocation();
+        const btnLocatePanel = getEl('btnLocatePanel');
+        if (btnLocatePanel) btnLocatePanel.onclick = () => acquireLocation();
+
+        const btnClosePanel = getEl('btnClosePanel');
+        if (btnClosePanel) {
+            btnClosePanel.onclick = () => {
+                const panel = getEl('searchPanel');
+                if (panel) panel.style.height = '60px';
+                setDisplay('fabStack', 'flex');
+            };
+        }
+
+        const btnSearch = getEl('btnSearch');
+        if (btnSearch) {
+            btnSearch.onclick = () => {
+                const panel = getEl('searchPanel');
+                if (panel) panel.style.height = '50vh';
+                setDisplay('fabStack', 'none');
+            };
+        }
+
+        const btnStopRoute = getEl('btnStopRoute');
+        if (btnStopRoute) btnStopRoute.onclick = () => stopNavigation();
         
         const chips = [getEl('r10'), getEl('r20'), getEl('r30')];
         chips.forEach((el, idx) => {
-            if(!el) return;
+            if (!el) return;
             el.onclick = () => {
-                chips.forEach(c => c.classList.remove('active'));
+                chips.forEach(c => { if (c) c.classList.remove('active'); });
                 el.classList.add('active');
                 appState.searchRadiusMeters = (idx + 1) * 10000;
                 setText('radiusLabel', `${(idx + 1) * 10}km`);
@@ -614,7 +647,7 @@ if (WN.booted) {
         });
 
         const btnP = getEl('btnPointSearch');
-        if(btnP) {
+        if (btnP) {
             btnP.onclick = () => {
                 appState.pointSearchMode = !appState.pointSearchMode;
                 btnP.textContent = appState.pointSearchMode ? '📍 選択中...' : '📍 ポイント選択';
@@ -624,25 +657,24 @@ if (WN.booted) {
         }
 
         const btnMapPhoto = getEl('btnMapPhoto');
-        if(btnMapPhoto) btnMapPhoto.onclick = () => changeMapMode('photo');
+        if (btnMapPhoto) btnMapPhoto.onclick = () => changeMapMode('photo');
         const btnMapRoadmap = getEl('btnMapRoadmap');
-        if(btnMapRoadmap) btnMapRoadmap.onclick = () => changeMapMode('roadmap');
+        if (btnMapRoadmap) btnMapRoadmap.onclick = () => changeMapMode('roadmap');
         const btnMap3D = getEl('btnMap3D');
-        if(btnMap3D) btnMap3D.onclick = () => changeMapMode('3d');
+        if (btnMap3D) btnMap3D.onclick = () => changeMapMode('3d');
         
         // Chip row construction if missing
         const r10 = getEl('r10');
-        if(r10 && !getEl('wnChipRow')) {
+        if (r10 && !getEl('wnChipRow')) {
             const row = document.createElement('div');
             row.id = 'wnChipRow';
             row.className = 'wn-chip-row';
             const p = r10.parentElement;
-            if(p) {
+            if (p) {
                 p.insertBefore(row, r10);
-                row.appendChild(r10);
-                row.appendChild(getEl('r20'));
-                row.appendChild(getEl('r30'));
-                row.appendChild(btnP);
+                [r10, getEl('r20'), getEl('r30'), btnP].forEach(el => {
+                    if (el) row.appendChild(el);
+                });
             }
         }
     }
