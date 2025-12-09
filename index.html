@@ -1,198 +1,204 @@
 <!DOCTYPE html>
-
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>WalkNav</title>
-<meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
-<link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-<link rel="stylesheet" href="app.css?v=20251207-mvp2" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>WalkNav</title>
+  <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="stylesheet" href="app.css?v=20251207-mvp2" />
 </head>
 <body id="appBody">
 <div class="app">
-<div id="map" aria-label="地図"></div>
+  <div id="map" aria-label="地図"></div>
 
-<section class="panel" id="searchPanel">
-<div class="panel-handle-area">
-<div class="panel-handle"></div>
-</div>
+  <section class="panel" id="searchPanel">
+    <div class="panel-handle-area">
+      <div class="panel-handle"></div>
+    </div>
 
-<div class="panel-tabs-header" id="panelTabHeader">
-<div class="tab-btn active" data-panel-tab="search" tabindex="0">操作</div>
-<div class="tab-btn" data-panel-tab="nav" tabindex="0">案内</div>
-<div class="tab-btn" data-panel-tab="settings" tabindex="0">設定</div>
-</div>
+    <div class="panel-tabs-header" id="panelTabHeader">
+      <div class="tab-btn active" data-panel-tab="search" tabindex="0">操作</div>
+      <div class="tab-btn" data-panel-tab="nav" tabindex="0">案内</div>
+      <div class="tab-btn" data-panel-tab="settings" tabindex="0">設定</div>
+    </div>
 
-<div class="panel-tabs-body" id="panelScrollContainer">
-<div class="tab-pane active" id="tabPaneSearch">
-<h2 class="section-title">近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
-<div class="filter-chips-row">
-<button class="chip active" id="r10">10km</button>
-<button class="chip" id="r20">20km</button>
-<button class="chip" id="r30">30km</button>
-<button class="chip point-select" id="btnPointSearch">📍 ポイント選択</button>
-</div>
+    <div class="panel-tabs-body" id="panelScrollContainer">
+      <!-- 操作タブ -->
+      <div class="tab-pane active" id="tabPaneSearch">
+        <h2 class="section-title">近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
 
-<div class="address-card" id="pointAddressBlock" style="display:none;">
-<div class="address-title" id="pointAddress">ポイント：取得中...</div>
-<div class="address-coords" id="pointCoords"></div>
-</div>
+        <div class="filter-chips-row">
+          <button class="chip active" id="r10">10km</button>
+          <button class="chip" id="r20">20km</button>
+          <button class="chip" id="r30">30km</button>
+          <button class="chip point-select" id="btnPointSearch">📍 ポイント選択</button>
+        </div>
 
-<div class="search-box-container">
-<div class="input-wrapper">
-<span class="icon icon-g">
-<svg viewBox="0 0 24 24"><path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5.03,16.21 5.03,12.39C5.03,8.57 8.36,5.5 12.19,5.5C14.73,5.5 16.29,6.5 17.2,7.38L19.31,5.26C17.38,3.53 15.05,2.5 12.19,2.5C6.92,2.5 2.73,6.63 2.73,12.39C2.73,18.15 6.92,22.28 12.19,22.28C17.63,22.28 21.64,18.5 21.64,12.61C21.64,12 21.52,11.55 21.35,11.1Z"></path></svg>
-</span>
-<input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" autocomplete="off" />
-<span class="icon icon-search" id="btnSearchIcon">
-<svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg>
-</span>
-<span class="icon icon-mic" id="btnVoiceIcon">
-<svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"></path></svg>
-</span>
-</div>
-</div>
+        <div class="address-card" id="pointAddressBlock" style="display:none;">
+          <div class="address-title" id="pointAddress">ポイント：取得中...</div>
+          <div class="address-coords" id="pointCoords"></div>
+        </div>
 
-<div id="results" class="results-list" style="display:none"></div>
+        <div class="search-box-container">
+          <div class="input-wrapper">
+            <!-- ★Gアイコン削除済み★ -->
+            <input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" autocomplete="off" />
+            <span class="icon icon-search" id="btnSearchIcon">
+              <svg viewBox="0 0 24 24">
+                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+              </svg>
+            </span>
+            <span class="icon icon-mic" id="btnVoiceIcon">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"></path>
+              </svg>
+            </span>
+          </div>
+        </div>
 
-<div class="action-buttons-row">
-<button class="btn btn-outline" id="btnSaveLocation">現在地登録</button>
-<button class="btn btn-outline" id="btnEditLocation">登録地修正</button>
-</div>
+        <div id="results" class="results-list" style="display:none"></div>
 
-<div class="bottom-actions-row">
-<button id="btnReset" class="btn btn-danger">リセット</button>
-<button id="btnLocatePanel" class="btn btn-primary">現在地</button>
-<button id="btnClosePanel" class="btn btn-secondary">閉じる</button>
-</div>
-</div>
+        <div class="action-buttons-row">
+          <button class="btn btn-outline" id="btnSaveLocation">現在地登録</button>
+          <button class="btn btn-outline" id="btnEditLocation">登録地修正</button>
+        </div>
 
-<div class="tab-pane" id="tabPaneNav">
-<div class="nav-section">
-<div class="nav-section-title">📍 現在地情報</div>
-<div class="location-info">
-<div id="locCoords" class="loc-coords">現在地：取得中...</div>
-<div id="locAddress" class="loc-address"></div>
-</div>
-</div>
+        <div class="bottom-actions-row">
+          <button id="btnReset" class="btn btn-danger">リセット</button>
+          <button id="btnLocatePanel" class="btn btn-primary">現在地</button>
+          <button id="btnClosePanel" class="btn btn-secondary">閉じる</button>
+        </div>
+      </div>
 
-<div class="nav-section">
-<div class="nav-section-title">🌤️ 天気予報</div>
-<div id="navWeather" class="weather-grid">
-<div class="weather-card"><span>3H</span><span id="weather3h" class="weather-val">--</span></div>
-<div class="weather-card"><span>6H</span><span id="weather6h" class="weather-val">--</span></div>
-<div class="weather-card"><span>9H</span><span id="weather9h" class="weather-val">--</span></div>
-</div>
-</div>
+      <!-- 案内タブ -->
+      <div class="tab-pane" id="tabPaneNav">
+        <div class="nav-section">
+          <div class="nav-section-title">📍 現在地情報</div>
+          <div class="location-info">
+            <div id="locCoords" class="loc-coords">現在地：取得中...</div>
+            <div id="locAddress" class="loc-address"></div>
+          </div>
+        </div>
 
-<div class="nav-section" id="routeInfoSection" style="display:none;">
-<div class="nav-section-title">🚶 ルート詳細</div>
-<div class="route-summary-card">
-<div class="route-dest"><span id="destinationName">目的地</span>へのルート</div>
-<div class="route-stats">
-<span id="routeDistance" class="stat-dist">--</span>
-<span id="routeTime" class="stat-time">徒歩 --分</span>
-</div>
-<div class="route-mode-toggle" id="aiRouteModeRow">
-<button id="btnRouteNormal" class="chip active small">標準</button>
-<button id="btnRouteAiShortest" class="chip small">最短Ai</button>
-</div>
-</div>
-<button id="btnExportText" class="btn btn-block btn-secondary">📋 道順をコピー</button>
-</div>
+        <div class="nav-section">
+          <div class="nav-section-title">🌤️ 天気予報</div>
+          <div id="navWeather" class="weather-grid">
+            <div class="weather-card"><span>3H</span><span id="weather3h" class="weather-val">--</span></div>
+            <div class="weather-card"><span>6H</span><span id="weather6h" class="weather-val">--</span></div>
+            <div class="weather-card"><span>9H</span><span id="weather9h" class="weather-val">--</span></div>
+          </div>
+        </div>
 
-<div class="nav-section" id="incidentSection" style="display:none;">
-<div class="nav-section-title">⚠️ 交通情報・インシデント</div>
-<div id="incidentText" class="incident-alert"></div>
-</div>
+        <div class="nav-section" id="routeInfoSection" style="display:none;">
+          <div class="nav-section-title">🚶 ルート詳細</div>
+          <div class="route-summary-card">
+            <div class="route-dest"><span id="destinationName">目的地</span>へのルート</div>
+            <div class="route-stats">
+              <span id="routeDistance" class="stat-dist">--</span>
+              <span id="routeTime" class="stat-time">徒歩 --分</span>
+            </div>
+            <div class="route-mode-toggle" id="aiRouteModeRow">
+              <button id="btnRouteNormal" class="chip active small">標準</button>
+              <button id="btnRouteAiShortest" class="chip small">最短Ai</button>
+            </div>
+          </div>
+          <button id="btnExportText" class="btn btn-block btn-secondary">📋 道順をコピー</button>
+        </div>
 
-<div class="nav-section" id="instructionsSection" style="display:none;">
-<div class="nav-section-title">🧭 ステップバイステップ</div>
-<div id="navPanelInstructions" class="instructions-list"></div>
-</div>
-</div>
+        <div class="nav-section" id="incidentSection" style="display:none;">
+          <div class="nav-section-title">⚠️ 交通情報・インシデント</div>
+          <div id="incidentText" class="incident-alert"></div>
+        </div>
 
-<div class="tab-pane" id="tabPaneSettings">
-<h2 class="section-title">アプリケーション設定</h2>
+        <div class="nav-section" id="instructionsSection" style="display:none;">
+          <div class="nav-section-title">🧭 ステップバイステップ</div>
+          <div id="navPanelInstructions" class="instructions-list"></div>
+        </div>
+      </div>
 
-<div class="settings-group">
-<div class="nav-section-title">👤 ユーザープロファイル</div>
-<div class="row" style="margin-bottom:8px;">
-<div style="flex:1;">
-<label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">手荷物</label>
-<select id="userLuggage" class="input" style="background:rgba(255,255,255,0.1);border:1px solid var(--stroke-soft);border-radius:8px;padding:6px;width:100%;">
-<option value="None">なし</option>
-<option value="Light_Pack">軽量</option>
-<option value="Suitcase">スーツケース</option>
-</select>
-</div>
-<div style="flex:1;">
-<label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">体調</label>
-<select id="userCondition" class="input" style="background:rgba(255,255,255,0.1);border:1px solid var(--stroke-soft);border-radius:8px;padding:6px;width:100%;">
-<option value="Excellent">良好</option>
-<option value="Normal" selected>普通</option>
-<option value="Poor">不調</option>
-</select>
-</div>
-</div>
-<div class="row">
-<div style="flex:1;">
-<label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">同行者</label>
-<select id="userCompanion" class="input" style="background:rgba(255,255,255,0.1);border:1px solid var(--stroke-soft);border-radius:8px;padding:6px;width:100%;">
-<option value="None">なし</option>
-<option value="Child">子供</option>
-<option value="Elderly">高齢者</option>
-</select>
-</div>
-</div>
-</div>
+      <!-- 設定タブ -->
+      <div class="tab-pane" id="tabPaneSettings">
+        <h2 class="section-title">アプリケーション設定</h2>
 
-<div class="settings-group">
-<div class="settings-label">地図表示モード</div>
-<div class="map-mode-buttons">
-<button id="btnMapPhoto" class="map-mode-btn" data-mode="photo">写真</button>
-<button id="btnMapRoadmap" class="map-mode-btn active" data-mode="roadmap">地図</button>
-<button id="btnMap3D" class="map-mode-btn" data-mode="3d">3D</button>
-</div>
-</div>
+        <div class="settings-group">
+          <div class="nav-section-title">👤 ユーザープロファイル</div>
+          <div class="row" style="margin-bottom:8px;">
+            <div style="flex:1;">
+              <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">手荷物</label>
+              <select id="userLuggage" class="input" style="background:rgba(255,255,255,0.1);border:1px solid var(--stroke-soft);border-radius:8px;padding:6px;width:100%;">
+                <option value="None">なし</option>
+                <option value="Light_Pack">軽量</option>
+                <option value="Suitcase">スーツケース</option>
+              </select>
+            </div>
+            <div style="flex:1;">
+              <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">体調</label>
+              <select id="userCondition" class="input" style="background:rgba(255,255,255,0.1);border:1px solid var(--stroke-soft);border-radius:8px;padding:6px;width:100%;">
+                <option value="Excellent">良好</option>
+                <option value="Normal" selected>普通</option>
+                <option value="Poor">不調</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div style="flex:1;">
+              <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">同行者</label>
+              <select id="userCompanion" class="input" style="background:rgba(255,255,255,0.1);border:1px solid var(--stroke-soft);border-radius:8px;padding:6px;width:100%;">
+                <option value="None">なし</option>
+                <option value="Child">子供</option>
+                <option value="Elderly">高齢者</option>
+              </select>
+            </div>
+          </div>
+        </div>
 
-<div class="settings-group">
-<div class="settings-label">タブ位置設定</div>
-<div class="tab-pos-buttons">
-<button class="chip" data-pos="top">上</button>
-<button class="chip" data-pos="bottom">下</button>
-<button class="chip" data-pos="left">左</button>
-<button class="chip active" data-pos="right">右</button>
-</div>
-</div>
+        <div class="settings-group">
+          <div class="settings-label">地図表示モード</div>
+          <div class="map-mode-buttons">
+            <button id="btnMapPhoto" class="map-mode-btn" data-mode="photo">写真</button>
+            <button id="btnMapRoadmap" class="map-mode-btn active" data-mode="roadmap">地図</button>
+            <button id="btnMap3D" class="map-mode-btn" data-mode="3d">3D</button>
+          </div>
+        </div>
 
-<div id="routeControlSection" style="display:none;" class="settings-group">
-<div class="settings-label">ナビゲーション操作</div>
-<div class="nav-controls-stack">
-<button id="btnPauseSettings" class="btn btn-outline">⏸️ 一時停止</button>
-<button id="btnRerouteSettings" class="btn btn-outline-primary">🔄 リルート</button>
-<button id="btnStopRoute" class="btn btn-danger-block">🛑 ルート終了</button>
-</div>
-</div>
+        <div class="settings-group">
+          <div class="settings-label">タブ位置設定</div>
+          <div class="tab-pos-buttons">
+            <button class="chip" data-pos="top">上</button>
+            <button class="chip" data-pos="bottom">下</button>
+            <button class="chip" data-pos="left">左</button>
+            <button class="chip active" data-pos="right">右</button>
+          </div>
+        </div>
 
-</div>
-</div>
-</section>
+        <div id="routeControlSection" style="display:none;" class="settings-group">
+          <div class="settings-label">ナビゲーション操作</div>
+          <div class="nav-controls-stack">
+            <button id="btnPauseSettings" class="btn btn-outline">⏸️ 一時停止</button>
+            <button id="btnRerouteSettings" class="btn btn-outline-primary">🔄 リルート</button>
+            <button id="btnStopRoute" class="btn btn-danger-block">🛑 ルート終了</button>
+          </div>
+        </div>
 
-<div class="fab-container" id="fabStack">
-<button class="fab-btn" id="btnSearch">検索パネル</button>
-<button class="fab-btn" id="btnLocate">現在地</button>
-<button class="fab-btn destination" id="btnDestination" style="display:none">目的地</button>
-</div>
+        <!-- ★バージョン表記は削除済み★ -->
+      </div>
+    </div>
+  </section>
 
-<div class="loading-overlay" id="loading">
-<div class="loading-content">
-<div class="loading-spinner"></div>
-<div class="loading-text">📍 現在地取得中</div>
-<div class="loading-sub">しばらくお待ちください...</div>
-</div>
-</div>
+  <div class="fab-container" id="fabStack">
+    <button class="fab-btn" id="btnSearch">検索パネル</button>
+    <button class="fab-btn" id="btnLocate">現在地</button>
+    <button class="fab-btn destination" id="btnDestination" style="display:none">目的地</button>
+  </div>
+
+  <div class="loading-overlay" id="loading">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">📍 現在地取得中</div>
+      <div class="loading-sub">しばらくお待ちください...</div>
+    </div>
+  </div>
 </div>
 
 <script src="RouteEvaluator.js"></script>
@@ -201,74 +207,74 @@
 
 <script>
 (function () {
-document.addEventListener('touchmove', function(e) {
-  if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
-  var scrollable = e.target.closest('.panel-tabs-body');
-  if (!scrollable) {
-    if (e.cancelable) e.preventDefault();
-    return;
-  }
-  if (scrollable.scrollHeight <= scrollable.clientHeight) {
-     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+  document.addEventListener('touchmove', function(e) {
+    if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
+    var scrollable = e.target.closest('.panel-tabs-body');
+    if (!scrollable) {
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
+    if (scrollable.scrollHeight <= scrollable.clientHeight) {
+      if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
         if (e.cancelable) e.preventDefault();
-     }
-  }
-}, { passive: false });
+      }
+    }
+  }, { passive: false });
 
-function initPanelTabs() {
-  var tabButtons = document.querySelectorAll('[data-panel-tab]');
-  var paneSearch = document.getElementById('tabPaneSearch');
-  var paneNav = document.getElementById('tabPaneNav');
-  var paneSettings = document.getElementById('tabPaneSettings');
-  var posButtons = document.querySelectorAll('[data-pos]');
+  function initPanelTabs() {
+    var tabButtons = document.querySelectorAll('[data-panel-tab]');
+    var paneSearch = document.getElementById('tabPaneSearch');
+    var paneNav = document.getElementById('tabPaneNav');
+    var paneSettings = document.getElementById('tabPaneSettings');
+    var posButtons = document.querySelectorAll('[data-pos]');
 
-  function setMode(mode) {
-    var isNav = (mode === 'nav');
-    var isSettings = (mode === 'settings');
-    if (paneSearch) paneSearch.classList.toggle('active', !isNav && !isSettings);
-    if (paneNav) paneNav.classList.toggle('active', isNav);
-    if (paneSettings) paneSettings.classList.toggle('active', isSettings);
-    var target = isSettings ? 'settings' : (isNav ? 'nav' : 'search');
+    function setMode(mode) {
+      var isNav = (mode === 'nav');
+      var isSettings = (mode === 'settings');
+      if (paneSearch) paneSearch.classList.toggle('active', !isNav && !isSettings);
+      if (paneNav) paneNav.classList.toggle('active', isNav);
+      if (paneSettings) paneSettings.classList.toggle('active', isSettings);
+      var target = isSettings ? 'settings' : (isNav ? 'nav' : 'search');
 
-    tabButtons.forEach(function(b) {
-       b.classList.toggle('active', b.getAttribute('data-panel-tab') === target);
+      tabButtons.forEach(function(b) {
+        b.classList.toggle('active', b.getAttribute('data-panel-tab') === target);
+      });
+    }
+
+    tabButtons.forEach(function(btn) {
+      btn.addEventListener('click', function () {
+        setMode(btn.getAttribute('data-panel-tab') || 'search');
+      });
     });
-  }
 
-  tabButtons.forEach(function(btn) {
-    btn.addEventListener('click', function () {
-      setMode(btn.getAttribute('data-panel-tab') || 'search');
+    posButtons.forEach(function(btnPos) {
+      btnPos.addEventListener('click', function () {
+        posButtons.forEach(b => b.classList.remove('active'));
+        btnPos.classList.add('active');
+        if (window.parent !== window) {
+          window.parent.postMessage({ type: 'WN_SET_TAB_POS', position: btnPos.getAttribute('data-pos') }, '*');
+        }
+      });
     });
-  });
 
-  posButtons.forEach(function(btnPos) {
-    btnPos.addEventListener('click', function () {
-      posButtons.forEach(b => b.classList.remove('active'));
-      btnPos.classList.add('active');
-      if (window.parent !== window) {
-        window.parent.postMessage({ type: 'WN_SET_TAB_POS', position: btnPos.getAttribute('data-pos') }, '*');
+    setMode('search');
+
+    window.addEventListener('message', function (e) {
+      if (e.data && e.data.type === 'WN_CURRENT_TAB_POS') {
+        var pos = e.data.position || 'right';
+        posButtons.forEach(b => b.classList.toggle('active', b.getAttribute('data-pos') === pos));
       }
     });
-  });
-
-  setMode('search');
-
-  window.addEventListener('message', function (e) {
-    if (e.data && e.data.type === 'WN_CURRENT_TAB_POS') {
-      var pos = e.data.position || 'right';
-      posButtons.forEach(b => b.classList.toggle('active', b.getAttribute('data-pos') === pos));
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'WN_REQUEST_TAB_POS' }, '*');
     }
-  });
-  if (window.parent !== window) {
-    window.parent.postMessage({ type: 'WN_REQUEST_TAB_POS' }, '*');
   }
-}
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initPanelTabs);
-} else {
-  initPanelTabs();
-}
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPanelTabs);
+  } else {
+    initPanelTabs();
+  }
 })();
 </script>
 
