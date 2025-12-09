@@ -1,26 +1,7 @@
-原因はシンプルで、**app.css が効いていない状態**なので、素の HTML が出て巨大な「G」だけが拡大表示されています。
-これを、
-
-* app.css が **正しく読み込まれているときは何もしない**
-* 読み込めていないときだけ **JS側でフォールバックCSSを注入してレイアウトを整える**
-
-という方式に変更した app.js を丸ごと出します。
-
-副作用の可能性:
-
-* `app.css` が「読み込めているが中身が空」のような異常状態だと、このフォールバックCSSが想定より強く効いて、細部のデザインが多少ズレる可能性があります。
-
-下記をそのまま `app.js` として差し替えてください。
-
-```javascript
-'use strict';
-
-/**
- * WalkNav app.js - v7 Logic + Fallback CSS
- * [方針]
- * - 通常: app.css にレイアウトを委譲（JSはロジックのみ）
- * - 例外: app.css が読み込めていない場合のみ、フォールバックCSSを注入してUI崩壊を防止
- */
+// WalkNav app.js - v7 Logic + Fallback CSS
+// [方針]
+// - 通常: app.css にレイアウトを委譲（JSはロジックのみ）
+// - 例外: app.css が読み込めていない場合のみ、フォールバックCSSを注入してUI崩壊を防止
 
 const ISSUE_ID = 'idx20251209_emergency_fix_v7_logic_fallback_css';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
@@ -332,7 +313,6 @@ function maybeApplyFallbackDesign() {
                     hasRules = true;
                 }
             } catch (e) {
-                // CORS 等の場合は読み込めている前提で何もしない
                 hasRules = true;
             }
             if (!hasRules) applyFallbackDesign();
@@ -343,7 +323,6 @@ function maybeApplyFallbackDesign() {
             setTimeout(check, 200);
         }
     } catch (_) {
-        // 何かおかしければ黙ってフォールバック
         applyFallbackDesign();
     }
 }
@@ -894,4 +873,3 @@ if (WN.booted) {
         initializeWhenReady();
     }
 }
-```
