@@ -1,9 +1,6 @@
-// WalkNav app.js - v7 Logic + Fallback CSS
-// [方針]
-// - 通常: app.css にレイアウトを委譲（JSはロジックのみ）
-// - 例外: app.css が読み込めていない場合のみ、フォールバックCSSを注入してUI崩壊を防止
+// WalkNav app.js - v7 Logic + Forced CSS Layout
 
-const ISSUE_ID = 'idx20251209_emergency_fix_v7_logic_fallback_css';
+const ISSUE_ID = 'idx20251209_emergency_fix_v7_logic_forced_css';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -55,10 +52,10 @@ function injectStyleOnce(key, cssText) {
 }
 
 /* =========================
-   Fallback Design (CSS不適用時のみ)
+   強制レイアウトCSS
    ========================= */
-function applyFallbackDesign() {
-    injectStyleOnce('fallback_layout', `
+function applyForcedLayoutCSS() {
+    injectStyleOnce('forced_layout', `
         html, body {
             height: 100%;
             margin: 0;
@@ -295,36 +292,6 @@ function applyFallbackDesign() {
             font-size: 14px;
         }
     `);
-    console.warn('[WalkNav] Fallback CSS applied (app.css not detected)');
-}
-
-function maybeApplyFallbackDesign() {
-    try {
-        const link = document.querySelector('link[rel="stylesheet"][href*="app.css"]');
-        if (!link) {
-            applyFallbackDesign();
-            return;
-        }
-        const check = () => {
-            let hasRules = false;
-            try {
-                const sheet = link.sheet;
-                if (sheet && sheet.cssRules && sheet.cssRules.length > 0) {
-                    hasRules = true;
-                }
-            } catch (e) {
-                hasRules = true;
-            }
-            if (!hasRules) applyFallbackDesign();
-        };
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => setTimeout(check, 200));
-        } else {
-            setTimeout(check, 200);
-        }
-    } catch (_) {
-        applyFallbackDesign();
-    }
 }
 
 /* =========================
@@ -365,7 +332,6 @@ if (WN.booted) {
     function getEl(id) { return document.getElementById(id); }
     function setDisplay(id, displayVal) { const el = getEl(id); if (el) el.style.display = displayVal; }
     function setText(id, text) { const el = getEl(id); if (el) el.textContent = text; }
-    function safeRemove(el) { try { if (el && el.parentNode) el.parentNode.removeChild(el); } catch (_) { } }
 
     /* =========================
        API & Search
@@ -524,7 +490,8 @@ if (WN.booted) {
     function acquireLocation() {
         const onSuccess = (pos) => {
             const { latitude, longitude } = pos.coords;
-            getEl('loading')?.remove();
+            const loading = getEl('loading');
+            if (loading) loading.remove();
             if (!appState.mapInitialized) initMap({ lat: latitude, lng: longitude });
             else appState.map.setCenter({ lat: latitude, lng: longitude });
             
@@ -538,7 +505,8 @@ if (WN.booted) {
 
         const onError = (error) => {
             console.warn('[WalkNav] Geolocation error:', error);
-            getEl('loading')?.remove();
+            const loading = getEl('loading');
+            if (loading) loading.remove();
             
             const defaultPos = { lat: 34.0344, lng: 134.0577 }; // つるぎ町
             if (!appState.mapInitialized) initMap(defaultPos);
@@ -850,8 +818,8 @@ if (WN.booted) {
     }
 
     function startApp() {
-        console.log('[WalkNav] Starting Logic+Fallback v7...');
-        maybeApplyFallbackDesign();
+        console.log('[WalkNav] Starting Logic + ForcedCSS v7...');
+        applyForcedLayoutCSS();     // ← ここで毎回レイアウトCSSを注入
         bindUI();
         appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
         switchPanelTab('search');
