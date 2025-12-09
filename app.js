@@ -1,15 +1,13 @@
 'use strict';
 
 /**
- * WalkNav app.js - v7 Emergency All-in-One Fix
- * * [修正内容]
- * 1. CSS強制注入: 外部CSSが効いていないため、JSからデザイン（地図全画面、パネル整形）を直接適用。
- * 2. 地図ID削除: "Giant G" バグの修正（v6で確認済み）。
- * 3. マーカー修正: 標準マーカーを使用し、警告と表示崩れを回避（v6で確認済み）。
- * 4. GPSフォールバック: 検索不能バグの修正。
+ * WalkNav app.js - v7 Emergency Logic Only
+ * [方針]
+ * - レイアウトは app.css に完全委譲（JSからのCSS強制注入は廃止）
+ * - 検索／ナビ／マップモード切替などロジックのみ保持
  */
 
-const ISSUE_ID = 'idx20251209_emergency_fix_v7_logic_plus_css';
+const ISSUE_ID = 'idx20251209_emergency_fix_v7_logic_only';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -58,84 +56,6 @@ function injectStyleOnce(key, cssText) {
     style.id = `wn-style-${key}`;
     style.textContent = cssText;
     document.head.appendChild(style);
-}
-
-// ★ CSS強制適用（デザイン修復） ★
-function forceApplyDesign() {
-    injectStyleOnce('base_layout', `
-        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #eee; }
-        
-        /* 地図を全画面に */
-        #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
-        
-        /* 操作パネルを下に固定 */
-        #searchPanel {
-            position: absolute; bottom: 0; left: 0; width: 100%;
-            max-height: 50vh; height: 50vh;
-            background: #fff; z-index: 1000;
-            border-radius: 20px 20px 0 0;
-            box-shadow: 0 -2px 15px rgba(0,0,0,0.15);
-            display: flex; flex-direction: column; overflow: hidden;
-            box-sizing: border-box;
-            transition: height 0.3s ease;
-        }
-        
-        /* タブナビ */
-        .nav-tabs { display: flex; border-bottom: 1px solid #ddd; background: #f9f9f9; min-height: 48px; }
-        .nav-item { flex: 1; text-align: center; padding: 12px 0; cursor: pointer; font-size: 14px; color: #666; font-weight: bold; }
-        .nav-item.active { color: #25d07a; border-bottom: 3px solid #25d07a; background: #fff; }
-        
-        /* パネル中身 */
-        .tab-content { flex: 1; overflow: hidden; position: relative; }
-        .tab-pane { display: none; height: 100%; padding: 16px; overflow-y: auto; box-sizing: border-box; }
-        .tab-pane.active { display: block; }
-        
-        /* フォーム要素 */
-        input[type="text"], input[type="search"] {
-            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;
-            font-size: 16px; box-sizing: border-box; margin-bottom: 12px;
-            background: #f5f5f5;
-        }
-        input:focus { outline: none; border-color: #25d07a; background: #fff; }
-        
-        /* ボタン類 */
-        button { cursor: pointer; border: none; font-family: inherit; }
-        .btn-icon { background: none; font-size: 20px; padding: 8px; }
-        .btn-primary { background: #25d07a; color: white; padding: 10px 20px; border-radius: 25px; font-weight: bold; width: 100%; margin-top: 10px; }
-        .btn-sm { padding: 6px 12px; border-radius: 16px; font-size: 13px; background: #eee; color: #333; margin-right: 6px; }
-        .btn-sm.active { background: #25d07a; color: white; }
-        
-        /* チップ（横スクロール） */
-        .wn-chip-row { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 8px; margin-bottom: 8px; scrollbar-width: none; }
-        .wn-chip-row::-webkit-scrollbar { display: none; }
-        .wn-chip-row > * { flex: 0 0 auto; }
-        
-        /* 検索結果リスト */
-        .result-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; }
-        .result-item:active { background: #f0f0f0; }
-        
-        /* FAB (浮いてるボタン) */
-        #fabStack {
-            position: absolute; bottom: 55vh; right: 16px; z-index: 900;
-            display: flex; flex-direction: column; gap: 12px;
-            pointer-events: none; /* 子供だけクリック可能に */
-        }
-        .fab-btn {
-            width: 48px; height: 48px; border-radius: 50%; background: white;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center;
-            font-size: 20px; pointer-events: auto; color: #444;
-        }
-        .fab-btn:active { transform: scale(0.95); }
-        
-        /* マップモード切り替え */
-        .map-mode-ctrl {
-            position: absolute; top: 16px; left: 16px; z-index: 900;
-            background: rgba(255,255,255,0.9); border-radius: 8px; padding: 4px;
-            display: flex; gap: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-        .map-mode-btn { padding: 6px 10px; border-radius: 6px; font-size: 12px; background: transparent; color: #666; }
-        .map-mode-btn.active { background: #25d07a; color: white; }
-    `);
 }
 
 if (WN.booted) {
@@ -275,7 +195,6 @@ if (WN.booted) {
         appState.currentPos = { lat, lng };
         if (!appState.map) return;
 
-        // SVG Arrow Icon
         const arrowIcon = {
             path: "M12 2L4.5 20.5L12 16.5L19.5 20.5L12 2Z",
             fillColor: "#3aa0ff",
@@ -289,7 +208,10 @@ if (WN.booted) {
 
         if (!appState.userMarker) {
             appState.userMarker = new google.maps.Marker({
-                map: appState.map, position: { lat, lng }, icon: arrowIcon, zIndex: 1000
+                map: appState.map,
+                position: { lat, lng },
+                icon: arrowIcon,
+                zIndex: 1000
             });
         } else {
             appState.userMarker.setPosition({ lat, lng });
@@ -301,7 +223,6 @@ if (WN.booted) {
         appState.searchPoint = { lat, lng };
         if (appState.searchPointMarker) appState.searchPointMarker.setMap(null);
         
-        // Simple red pin
         const pinIcon = {
             path: google.maps.SymbolPath.CIRCLE,
             scale: 10,
@@ -461,10 +382,6 @@ if (WN.booted) {
                 title: name
             }));
         });
-        
-        // 検索結果が出たらパネルを広げる
-        const panel = getEl('searchPanel');
-        if (panel) panel.style.height = '60vh';
     }
 
     async function startNavigation(dest) {
@@ -556,13 +473,18 @@ if (WN.booted) {
     function switchPanelTab(mode) {
         const isNav = mode === 'nav';
         const isSettings = mode === 'settings';
-        const s = getEl('tabPaneSearch'), n = getEl('tabPaneNav'), st = getEl('tabPaneSettings');
+        const s = getEl('tabPaneSearch');
+        const n = getEl('tabPaneNav');
+        const st = getEl('tabPaneSettings');
         if (s) s.classList.toggle('active', !isNav && !isSettings);
         if (n) n.classList.toggle('active', isNav);
         if (st) st.classList.toggle('active', isSettings);
         
-        document.querySelectorAll('.nav-item').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.panelTab === (isSettings ? 'settings' : (isNav ? 'nav' : 'search')));
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle(
+                'active',
+                btn.dataset.panelTab === (isSettings ? 'settings' : (isNav ? 'nav' : 'search'))
+            );
         });
     }
 
@@ -581,9 +503,6 @@ if (WN.booted) {
     }
 
     function bindUI() {
-        // ★強制デザイン適用★
-        forceApplyDesign();
-
         const q = getEl('q');
         const btnSearchIcon = getEl('btnSearchIcon');
         if (btnSearchIcon) btnSearchIcon.onclick = () => performSearch(q ? q.value : '');
@@ -613,8 +532,7 @@ if (WN.booted) {
         if (btnClosePanel) {
             btnClosePanel.onclick = () => {
                 const panel = getEl('searchPanel');
-                if (panel) panel.style.height = '60px';
-                setDisplay('fabStack', 'flex');
+                if (panel) panel.classList.add('collapsed');
             };
         }
 
@@ -622,8 +540,7 @@ if (WN.booted) {
         if (btnSearch) {
             btnSearch.onclick = () => {
                 const panel = getEl('searchPanel');
-                if (panel) panel.style.height = '50vh';
-                setDisplay('fabStack', 'none');
+                if (panel) panel.classList.remove('collapsed');
             };
         }
 
@@ -639,11 +556,6 @@ if (WN.booted) {
                 appState.searchRadiusMeters = (idx + 1) * 10000;
                 setText('radiusLabel', `${(idx + 1) * 10}km`);
             };
-        });
-
-        // Tab Switching
-        document.querySelectorAll('[data-panel-tab]').forEach(btn => {
-            btn.onclick = () => switchPanelTab(btn.dataset.panelTab);
         });
 
         const btnP = getEl('btnPointSearch');
@@ -662,25 +574,10 @@ if (WN.booted) {
         if (btnMapRoadmap) btnMapRoadmap.onclick = () => changeMapMode('roadmap');
         const btnMap3D = getEl('btnMap3D');
         if (btnMap3D) btnMap3D.onclick = () => changeMapMode('3d');
-        
-        // Chip row construction if missing
-        const r10 = getEl('r10');
-        if (r10 && !getEl('wnChipRow')) {
-            const row = document.createElement('div');
-            row.id = 'wnChipRow';
-            row.className = 'wn-chip-row';
-            const p = r10.parentElement;
-            if (p) {
-                p.insertBefore(row, r10);
-                [r10, getEl('r20'), getEl('r30'), btnP].forEach(el => {
-                    if (el) row.appendChild(el);
-                });
-            }
-        }
     }
 
     function startApp() {
-        console.log('[WalkNav] Starting Emergency Fix v7 (Logic+Design)...');
+        console.log('[WalkNav] Starting Logic-Only v7...');
         bindUI();
         appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
         switchPanelTab('search');
