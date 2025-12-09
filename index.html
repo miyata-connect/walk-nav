@@ -176,7 +176,6 @@
 </div>
 </div>
 
-<div class="app-version">v=20251207-mvp2</div>
 </div>
 </div>
 </section>
@@ -203,72 +202,72 @@
 <script>
 (function () {
 document.addEventListener('touchmove', function(e) {
-  if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
-  var scrollable = e.target.closest('.panel-tabs-body');
-  if (!scrollable) {
-    if (e.cancelable) e.preventDefault();
-    return;
-  }
-  if (scrollable.scrollHeight <= scrollable.clientHeight) {
-     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-        if (e.cancelable) e.preventDefault();
-     }
-  }
+  if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
+  var scrollable = e.target.closest('.panel-tabs-body');
+  if (!scrollable) {
+    if (e.cancelable) e.preventDefault();
+    return;
+  }
+  if (scrollable.scrollHeight <= scrollable.clientHeight) {
+     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        if (e.cancelable) e.preventDefault();
+     }
+  }
 }, { passive: false });
 
 function initPanelTabs() {
-  var tabButtons = document.querySelectorAll('[data-panel-tab]');
-  var paneSearch = document.getElementById('tabPaneSearch');
-  var paneNav = document.getElementById('tabPaneNav');
-  var paneSettings = document.getElementById('tabPaneSettings');
-  var posButtons = document.querySelectorAll('[data-pos]');
+  var tabButtons = document.querySelectorAll('[data-panel-tab]');
+  var paneSearch = document.getElementById('tabPaneSearch');
+  var paneNav = document.getElementById('tabPaneNav');
+  var paneSettings = document.getElementById('tabPaneSettings');
+  var posButtons = document.querySelectorAll('[data-pos]');
 
-  function setMode(mode) {
-    var isNav = (mode === 'nav');
-    var isSettings = (mode === 'settings');
-    if (paneSearch) paneSearch.classList.toggle('active', !isNav && !isSettings);
-    if (paneNav) paneNav.classList.toggle('active', isNav);
-    if (paneSettings) paneSettings.classList.toggle('active', isSettings);
-    var target = isSettings ? 'settings' : (isNav ? 'nav' : 'search');
+  function setMode(mode) {
+    var isNav = (mode === 'nav');
+    var isSettings = (mode === 'settings');
+    if (paneSearch) paneSearch.classList.toggle('active', !isNav && !isSettings);
+    if (paneNav) paneNav.classList.toggle('active', isNav);
+    if (paneSettings) paneSettings.classList.toggle('active', isSettings);
+    var target = isSettings ? 'settings' : (isNav ? 'nav' : 'search');
 
-    tabButtons.forEach(function(b) {
-       b.classList.toggle('active', b.getAttribute('data-panel-tab') === target);
-    });
-  }
+    tabButtons.forEach(function(b) {
+       b.classList.toggle('active', b.getAttribute('data-panel-tab') === target);
+    });
+  }
 
-  tabButtons.forEach(function(btn) {
-    btn.addEventListener('click', function () {
-      setMode(btn.getAttribute('data-panel-tab') || 'search');
-    });
-  });
+  tabButtons.forEach(function(btn) {
+    btn.addEventListener('click', function () {
+      setMode(btn.getAttribute('data-panel-tab') || 'search');
+    });
+  });
 
-  posButtons.forEach(function(btnPos) {
-    btnPos.addEventListener('click', function () {
-      posButtons.forEach(b => b.classList.remove('active'));
-      btnPos.classList.add('active');
-      if (window.parent !== window) {
-        window.parent.postMessage({ type: 'WN_SET_TAB_POS', position: btnPos.getAttribute('data-pos') }, '*');
-      }
-    });
-  });
+  posButtons.forEach(function(btnPos) {
+    btnPos.addEventListener('click', function () {
+      posButtons.forEach(b => b.classList.remove('active'));
+      btnPos.classList.add('active');
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: 'WN_SET_TAB_POS', position: btnPos.getAttribute('data-pos') }, '*');
+      }
+    });
+  });
 
-  setMode('search');
+  setMode('search');
 
-  window.addEventListener('message', function (e) {
-    if (e.data && e.data.type === 'WN_CURRENT_TAB_POS') {
-      var pos = e.data.position || 'right';
-      posButtons.forEach(b => b.classList.toggle('active', b.getAttribute('data-pos') === pos));
-    }
-  });
-  if (window.parent !== window) {
-    window.parent.postMessage({ type: 'WN_REQUEST_TAB_POS' }, '*');
-  }
+  window.addEventListener('message', function (e) {
+    if (e.data && e.data.type === 'WN_CURRENT_TAB_POS') {
+      var pos = e.data.position || 'right';
+      posButtons.forEach(b => b.classList.toggle('active', b.getAttribute('data-pos') === pos));
+    }
+  });
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'WN_REQUEST_TAB_POS' }, '*');
+  }
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initPanelTabs);
+  document.addEventListener('DOMContentLoaded', initPanelTabs);
 } else {
-  initPanelTabs();
+  initPanelTabs();
 }
 })();
 </script>
