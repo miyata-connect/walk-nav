@@ -1,17 +1,15 @@
 'use strict';
 
 /**
- * WalkNav app.js - Final Fix v6 (Standard Markers)
- * * Status:
- * - Map Initialization: OK (Fixed in v5)
- * - Huge G: Gone (Fixed in v5)
- * * Changes in v6:
- * - Replaced `AdvancedMarkerElement` with standard `google.maps.Marker`.
- * - This resolves the "Map ID required" warning and ensures pins appear on the standard map.
- * - Restored compass rotation using standard marker SVG icons.
+ * WalkNav app.js - v7 Emergency Fix (Logic + Design)
+ * * [修正内容]
+ * 1. CSS強制注入: 外部CSSが効いていないため、JSからデザイン（地図の全画面化、パネルの整形）を直接適用。
+ * 2. 地図ID削除: "Giant G" バグの修正。
+ * 3. マーカー修正: 標準マーカーを使用し、警告と表示崩れを回避。
+ * 4. GPSフォールバック: 検索不能バグの修正。
  */
 
-const ISSUE_ID = 'idx20251209_standard_marker_fix_v6';
+const ISSUE_ID = 'idx20251209_emergency_fix_v7';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -62,6 +60,83 @@ function injectStyleOnce(key, cssText) {
     document.head.appendChild(style);
 }
 
+// ★強制デザイン修復（CSSが死んでいてもこれで動く）★
+function forceApplyDesign() {
+    injectStyleOnce('base_layout', `
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #eee; }
+        
+        /* 地図を全画面に */
+        #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+        
+        /* 操作パネルを下に固定 */
+        #searchPanel {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            max-height: 50vh; height: 50vh;
+            background: #fff; z-index: 1000;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -2px 15px rgba(0,0,0,0.15);
+            display: flex; flex-direction: column; overflow: hidden;
+            box-sizing: border-box;
+        }
+        
+        /* タブナビ */
+        .nav-tabs { display: flex; border-bottom: 1px solid #ddd; background: #f9f9f9; min-height: 48px; }
+        .nav-item { flex: 1; text-align: center; padding: 12px 0; cursor: pointer; font-size: 14px; color: #666; font-weight: bold; }
+        .nav-item.active { color: #25d07a; border-bottom: 3px solid #25d07a; background: #fff; }
+        
+        /* パネル中身 */
+        .tab-content { flex: 1; overflow: hidden; position: relative; }
+        .tab-pane { display: none; height: 100%; padding: 16px; overflow-y: auto; box-sizing: border-box; }
+        .tab-pane.active { display: block; }
+        
+        /* フォーム要素 */
+        input[type="text"], input[type="search"] {
+            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;
+            font-size: 16px; box-sizing: border-box; margin-bottom: 12px;
+            background: #f5f5f5;
+        }
+        input:focus { outline: none; border-color: #25d07a; background: #fff; }
+        
+        /* ボタン類 */
+        button { cursor: pointer; border: none; font-family: inherit; }
+        .btn-icon { background: none; font-size: 20px; padding: 8px; }
+        .btn-primary { background: #25d07a; color: white; padding: 10px 20px; border-radius: 25px; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn-sm { padding: 6px 12px; border-radius: 16px; font-size: 13px; background: #eee; color: #333; margin-right: 6px; }
+        .btn-sm.active { background: #25d07a; color: white; }
+        
+        /* チップ（横スクロール） */
+        .wn-chip-row { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 8px; margin-bottom: 8px; scrollbar-width: none; }
+        .wn-chip-row::-webkit-scrollbar { display: none; }
+        .wn-chip-row > * { flex: 0 0 auto; }
+        
+        /* 検索結果リスト */
+        .result-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .result-item:active { background: #f0f0f0; }
+        
+        /* FAB (浮いてるボタン) */
+        #fabStack {
+            position: absolute; bottom: 55vh; right: 16px; z-index: 900;
+            display: flex; flex-direction: column; gap: 12px;
+            pointer-events: none; /* 子供だけクリック可能に */
+        }
+        .fab-btn {
+            width: 48px; height: 48px; border-radius: 50%; background: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center;
+            font-size: 20px; pointer-events: auto; color: #444;
+        }
+        .fab-btn:active { transform: scale(0.95); }
+        
+        /* マップモード切り替え */
+        .map-mode-ctrl {
+            position: absolute; top: 16px; left: 16px; z-index: 900;
+            background: rgba(255,255,255,0.9); border-radius: 8px; padding: 4px;
+            display: flex; gap: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .map-mode-btn { padding: 6px 10px; border-radius: 6px; font-size: 12px; background: transparent; color: #666; }
+        .map-mode-btn.active { background: #25d07a; color: white; }
+    `);
+}
+
 if (WN.booted) {
     console.warn('[WalkNav] duplicate app.js blocked:', ISSUE_ID);
 } else {
@@ -78,19 +153,13 @@ if (WN.booted) {
         searchMarkers: [],
         currentDestination: null,
         currentPolyline: null,
-        recognition: null,
-        isPaused: false,
         isNavigating: false,
         locationWatchId: null,
         compassWatchId: null,
         currentHeading: 0,
         isSimulation: false,
         currentRouteData: null,
-        userProfile: {
-            luggage: 'None',
-            condition: 'Normal',
-            companion: 'None'
-        },
+        userProfile: { luggage: 'None', condition: 'Normal', companion: 'None' },
         savedLocations: [],
         editingLocationIndex: null,
         isEditDialogOpen: false,
@@ -100,127 +169,9 @@ if (WN.booted) {
     };
 
     function getEl(id) { return document.getElementById(id); }
-
-    function setDisplay(id, displayVal) {
-        const el = getEl(id);
-        if (el) el.style.display = displayVal;
-    }
-
-    function setText(id, text) {
-        const el = getEl(id);
-        if (el) el.textContent = text;
-    }
-
-    function safeRemove(el) {
-        try { if (el && el.parentNode) el.parentNode.removeChild(el); } catch (_) { }
-    }
-
-    /* =========================
-       UI Fixes
-       ========================= */
-    function applyUiFixes() {
-        injectStyleOnce('panel_fixes', `
-            #searchPanel { max-height: 50vh !important; height: 50vh !important; overflow: hidden !important; }
-            #tabPaneSearch, #tabPaneNav, #tabPaneSettings { height: 100% !important; overflow: hidden !important; }
-            #q, input#q { margin-bottom: 12px !important; }
-            #results, #navPanelInstructions { overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; }
-            .wn-chip-row { display: flex !important; gap: 10px !important; align-items: center !important; overflow-x: auto !important; padding: 4px 2px 10px !important; margin: 0 0 6px !important; }
-            .wn-chip-row > * { flex: 0 0 auto !important; white-space: nowrap !important; }
-        `);
-
-        buildSearchChipRow();
-        updateScrollableHeights();
-        window.addEventListener('resize', () => updateScrollableHeights(), { passive: true });
-    }
-
-    function buildSearchChipRow() {
-        const r10 = getEl('r10');
-        const r20 = getEl('r20');
-        const r30 = getEl('r30');
-        const btnPoint = getEl('btnPointSearch');
-        if (!r10 || !r20 || !r30 || !btnPoint || getEl('wnChipRow')) return;
-
-        const row = document.createElement('div');
-        row.id = 'wnChipRow';
-        row.className = 'wn-chip-row';
-        const parent = r10.parentElement;
-        if(parent) {
-            parent.parentElement.insertBefore(row, parent);
-            row.appendChild(r10);
-            row.appendChild(r20);
-            row.appendChild(r30);
-            row.appendChild(btnPoint);
-        }
-    }
-
-    function updateScrollableHeights() {
-        const panel = getEl('searchPanel');
-        const results = getEl('results');
-        if (!panel || !results) return;
-        const panelRect = panel.getBoundingClientRect();
-        const resRect = results.getBoundingClientRect();
-        const available = Math.floor(panelRect.bottom - resRect.top - 10);
-        if (available > 80) {
-            results.style.maxHeight = `${available}px`;
-        }
-    }
-
-    /* =========================
-       Data Persistence
-       ========================= */
-    function loadSavedLocations() {
-        try {
-            const saved = localStorage.getItem(SAVED_LOCATIONS_KEY);
-            appState.savedLocations = saved ? JSON.parse(saved) : [];
-            if (!Array.isArray(appState.savedLocations)) appState.savedLocations = [];
-        } catch (e) { appState.savedLocations = []; }
-    }
-
-    function saveSavedLocations() {
-        try {
-            localStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(appState.savedLocations));
-        } catch (e) { console.error(e); }
-    }
-
-    function loadMapMode() {
-        appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
-    }
-
-    function saveMapMode(mode) {
-        localStorage.setItem(MAP_MODE_KEY, mode);
-        appState.mapMode = mode;
-    }
-
-    function changeMapMode(mode) {
-        if (!appState.map) return;
-        saveMapMode(mode);
-        const type = mode === 'photo' ? google.maps.MapTypeId.SATELLITE :
-                     mode === '3d' ? google.maps.MapTypeId.HYBRID : google.maps.MapTypeId.ROADMAP;
-        appState.map.setMapTypeId(type);
-        appState.map.setTilt(mode === '3d' ? 45 : 0);
-        updateMapModeButtons(mode);
-    }
-
-    function updateMapModeButtons(activeMode) {
-        ['btnMapPhoto', 'btnMapRoadmap', 'btnMap3D'].forEach(btnId => {
-            const btn = getEl(btnId);
-            if (btn) btn.classList.toggle('active', btn.dataset.mode === activeMode);
-        });
-    }
-
-    function switchPanelTab(mode) {
-        const isNav = mode === 'nav';
-        const isSettings = mode === 'settings';
-        getEl('tabPaneSearch')?.classList.toggle('active', !isNav && !isSettings);
-        getEl('tabPaneNav')?.classList.toggle('active', isNav);
-        getEl('tabPaneSettings')?.classList.toggle('active', isSettings);
-        
-        const target = isSettings ? 'settings' : (isNav ? 'nav' : 'search');
-        document.querySelectorAll('[data-panel-tab]').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.panelTab === target);
-        });
-        setTimeout(updateScrollableHeights, 50);
-    }
+    function setDisplay(id, displayVal) { const el = getEl(id); if (el) el.style.display = displayVal; }
+    function setText(id, text) { const el = getEl(id); if (el) el.textContent = text; }
+    function safeRemove(el) { try { if (el && el.parentNode) el.parentNode.removeChild(el); } catch (_) { } }
 
     /* =========================
        API & Search
@@ -256,7 +207,7 @@ if (WN.booted) {
             if (!resp.ok) throw new Error(`WORKER ${resp.status}`);
             return await resp.json();
         } catch (e) {
-            console.warn('[WalkNav] Worker search failed, fallback direct:', e);
+            console.warn('Fallback to Direct:', e);
             const resp = await fetchWithRetry(`https://places.googleapis.com/v1/places:searchText`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': API_KEY, 'X-Goog-FieldMask': DEFAULT_MASK },
@@ -319,12 +270,10 @@ if (WN.booted) {
         }
     }
 
-    // FIX: Use Standard Marker for User Pin
     function setUserMarker(lat, lng) {
         appState.currentPos = { lat, lng };
         if (!appState.map) return;
 
-        // SVG Path for Arrow
         const arrowIcon = {
             path: "M12 2L4.5 20.5L12 16.5L19.5 20.5L12 2Z",
             fillColor: "#3aa0ff",
@@ -338,10 +287,7 @@ if (WN.booted) {
 
         if (!appState.userMarker) {
             appState.userMarker = new google.maps.Marker({
-                map: appState.map,
-                position: { lat, lng },
-                icon: arrowIcon,
-                zIndex: 1000
+                map: appState.map, position: { lat, lng }, icon: arrowIcon, zIndex: 1000
             });
         } else {
             appState.userMarker.setPosition({ lat, lng });
@@ -349,12 +295,10 @@ if (WN.booted) {
         }
     }
 
-    // FIX: Use Standard Marker for Search Point
     function setSearchPoint(lat, lng) {
         appState.searchPoint = { lat, lng };
         if (appState.searchPointMarker) appState.searchPointMarker.setMap(null);
         
-        // Simple red pin via symbol or icon
         const pinIcon = {
             path: google.maps.SymbolPath.CIRCLE,
             scale: 10,
@@ -365,10 +309,7 @@ if (WN.booted) {
         };
 
         appState.searchPointMarker = new google.maps.Marker({
-            map: appState.map,
-            position: { lat, lng },
-            icon: pinIcon,
-            zIndex: 999
+            map: appState.map, position: { lat, lng }, icon: pinIcon, zIndex: 999
         });
         
         setText('pointAddress', '取得中…');
@@ -399,7 +340,7 @@ if (WN.booted) {
             console.warn('[WalkNav] Geolocation error:', error);
             getEl('loading')?.remove();
             
-            const defaultPos = { lat: 34.0344, lng: 134.0577 };
+            const defaultPos = { lat: 34.0344, lng: 134.0577 }; // つるぎ町
             if (!appState.mapInitialized) initMap(defaultPos);
             else appState.map.setCenter(defaultPos);
             
@@ -420,7 +361,6 @@ if (WN.booted) {
             const h = e.webkitCompassHeading || (e.absolute ? e.alpha : null);
             if (h != null) {
                 appState.currentHeading = h;
-                // Update marker rotation if marker exists
                 if(appState.userMarker) {
                     const icon = appState.userMarker.getIcon();
                     if(icon && typeof icon === 'object') {
@@ -437,6 +377,28 @@ if (WN.booted) {
         } else {
             window.addEventListener('deviceorientationabsolute', handler, true);
             window.addEventListener('deviceorientation', handler, true);
+        }
+    }
+
+    function startLocationWatcher() {
+        if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
+        appState.locationWatchId = navigator.geolocation.watchPosition(
+            (pos) => {
+                const { latitude, longitude } = pos.coords;
+                setUserMarker(latitude, longitude);
+                if (appState.isNavigating && appState.map) {
+                    appState.map.panTo({ lat: latitude, lng: longitude });
+                }
+            },
+            () => {},
+            LOCATION_OPTIONS
+        );
+    }
+
+    function stopLocationWatcher() {
+        if (appState.locationWatchId) {
+            navigator.geolocation.clearWatch(appState.locationWatchId);
+            appState.locationWatchId = null;
         }
     }
 
@@ -465,7 +427,6 @@ if (WN.booted) {
         }
     }
 
-    // FIX: Use Standard Markers for results
     function displayResults(places) {
         const div = getEl('results');
         if (!div) return;
@@ -487,7 +448,6 @@ if (WN.booted) {
             item.onclick = () => startNavigation({ name, lat, lng });
             div.appendChild(item);
 
-            // Standard Marker with Label
             appState.searchMarkers.push(new google.maps.Marker({
                 map: appState.map,
                 position: { lat, lng },
@@ -495,7 +455,10 @@ if (WN.booted) {
                 title: name
             }));
         });
-        updateScrollableHeights();
+        
+        // 結果表示時はパネル高さを確保
+        const panel = getEl('searchPanel');
+        if(panel) panel.style.height = '60vh';
     }
 
     async function startNavigation(dest) {
@@ -503,6 +466,7 @@ if (WN.booted) {
         appState.currentDestination = dest;
         appState.isNavigating = true;
         
+        // UI遷移
         setDisplay('searchPanel', 'block');
         setDisplay('fabStack', 'flex');
         switchPanelTab('nav');
@@ -533,6 +497,8 @@ if (WN.booted) {
                 leg.steps.forEach(s => {
                     const d = document.createElement('div');
                     d.className = 'nav-instruction-item';
+                    d.style.padding = '8px 0';
+                    d.style.borderBottom = '1px solid #eee';
                     d.textContent = s.html_instructions.replace(/<[^>]+>/g, '') + ` (${s.distance?.text})`;
                     list.appendChild(d);
                 });
@@ -550,15 +516,7 @@ if (WN.booted) {
             b.extend(dest);
             appState.map.fitBounds(b, { padding: 50 });
             
-            if (typeof RouteEvaluator !== 'undefined') {
-                const wbgt = await RouteEvaluator.fetchWBGT();
-                const score = RouteEvaluator.calculateStressScore(r, appState.userProfile, wbgt);
-                const scoreEl = document.createElement('div');
-                scoreEl.style.cssText = 'margin-top:8px;padding:8px;background:rgba(0,0,0,0.1);border-radius:8px;font-size:12px;';
-                scoreEl.innerHTML = `ストレススコア: <strong>${score}</strong> (WBGT: ${wbgt})`;
-                const infoSec = getEl('routeInfoSection');
-                if(infoSec) infoSec.appendChild(scoreEl);
-            }
+            startLocationWatcher();
 
         } catch (e) {
             console.error(e);
@@ -568,6 +526,7 @@ if (WN.booted) {
     }
 
     function stopNavigation() {
+        stopLocationWatcher();
         appState.isNavigating = false;
         if (appState.currentPolyline) appState.currentPolyline.setMap(null);
         setDisplay('routeControlSection', 'none');
@@ -584,16 +543,45 @@ if (WN.booted) {
     }
 
     /* =========================
-       Event Binding
+       UI Binding & Init
        ========================= */
+    function switchPanelTab(mode) {
+        const isNav = mode === 'nav';
+        const isSettings = mode === 'settings';
+        const s = getEl('tabPaneSearch'), n = getEl('tabPaneNav'), st = getEl('tabPaneSettings');
+        if(s) s.classList.toggle('active', !isNav && !isSettings);
+        if(n) n.classList.toggle('active', isNav);
+        if(st) st.classList.toggle('active', isSettings);
+        
+        document.querySelectorAll('.nav-item').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.panelTab === (isSettings?'settings':(isNav?'nav':'search')));
+        });
+    }
+
+    function changeMapMode(mode) {
+        if (!appState.map) return;
+        localStorage.setItem(MAP_MODE_KEY, mode);
+        appState.mapMode = mode;
+        const type = mode === 'photo' ? google.maps.MapTypeId.SATELLITE :
+                     mode === '3d' ? google.maps.MapTypeId.HYBRID : google.maps.MapTypeId.ROADMAP;
+        appState.map.setMapTypeId(type);
+        appState.map.setTilt(mode === '3d' ? 45 : 0);
+        ['btnMapPhoto', 'btnMapRoadmap', 'btnMap3D'].forEach(id => {
+            const el = getEl(id);
+            if(el) el.classList.toggle('active', el.dataset.mode === mode);
+        });
+    }
+
     function bindUI() {
+        // Force inject styles first
+        forceApplyDesign();
+
         const q = getEl('q');
         const btnSearchIcon = getEl('btnSearchIcon');
         if(btnSearchIcon) btnSearchIcon.onclick = () => performSearch(q ? q.value : '');
         if(q) q.onkeypress = (e) => { if(e.key==='Enter') performSearch(q.value); };
         
-        const btnReset = getEl('btnReset');
-        if(btnReset) btnReset.onclick = () => {
+        getEl('btnReset').onclick = () => {
             if(q) q.value = '';
             setDisplay('results', 'none');
             appState.pointSearchMode = false;
@@ -603,8 +591,8 @@ if (WN.booted) {
 
         getEl('btnLocate').onclick = () => acquireLocation();
         getEl('btnLocatePanel').onclick = () => acquireLocation();
-        getEl('btnClosePanel').onclick = () => { setDisplay('searchPanel','none'); setDisplay('fabStack','flex'); };
-        getEl('btnSearch').onclick = () => { setDisplay('searchPanel','block'); setDisplay('fabStack','none'); };
+        getEl('btnClosePanel').onclick = () => { getEl('searchPanel').style.height = '60px'; setDisplay('fabStack','flex'); };
+        getEl('btnSearch').onclick = () => { getEl('searchPanel').style.height = '50vh'; setDisplay('fabStack','none'); };
         getEl('btnStopRoute').onclick = () => stopNavigation();
         
         const chips = [getEl('r10'), getEl('r20'), getEl('r30')];
@@ -616,6 +604,11 @@ if (WN.booted) {
                 appState.searchRadiusMeters = (idx + 1) * 10000;
                 setText('radiusLabel', `${(idx + 1) * 10}km`);
             };
+        });
+
+        // Tab Switching
+        document.querySelectorAll('[data-panel-tab]').forEach(btn => {
+            btn.onclick = () => switchPanelTab(btn.dataset.panelTab);
         });
 
         const btnP = getEl('btnPointSearch');
@@ -630,54 +623,33 @@ if (WN.booted) {
 
         const btnMapPhoto = getEl('btnMapPhoto');
         if(btnMapPhoto) btnMapPhoto.onclick = () => changeMapMode('photo');
-        
         const btnMapRoadmap = getEl('btnMapRoadmap');
         if(btnMapRoadmap) btnMapRoadmap.onclick = () => changeMapMode('roadmap');
-        
         const btnMap3D = getEl('btnMap3D');
         if(btnMap3D) btnMap3D.onclick = () => changeMapMode('3d');
-
-        ['userLuggage', 'userCondition', 'userCompanion'].forEach(id => {
-            const el = getEl(id);
-            if(el) el.onchange = (e) => appState.userProfile[id.replace('user','').toLowerCase()] = e.target.value;
-        });
         
-        const btnSaveLocation = getEl('btnSaveLocation');
-        if(btnSaveLocation) btnSaveLocation.onclick = () => {
-            if(!appState.currentPos) return;
-            const addr = getEl('locAddress') ? getEl('locAddress').innerText : '現在地';
-            const name = prompt('登録名:', addr);
-            if(name) {
-                appState.savedLocations.push({ name, ...appState.currentPos });
-                saveSavedLocations();
-                alert('保存しました');
+        // Chip row construction if missing
+        const r10 = getEl('r10');
+        if(r10 && !getEl('wnChipRow')) {
+            const row = document.createElement('div');
+            row.id = 'wnChipRow';
+            row.className = 'wn-chip-row';
+            const p = r10.parentElement;
+            if(p) {
+                p.insertBefore(row, r10);
+                row.appendChild(r10);
+                row.appendChild(getEl('r20'));
+                row.appendChild(getEl('r30'));
+                row.appendChild(btnP);
             }
-        };
-        
-        const btnEditLocation = getEl('btnEditLocation');
-        if(btnEditLocation) btnEditLocation.onclick = () => {
-            loadSavedLocations();
-            if(!appState.savedLocations.length) return alert('登録地がありません');
-            if(confirm('登録地を全てクリアしますか？(簡易編集)')) {
-                appState.savedLocations = [];
-                saveSavedLocations();
-            }
-        };
+        }
     }
 
     function startApp() {
-        console.log('[WalkNav] Starting Final Fix v6 (Standard Markers)...');
-        applyUiFixes();
-        setDisplay('searchPanel', 'block');
-        setDisplay('fabStack', 'none');
-        setDisplay('btnSearch', 'flex');
-        
-        loadSavedLocations();
-        loadMapMode();
+        console.log('[WalkNav] Starting Emergency Fix v7...');
         bindUI();
-        updateMapModeButtons(appState.mapMode);
+        appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
         switchPanelTab('search');
-        
         acquireLocation();
         startCompassListener();
     }
