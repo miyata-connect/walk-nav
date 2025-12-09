@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v7 Logic + ForcedCSS
+// WalkNav app.js - v7 Logic + ForcedCSS + AI Route Selector + Incidents(10km)
 
-const ISSUE_ID = 'idx20251209_emergency_fix_v7_logic_forced_css';
+const ISSUE_ID = 'idx20251209_emergency_fix_v7_logic_forced_css_ai_incidents';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -17,6 +17,7 @@ const LOCATION_OPTIONS = {
 
 const SAVED_LOCATIONS_KEY = 'walknav_saved_locations';
 const MAP_MODE_KEY = 'walknav_map_mode';
+const PROFILE_KEY = 'walknav_user_profile';
 
 /* =========================
    Global State & Helpers
@@ -321,22 +322,44 @@ if (WN.booted) {
         compassWatchId: null,
         currentHeading: 0,
         isSimulation: false,
-        currentRouteData: null,
+        currentRouteData: null,     // { routes, selectedIndex, reason }
         userProfile: { luggage: 'None', condition: 'Normal', companion: 'None' },
         savedLocations: [],
         editingLocationIndex: null,
         isEditDialogOpen: false,
         mapMode: 'roadmap',
         searchInFlight: false,
-        searchRadiusMeters: 10000 
+        searchRadiusMeters: 10000,
+        aiMode: 'normal',           // "normal" | "ai"
+        incidentData: null          // 直近のインシデント情報
     };
 
     function getEl(id) { return document.getElementById(id); }
     function setDisplay(id, displayVal) { const el = getEl(id); if (el) el.style.display = displayVal; }
     function setText(id, text) { const el = getEl(id); if (el) el.textContent = text; }
 
+    function loadUserProfile() {
+        try {
+            const raw = localStorage.getItem(PROFILE_KEY);
+            if (!raw) return;
+            const p = JSON.parse(raw);
+            if (!p) return;
+            appState.userProfile = {
+                luggage: p.luggage || 'None',
+                condition: p.condition || 'Normal',
+                companion: p.companion || 'None'
+            };
+        } catch (_) {}
+    }
+
+    function persistUserProfile() {
+        try {
+            localStorage.setItem(PROFILE_KEY, JSON.stringify(appState.userProfile));
+        } catch (_) {}
+    }
+
     /* =========================
-       API & Search
+       API & Search 共通
        ========================= */
     async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
         for (let i = 0; i < retries; i++) {
@@ -394,6 +417,73 @@ if (WN.booted) {
             const resp = await fetchWithRetry(url);
             if (!resp.ok) throw new Error(`DIRECT ${resp.status}`);
             return await resp.json();
+        }
+    }
+
+    /* =========================
+       インシデント取得・表示 (10km)
+       ========================= */
+
+    function renderIncidentSection(data, isError) {
+        const section = getEl('incidentSection');
+        const box = getEl('incidentText');
+        if (!section || !box) return;
+
+        if (isError) {
+            section.style.display = 'block';
+            box.textContent = 'インシデント情報の取得に失敗しました。';
+            return;
+        }
+
+        if (!data) {
+            section.style.display = 'none';
+            return;
+        }
+
+        const traffic = data.traffic || [];
+        const events = data.events || data.incidents || [];
+        const weather = data.weather || [];
+
+        const parts = [];
+
+        if (traffic.length) {
+            const t = traffic.map(x => x.title || x.summary || x.description || '交通遅延').join(' / ');
+            parts.push(`【交通】${t}`);
+        }
+        if (events.length) {
+            const e = events.map(x => x.title || x.summary || x.description || '事件・事故').join(' / ');
+            parts.push(`【事件・事故】${e}`);
+        }
+        if (weather.length) {
+            const w = weather.map(x => x.title || x.summary || x.description || '気象注意報').join(' / ');
+            parts.push(`【気象】${w}`);
+        }
+
+        if (parts.length === 0) {
+            section.style.display = 'block';
+            box.textContent = '半径10km以内に特筆すべきインシデントはありません。';
+        } else {
+            section.style.display = 'block';
+            box.textContent = parts.join(' ｜ ');
+        }
+    }
+
+    async function fetchIncidentsAround(lat, lng) {
+        // 半径10km固定
+        const payload = { lat, lng, radiusKm: 10 };
+        try {
+            const resp = await fetchWithRetry(`${WORKER_ORIGIN}/incidents`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!resp.ok) throw new Error(`INCIDENTS ${resp.status}`);
+            const json = await resp.json();
+            appState.incidentData = json;
+            renderIncidentSection(json, false);
+        } catch (e) {
+            console.warn('[WalkNav] incidents fetch error:', e);
+            renderIncidentSection(null, true);
         }
     }
 
@@ -487,6 +577,9 @@ if (WN.booted) {
             if (data.results?.[0]) setText('pointAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
             else setText('pointAddress', '不明な場所');
         }).catch(() => setText('pointAddress', '取得エラー'));
+
+        // ポイントを基準にインシデント再取得
+        fetchIncidentsAround(lat, lng);
     }
 
     function acquireLocation() {
@@ -503,6 +596,9 @@ if (WN.booted) {
             geocode(latitude, longitude).then(data => {
                 if (data.results?.[0]) setText('locAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
             });
+
+            // 現在地を中心にインシデント取得
+            fetchIncidentsAround(latitude, longitude);
         };
 
         const onError = (error) => {
@@ -518,6 +614,9 @@ if (WN.booted) {
             
             setText('locAddress', '現在地取得失敗 (つるぎ町)');
             setText('locCoords', 'GPSエラー');
+
+            // デフォルト地点でもインシデント取得（あれば）
+            fetchIncidentsAround(defaultPos.lat, defaultPos.lng);
         };
 
         if (!navigator.geolocation) { onError('Not supported'); return; }
@@ -570,6 +669,70 @@ if (WN.booted) {
             navigator.geolocation.clearWatch(appState.locationWatchId);
             appState.locationWatchId = null;
         }
+    }
+
+    /* =========================
+       Route rendering helpers
+       ========================= */
+    function renderRoute(route, destinationName) {
+        if (!route) return;
+        const leg = route.legs && route.legs[0];
+        if (!leg) return;
+
+        setText('destinationName', destinationName || '目的地');
+
+        setText('routeDistance', leg.distance?.text || '');
+        setText('routeTime', `徒歩 ${leg.duration?.text || ''}`);
+
+        const list = getEl('navPanelInstructions');
+        if (list) {
+            list.innerHTML = '';
+            (leg.steps || []).forEach(s => {
+                const d = document.createElement('div');
+                d.className = 'nav-instruction-item';
+                d.style.padding = '8px 0';
+                d.style.borderBottom = '1px solid #eee';
+                d.textContent = s.html_instructions.replace(/<[^>]+>/g, '') + (s.distance?.text ? ` (${s.distance.text})` : '');
+                list.appendChild(d);
+            });
+        }
+        setDisplay('instructionsSection', 'block');
+
+        if (appState.currentPolyline) appState.currentPolyline.setMap(null);
+        if (google.maps.geometry && google.maps.geometry.encoding && route.overview_polyline && route.overview_polyline.points) {
+            const path = google.maps.geometry.encoding.decodePath(route.overview_polyline.points);
+            appState.currentPolyline = new google.maps.Polyline({
+                path,
+                map: appState.map,
+                strokeColor: '#62b5ff',
+                strokeWeight: 6
+            });
+        }
+
+        if (appState.currentPos && appState.map) {
+            const b = new google.maps.LatLngBounds();
+            b.extend(appState.currentPos);
+            b.extend({ lat: leg.end_location.lat, lng: leg.end_location.lng });
+            appState.map.fitBounds(b, { padding: 50 });
+        }
+    }
+
+    function applyCurrentRouteSelection() {
+        const data = appState.currentRouteData;
+        if (!data || !data.routes || data.routes.length === 0) return;
+
+        let chosen = { route: data.routes[0], index: 0, reason: '' };
+
+        if (window.RouteEvaluator && typeof window.RouteEvaluator.pickBestRoute === 'function') {
+            chosen = window.RouteEvaluator.pickBestRoute(data.routes, appState.userProfile, appState.aiMode);
+        }
+
+        appState.currentRouteData.selectedIndex = chosen.index;
+        appState.currentRouteData.reason = chosen.reason;
+
+        console.log('[WalkNav] Route selection mode=', appState.aiMode, 'index=', chosen.index, 'reason=', chosen.reason);
+
+        renderRoute(chosen.route, appState.currentDestination ? appState.currentDestination.name : '目的地');
     }
 
     /* =========================
@@ -647,44 +810,20 @@ if (WN.booted) {
                 body: JSON.stringify({ origin, destination, mode: 'walking', language: 'ja' })
             });
             const json = await resp.json();
-            if (!json.routes || !json.routes[0]) throw new Error('No route');
-            
-            const r = json.routes[0];
-            const leg = r.legs[0];
-            
-            setText('destinationName', dest.name);
-            setText('routeDistance', leg.distance?.text || '');
-            setText('routeTime', `徒歩 ${leg.duration?.text || ''}`);
-            
-            const list = getEl('navPanelInstructions');
-            if (list) {
-                list.innerHTML = '';
-                leg.steps.forEach(s => {
-                    const d = document.createElement('div');
-                    d.className = 'nav-instruction-item';
-                    d.style.padding = '8px 0';
-                    d.style.borderBottom = '1px solid #eee';
-                    d.textContent = s.html_instructions.replace(/<[^>]+>/g, '') + ` (${s.distance?.text})`;
-                    list.appendChild(d);
-                });
-            }
-            setDisplay('instructionsSection', 'block');
-            
-            if (appState.currentPolyline) appState.currentPolyline.setMap(null);
-            const path = google.maps.geometry.encoding.decodePath(r.overview_polyline.points);
-            appState.currentPolyline = new google.maps.Polyline({
-                path,
-                map: appState.map,
-                strokeColor: '#62b5ff',
-                strokeWeight: 6
-            });
-            
-            const b = new google.maps.LatLngBounds();
-            b.extend(appState.currentPos);
-            b.extend(dest);
-            appState.map.fitBounds(b, { padding: 50 });
-            
+            const routes = json.routes || [];
+            if (!routes[0]) throw new Error('No route');
+
+            appState.currentRouteData = {
+                routes,
+                selectedIndex: 0,
+                reason: ''
+            };
+
+            applyCurrentRouteSelection();
             startLocationWatcher();
+
+            // 目的地周辺のインシデントも確認
+            fetchIncidentsAround(dest.lat, dest.lng);
 
         } catch (e) {
             console.error(e);
@@ -817,11 +956,60 @@ if (WN.booted) {
         if (btnMapRoadmap) btnMapRoadmap.onclick = () => changeMapMode('roadmap');
         const btnMap3D = getEl('btnMap3D');
         if (btnMap3D) btnMap3D.onclick = () => changeMapMode('3d');
+
+        // ユーザープロファイル Select を appState と連動
+        const selLuggage = getEl('userLuggage');
+        const selCondition = getEl('userCondition');
+        const selCompanion = getEl('userCompanion');
+
+        if (selLuggage) {
+            selLuggage.value = appState.userProfile.luggage;
+            selLuggage.onchange = () => {
+                appState.userProfile.luggage = selLuggage.value;
+                persistUserProfile();
+                if (appState.currentRouteData) applyCurrentRouteSelection();
+            };
+        }
+        if (selCondition) {
+            selCondition.value = appState.userProfile.condition;
+            selCondition.onchange = () => {
+                appState.userProfile.condition = selCondition.value;
+                persistUserProfile();
+                if (appState.currentRouteData) applyCurrentRouteSelection();
+            };
+        }
+        if (selCompanion) {
+            selCompanion.value = appState.userProfile.companion;
+            selCompanion.onchange = () => {
+                appState.userProfile.companion = selCompanion.value;
+                persistUserProfile();
+                if (appState.currentRouteData) applyCurrentRouteSelection();
+            };
+        }
+
+        // ルートモード切り替え (標準 / 最短Ai)
+        const btnRouteNormal = getEl('btnRouteNormal');
+        const btnRouteAiShortest = getEl('btnRouteAiShortest');
+        if (btnRouteNormal && btnRouteAiShortest) {
+            btnRouteNormal.onclick = () => {
+                appState.aiMode = 'normal';
+                btnRouteNormal.classList.add('active');
+                btnRouteAiShortest.classList.remove('active');
+                if (appState.currentRouteData) applyCurrentRouteSelection();
+            };
+            btnRouteAiShortest.onclick = () => {
+                appState.aiMode = 'ai';
+                btnRouteAiShortest.classList.add('active');
+                btnRouteNormal.classList.remove('active');
+                if (appState.currentRouteData) applyCurrentRouteSelection();
+            };
+        }
     }
 
     function startApp() {
-        console.log('[WalkNav] Starting Logic + ForcedCSS v7...');
+        console.log('[WalkNav] Starting Logic + ForcedCSS + AI + Incidents v7...');
         applyForcedLayoutCSS();
+        loadUserProfile();
         bindUI();
         appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
         switchPanelTab('search');
