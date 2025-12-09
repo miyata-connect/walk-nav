@@ -469,7 +469,6 @@ if (WN.booted) {
     }
 
     async function fetchIncidentsAround(lat, lng) {
-        // 半径10km固定
         const payload = { lat, lng, radiusKm: 10 };
         try {
             const resp = await fetchWithRetry(`${WORKER_ORIGIN}/incidents`, {
@@ -578,7 +577,6 @@ if (WN.booted) {
             else setText('pointAddress', '不明な場所');
         }).catch(() => setText('pointAddress', '取得エラー'));
 
-        // ポイントを基準にインシデント再取得
         fetchIncidentsAround(lat, lng);
     }
 
@@ -597,7 +595,6 @@ if (WN.booted) {
                 if (data.results?.[0]) setText('locAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
             });
 
-            // 現在地を中心にインシデント取得
             fetchIncidentsAround(latitude, longitude);
         };
 
@@ -606,16 +603,15 @@ if (WN.booted) {
             const loading = getEl('loading');
             if (loading) loading.remove();
             
-            const defaultPos = { lat: 34.0344, lng: 134.0577 }; // つるぎ町
+            const defaultPos = { lat: 35.0, lng: 135.0 }; // 汎用デフォルト位置
             if (!appState.mapInitialized) initMap(defaultPos);
             else appState.map.setCenter(defaultPos);
             
             setUserMarker(defaultPos.lat, defaultPos.lng);
             
-            setText('locAddress', '現在地取得失敗 (つるぎ町)');
+            setText('locAddress', '現在地取得に失敗しました (デフォルト位置)');
             setText('locCoords', 'GPSエラー');
 
-            // デフォルト地点でもインシデント取得（あれば）
             fetchIncidentsAround(defaultPos.lat, defaultPos.lng);
         };
 
@@ -822,7 +818,6 @@ if (WN.booted) {
             applyCurrentRouteSelection();
             startLocationWatcher();
 
-            // 目的地周辺のインシデントも確認
             fetchIncidentsAround(dest.lat, dest.lng);
 
         } catch (e) {
@@ -957,7 +952,6 @@ if (WN.booted) {
         const btnMap3D = getEl('btnMap3D');
         if (btnMap3D) btnMap3D.onclick = () => changeMapMode('3d');
 
-        // ユーザープロファイル Select を appState と連動
         const selLuggage = getEl('userLuggage');
         const selCondition = getEl('userCondition');
         const selCompanion = getEl('userCompanion');
@@ -987,7 +981,6 @@ if (WN.booted) {
             };
         }
 
-        // ルートモード切り替え (標準 / 最短Ai)
         const btnRouteNormal = getEl('btnRouteNormal');
         const btnRouteAiShortest = getEl('btnRouteAiShortest');
         if (btnRouteNormal && btnRouteAiShortest) {
