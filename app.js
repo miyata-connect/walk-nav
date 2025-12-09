@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v7 Logic + ForcedCSS + AI Route Selector + Incidents(10km)
+// WalkNav app.js - v7 Logic + ForcedCSS + AI + Incidents + AdvancedMarker
 
-const ISSUE_ID = 'idx20251209_emergency_fix_v7_logic_forced_css_ai_incidents';
+const ISSUE_ID = 'idx20251210_forcecss_ai_incidents_advmarker';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -294,6 +294,54 @@ function applyForcedLayoutCSS() {
             text-align: center;
             font-size: 14px;
         }
+
+        /* 検索ボックス左のGアイコンを完全非表示 */
+        .icon-g { display: none !important; }
+
+        /* AdvancedMarker 用スタイル */
+        .wn-user-marker {
+            width: 24px;
+            height: 24px;
+            border-radius: 999px;
+            background: #3aa0ff;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 4px rgba(0,0,0,0.4);
+            position: relative;
+            transform-origin: 50% 50%;
+        }
+        .wn-user-marker::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 2px;
+            height: 8px;
+            background: #ffffff;
+            border-radius: 999px;
+            transform: translate(-50%, -90%);
+        }
+        .wn-search-marker {
+            width: 24px;
+            height: 24px;
+            border-radius: 999px;
+            background: #ffffff;
+            border: 2px solid #25d07a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: #111;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+        .wn-point-marker {
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            background: #ff6565;
+            border: 2px solid #ffffff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
     `);
 }
 
@@ -309,6 +357,7 @@ if (WN.booted) {
     const appState = {
         map: null,
         userMarker: null,
+        userMarkerElement: null,
         currentPos: null,
         pointSearchMode: false,
         searchPoint: null,
@@ -322,7 +371,7 @@ if (WN.booted) {
         compassWatchId: null,
         currentHeading: 0,
         isSimulation: false,
-        currentRouteData: null,     // { routes, selectedIndex, reason }
+        currentRouteData: null,
         userProfile: { luggage: 'None', condition: 'Normal', companion: 'None' },
         savedLocations: [],
         editingLocationIndex: null,
@@ -330,8 +379,8 @@ if (WN.booted) {
         mapMode: 'roadmap',
         searchInFlight: false,
         searchRadiusMeters: 10000,
-        aiMode: 'normal',           // "normal" | "ai"
-        incidentData: null          // 直近のインシデント情報
+        aiMode: 'normal',
+        incidentData: null
     };
 
     function getEl(id) { return document.getElementById(id); }
@@ -421,7 +470,7 @@ if (WN.booted) {
     }
 
     /* =========================
-       インシデント取得・表示 (10km)
+       インシデント表示
        ========================= */
 
     function renderIncidentSection(data, isError) {
@@ -489,6 +538,7 @@ if (WN.booted) {
     /* =========================
        Map & Location Logic
        ========================= */
+
     function initMap(center) {
         if (appState.map) {
             appState.map.setCenter(center);
@@ -524,51 +574,56 @@ if (WN.booted) {
     function setUserMarker(lat, lng) {
         appState.currentPos = { lat, lng };
         if (!appState.map) return;
+        if (!google.maps.marker || !google.maps.marker.AdvancedMarkerElement) {
+            console.error('AdvancedMarkerElement not available');
+            return;
+        }
 
-        const arrowIcon = {
-            path: "M12 2L4.5 20.5L12 16.5L19.5 20.5L12 2Z",
-            fillColor: "#3aa0ff",
-            fillOpacity: 1,
-            strokeWeight: 2,
-            strokeColor: "#ffffff",
-            rotation: appState.currentHeading,
-            scale: 1.2,
-            anchor: new google.maps.Point(12, 12)
-        };
+        if (!appState.userMarkerElement) {
+            const el = document.createElement('div');
+            el.className = 'wn-user-marker';
+            appState.userMarkerElement = el;
+        }
 
         if (!appState.userMarker) {
-            appState.userMarker = new google.maps.Marker({
+            appState.userMarker = new google.maps.marker.AdvancedMarkerElement({
                 map: appState.map,
                 position: { lat, lng },
-                icon: arrowIcon,
+                content: appState.userMarkerElement,
                 zIndex: 1000
             });
         } else {
-            appState.userMarker.setPosition({ lat, lng });
-            appState.userMarker.setIcon(arrowIcon);
+            appState.userMarker.position = { lat, lng };
         }
+
+        // 向き反映
+        appState.userMarkerElement.style.transform =
+            `rotate(${appState.currentHeading}deg)`;
     }
 
     function setSearchPoint(lat, lng) {
         appState.searchPoint = { lat, lng };
-        if (appState.searchPointMarker) appState.searchPointMarker.setMap(null);
-        
-        const pinIcon = {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: "#ff6565",
-            fillOpacity: 1,
-            strokeWeight: 2,
-            strokeColor: "white"
-        };
+        if (!appState.map) return;
+        if (!google.maps.marker || !google.maps.marker.AdvancedMarkerElement) {
+            console.error('AdvancedMarkerElement not available');
+            return;
+        }
 
-        appState.searchPointMarker = new google.maps.Marker({
+        if (appState.searchPointMarker) {
+            try { appState.searchPointMarker.map = null; } catch (_) {}
+            appState.searchPointMarker = null;
+        }
+
+        const el = document.createElement('div');
+        el.className = 'wn-point-marker';
+
+        appState.searchPointMarker = new google.maps.marker.AdvancedMarkerElement({
             map: appState.map,
             position: { lat, lng },
-            icon: pinIcon,
+            content: el,
             zIndex: 999
         });
-        
+
         setText('pointAddress', '取得中…');
         setDisplay('pointAddressBlock', 'flex');
         setText('pointCoords', `Lat: ${lat.toFixed(5)}`);
@@ -603,7 +658,7 @@ if (WN.booted) {
             const loading = getEl('loading');
             if (loading) loading.remove();
             
-            const defaultPos = { lat: 35.0, lng: 135.0 }; // 汎用デフォルト位置
+            const defaultPos = { lat: 35.0, lng: 135.0 }; // デフォルト
             if (!appState.mapInitialized) initMap(defaultPos);
             else appState.map.setCenter(defaultPos);
             
@@ -626,12 +681,9 @@ if (WN.booted) {
             const h = e.webkitCompassHeading || (e.absolute ? e.alpha : null);
             if (h != null) {
                 appState.currentHeading = h;
-                if (appState.userMarker) {
-                    const icon = appState.userMarker.getIcon();
-                    if (icon && typeof icon === 'object') {
-                        icon.rotation = h;
-                        appState.userMarker.setIcon(icon);
-                    }
+                if (appState.userMarkerElement) {
+                    appState.userMarkerElement.style.transform =
+                        `rotate(${h}deg)`;
                 }
             }
         };
@@ -708,7 +760,7 @@ if (WN.booted) {
         if (appState.currentPos && appState.map) {
             const b = new google.maps.LatLngBounds();
             b.extend(appState.currentPos);
-            b.extend({ lat: leg.end_location.lat, lng: leg.end_location.lng });
+            b.extend(leg.end_location);
             appState.map.fitBounds(b, { padding: 50 });
         }
     }
@@ -763,8 +815,14 @@ if (WN.booted) {
         setDisplay('results', 'block');
         setDisplay('instructionsSection', 'none');
         
-        appState.searchMarkers.forEach(m => m.setMap(null));
+        appState.searchMarkers.forEach(m => {
+            try { m.map = null; } catch (_) {}
+        });
         appState.searchMarkers = [];
+
+        if (!google.maps.marker || !google.maps.marker.AdvancedMarkerElement) {
+            console.error('AdvancedMarkerElement not available');
+        }
 
         places.slice(0, 5).forEach((p, i) => {
             const lat = p.location.latitude;
@@ -777,12 +835,19 @@ if (WN.booted) {
             item.onclick = () => startNavigation({ name, lat, lng });
             div.appendChild(item);
 
-            appState.searchMarkers.push(new google.maps.Marker({
-                map: appState.map,
-                position: { lat, lng },
-                label: String(i + 1),
-                title: name
-            }));
+            if (google.maps.marker && google.maps.marker.AdvancedMarkerElement && appState.map) {
+                const markerEl = document.createElement('div');
+                markerEl.className = 'wn-search-marker';
+                markerEl.textContent = String(i + 1);
+
+                const m = new google.maps.marker.AdvancedMarkerElement({
+                    map: appState.map,
+                    position: { lat, lng },
+                    content: markerEl,
+                    title: name
+                });
+                appState.searchMarkers.push(m);
+            }
         });
     }
 
@@ -1000,7 +1065,7 @@ if (WN.booted) {
     }
 
     function startApp() {
-        console.log('[WalkNav] Starting Logic + ForcedCSS + AI + Incidents v7...');
+        console.log('[WalkNav] Starting Logic + ForcedCSS + AI + Incidents + AdvancedMarker v7...');
         applyForcedLayoutCSS();
         loadUserProfile();
         bindUI();
