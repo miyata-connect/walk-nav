@@ -1,15 +1,15 @@
 'use strict';
 
 /**
- * WalkNav app.js - v7 Emergency Fix (Logic + Design)
+ * WalkNav app.js - v7 Emergency All-in-One Fix
  * * [修正内容]
- * 1. CSS強制注入: 外部CSSが効いていないため、JSからデザイン（地図の全画面化、パネルの整形）を直接適用。
- * 2. 地図ID削除: "Giant G" バグの修正。
- * 3. マーカー修正: 標準マーカーを使用し、警告と表示崩れを回避。
+ * 1. CSS強制注入: 外部CSSが効いていないため、JSからデザイン（地図全画面、パネル整形）を直接適用。
+ * 2. 地図ID削除: "Giant G" バグの修正（v6で確認済み）。
+ * 3. マーカー修正: 標準マーカーを使用し、警告と表示崩れを回避（v6で確認済み）。
  * 4. GPSフォールバック: 検索不能バグの修正。
  */
 
-const ISSUE_ID = 'idx20251209_emergency_fix_v7';
+const ISSUE_ID = 'idx20251209_emergency_fix_v7_logic_plus_css';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -60,7 +60,7 @@ function injectStyleOnce(key, cssText) {
     document.head.appendChild(style);
 }
 
-// ★強制デザイン修復（CSSが死んでいてもこれで動く）★
+// ★ CSS強制適用（デザイン修復） ★
 function forceApplyDesign() {
     injectStyleOnce('base_layout', `
         html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #eee; }
@@ -77,6 +77,7 @@ function forceApplyDesign() {
             box-shadow: 0 -2px 15px rgba(0,0,0,0.15);
             display: flex; flex-direction: column; overflow: hidden;
             box-sizing: border-box;
+            transition: height 0.3s ease;
         }
         
         /* タブナビ */
@@ -274,6 +275,7 @@ if (WN.booted) {
         appState.currentPos = { lat, lng };
         if (!appState.map) return;
 
+        // SVG Arrow Icon
         const arrowIcon = {
             path: "M12 2L4.5 20.5L12 16.5L19.5 20.5L12 2Z",
             fillColor: "#3aa0ff",
@@ -299,6 +301,7 @@ if (WN.booted) {
         appState.searchPoint = { lat, lng };
         if (appState.searchPointMarker) appState.searchPointMarker.setMap(null);
         
+        // Simple red pin
         const pinIcon = {
             path: google.maps.SymbolPath.CIRCLE,
             scale: 10,
@@ -456,7 +459,7 @@ if (WN.booted) {
             }));
         });
         
-        // 結果表示時はパネル高さを確保
+        // 検索結果が出たらパネルを広げる
         const panel = getEl('searchPanel');
         if(panel) panel.style.height = '60vh';
     }
@@ -466,7 +469,6 @@ if (WN.booted) {
         appState.currentDestination = dest;
         appState.isNavigating = true;
         
-        // UI遷移
         setDisplay('searchPanel', 'block');
         setDisplay('fabStack', 'flex');
         switchPanelTab('nav');
@@ -573,7 +575,7 @@ if (WN.booted) {
     }
 
     function bindUI() {
-        // Force inject styles first
+        // ★強制デザイン適用★
         forceApplyDesign();
 
         const q = getEl('q');
@@ -646,7 +648,7 @@ if (WN.booted) {
     }
 
     function startApp() {
-        console.log('[WalkNav] Starting Emergency Fix v7...');
+        console.log('[WalkNav] Starting Emergency Fix v7 (Logic+Design)...');
         bindUI();
         appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
         switchPanelTab('search');
