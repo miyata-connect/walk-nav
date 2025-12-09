@@ -1,13 +1,17 @@
 'use strict';
 
 /**
- * WalkNav app.js - Manual Fix Verified
- * 1. Removed mapId to fix "Huge G" rendering issue.
- * 2. Added setUserMarker to onError fallback to fix search inability.
- * 3. Cleaned up Merge Conflicts.
+ * WalkNav app.js - Final Fix v6 (Standard Markers)
+ * * Status:
+ * - Map Initialization: OK (Fixed in v5)
+ * - Huge G: Gone (Fixed in v5)
+ * * Changes in v6:
+ * - Replaced `AdvancedMarkerElement` with standard `google.maps.Marker`.
+ * - This resolves the "Map ID required" warning and ensures pins appear on the standard map.
+ * - Restored compass rotation using standard marker SVG icons.
  */
 
-const ISSUE_ID = 'idx20251209_manual_fix_v5';
+const ISSUE_ID = 'idx20251209_standard_marker_fix_v6';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -134,8 +138,6 @@ if (WN.booted) {
         const r20 = getEl('r20');
         const r30 = getEl('r30');
         const btnPoint = getEl('btnPointSearch');
-        
-        // 要素が足りない、または既に作成済みの場合は何もしない
         if (!r10 || !r20 || !r30 || !btnPoint || getEl('wnChipRow')) return;
 
         const row = document.createElement('div');
@@ -155,11 +157,8 @@ if (WN.booted) {
         const panel = getEl('searchPanel');
         const results = getEl('results');
         if (!panel || !results) return;
-        
         const panelRect = panel.getBoundingClientRect();
         const resRect = results.getBoundingClientRect();
-        
-        // 画面外にはみ出さないよう調整
         const available = Math.floor(panelRect.bottom - resRect.top - 10);
         if (available > 80) {
             results.style.maxHeight = `${available}px`;
@@ -212,14 +211,9 @@ if (WN.booted) {
     function switchPanelTab(mode) {
         const isNav = mode === 'nav';
         const isSettings = mode === 'settings';
-        
-        const paneSearch = getEl('tabPaneSearch');
-        const paneNav = getEl('tabPaneNav');
-        const paneSettings = getEl('tabPaneSettings');
-
-        if(paneSearch) paneSearch.classList.toggle('active', !isNav && !isSettings);
-        if(paneNav) paneNav.classList.toggle('active', isNav);
-        if(paneSettings) paneSettings.classList.toggle('active', isSettings);
+        getEl('tabPaneSearch')?.classList.toggle('active', !isNav && !isSettings);
+        getEl('tabPaneNav')?.classList.toggle('active', isNav);
+        getEl('tabPaneSettings')?.classList.toggle('active', isSettings);
         
         const target = isSettings ? 'settings' : (isNav ? 'nav' : 'search');
         document.querySelectorAll('[data-panel-tab]').forEach(btn => {
@@ -248,7 +242,6 @@ if (WN.booted) {
     }
 
     async function placesTextSearch(query, centerLat, centerLng) {
-        // Try Worker first
         const payload = {
             textQuery: query,
             locationBias: { circle: { center: { latitude: centerLat, longitude: centerLng }, radius: appState.searchRadiusMeters } },
@@ -264,7 +257,6 @@ if (WN.booted) {
             return await resp.json();
         } catch (e) {
             console.warn('[WalkNav] Worker search failed, fallback direct:', e);
-            // Fallback Direct
             const resp = await fetchWithRetry(`https://places.googleapis.com/v1/places:searchText`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': API_KEY, 'X-Goog-FieldMask': DEFAULT_MASK },
@@ -276,7 +268,6 @@ if (WN.booted) {
     }
 
     async function geocode(lat, lng) {
-        // Try Worker first
         try {
             const resp = await fetchWithRetry(`${WORKER_ORIGIN}/geocode`, {
                 method: 'POST',
@@ -286,7 +277,6 @@ if (WN.booted) {
             if (!resp.ok) throw new Error(`WORKER ${resp.status}`);
             return await resp.json();
         } catch (e) {
-            // Fallback Direct
             const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=ja&key=${API_KEY}`;
             const resp = await fetchWithRetry(url);
             if (!resp.ok) throw new Error(`DIRECT ${resp.status}`);
@@ -309,7 +299,6 @@ if (WN.booted) {
             appState.map = new google.maps.Map(mapEl, {
                 center,
                 zoom: 17,
-                // mapId Removed to prevent 'Giant G'
                 gestureHandling: 'greedy',
                 clickableIcons: true,
                 disableDefaultUI: true
@@ -330,43 +319,58 @@ if (WN.booted) {
         }
     }
 
+    // FIX: Use Standard Marker for User Pin
     function setUserMarker(lat, lng) {
         appState.currentPos = { lat, lng };
         if (!appState.map) return;
 
+        // SVG Path for Arrow
+        const arrowIcon = {
+            path: "M12 2L4.5 20.5L12 16.5L19.5 20.5L12 2Z",
+            fillColor: "#3aa0ff",
+            fillOpacity: 1,
+            strokeWeight: 2,
+            strokeColor: "#ffffff",
+            rotation: appState.currentHeading,
+            scale: 1.2,
+            anchor: new google.maps.Point(12, 12)
+        };
+
         if (!appState.userMarker) {
-            const pin = document.createElement('div');
-            pin.style.width = '32px';
-            pin.style.height = '32px';
-            pin.innerHTML = `<svg viewBox="0 0 24 24" style="width:100%;height:100%;transform:rotate(${appState.currentHeading}deg);filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));"><path d="M12 2L4.5 20.5L12 16.5L19.5 20.5L12 2Z" fill="#3aa0ff" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>`;
-            try {
-                appState.userMarker = new google.maps.marker.AdvancedMarkerElement({
-                    map: appState.map, position: { lat, lng }, content: pin, zIndex: 1000
-                });
-            } catch (_) {
-                appState.userMarker = new google.maps.Marker({ map: appState.map, position: { lat, lng } });
-            }
+            appState.userMarker = new google.maps.Marker({
+                map: appState.map,
+                position: { lat, lng },
+                icon: arrowIcon,
+                zIndex: 1000
+            });
         } else {
-            appState.userMarker.position = { lat, lng };
+            appState.userMarker.setPosition({ lat, lng });
+            appState.userMarker.setIcon(arrowIcon);
         }
     }
 
+    // FIX: Use Standard Marker for Search Point
     function setSearchPoint(lat, lng) {
         appState.searchPoint = { lat, lng };
-        if (appState.searchPointMarker) appState.searchPointMarker.map = null;
+        if (appState.searchPointMarker) appState.searchPointMarker.setMap(null);
         
-        const pin = document.createElement('div');
-        pin.style.cssText = 'width:30px;height:30px;border-radius:50% 50% 50% 0;background:#ff6565;border:3px solid #fff;transform:rotate(-45deg);box-shadow:0 4px 4px rgba(0,0,0,.3)';
+        // Simple red pin via symbol or icon
+        const pinIcon = {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: "#ff6565",
+            fillOpacity: 1,
+            strokeWeight: 2,
+            strokeColor: "white"
+        };
+
+        appState.searchPointMarker = new google.maps.Marker({
+            map: appState.map,
+            position: { lat, lng },
+            icon: pinIcon,
+            zIndex: 999
+        });
         
-        try {
-            appState.searchPointMarker = new google.maps.marker.AdvancedMarkerElement({
-                map: appState.map, position: { lat, lng }, content: pin, zIndex: 999
-            });
-        } catch (_) {
-            appState.searchPointMarker = new google.maps.Marker({ map: appState.map, position: { lat, lng } });
-        }
-        
-        // Point address fetch
         setText('pointAddress', '取得中…');
         setDisplay('pointAddressBlock', 'flex');
         setText('pointCoords', `Lat: ${lat.toFixed(5)}`);
@@ -385,7 +389,6 @@ if (WN.booted) {
             
             setUserMarker(latitude, longitude);
             
-            // Addr fetch
             setText('locCoords', `Lat: ${latitude.toFixed(5)}`);
             geocode(latitude, longitude).then(data => {
                 if(data.results?.[0]) setText('locAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
@@ -396,12 +399,10 @@ if (WN.booted) {
             console.warn('[WalkNav] Geolocation error:', error);
             getEl('loading')?.remove();
             
-            // Fallback: Tsurugi (Default)
             const defaultPos = { lat: 34.0344, lng: 134.0577 };
             if (!appState.mapInitialized) initMap(defaultPos);
             else appState.map.setCenter(defaultPos);
             
-            // ★ FIX: Ensure marker is set so appState.currentPos is not null ★
             setUserMarker(defaultPos.lat, defaultPos.lng);
             
             setText('locAddress', '現在地取得失敗 (つるぎ町)');
@@ -419,8 +420,14 @@ if (WN.booted) {
             const h = e.webkitCompassHeading || (e.absolute ? e.alpha : null);
             if (h != null) {
                 appState.currentHeading = h;
-                const icon = getEl('user-marker-icon')?.querySelector('svg');
-                if(icon) icon.style.transform = `rotate(${h}deg)`;
+                // Update marker rotation if marker exists
+                if(appState.userMarker) {
+                    const icon = appState.userMarker.getIcon();
+                    if(icon && typeof icon === 'object') {
+                        icon.rotation = h;
+                        appState.userMarker.setIcon(icon);
+                    }
+                }
             }
         };
         if (typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -458,6 +465,7 @@ if (WN.booted) {
         }
     }
 
+    // FIX: Use Standard Markers for results
     function displayResults(places) {
         const div = getEl('results');
         if (!div) return;
@@ -465,7 +473,7 @@ if (WN.booted) {
         setDisplay('results', 'block');
         setDisplay('instructionsSection', 'none');
         
-        appState.searchMarkers.forEach(m => m.map = null);
+        appState.searchMarkers.forEach(m => m.setMap(null));
         appState.searchMarkers = [];
 
         places.slice(0, 5).forEach((p, i) => {
@@ -479,19 +487,13 @@ if (WN.booted) {
             item.onclick = () => startNavigation({ name, lat, lng });
             div.appendChild(item);
 
-            // Marker
-            const pin = document.createElement('div');
-            pin.style.cssText = 'width:24px;height:24px;background:#25d07a;border-radius:50%;color:#fff;text-align:center;line-height:24px;font-weight:bold;border:2px solid #fff;';
-            pin.textContent = i + 1;
-            try {
-                appState.searchMarkers.push(new google.maps.marker.AdvancedMarkerElement({
-                    map: appState.map, position: { lat, lng }, content: pin, title: name
-                }));
-            } catch (_) {
-                appState.searchMarkers.push(new google.maps.Marker({
-                    map: appState.map, position: { lat, lng }, label: String(i+1)
-                }));
-            }
+            // Standard Marker with Label
+            appState.searchMarkers.push(new google.maps.Marker({
+                map: appState.map,
+                position: { lat, lng },
+                label: String(i + 1),
+                title: name
+            }));
         });
         updateScrollableHeights();
     }
@@ -501,14 +503,12 @@ if (WN.booted) {
         appState.currentDestination = dest;
         appState.isNavigating = true;
         
-        // UI Switch
         setDisplay('searchPanel', 'block');
         setDisplay('fabStack', 'flex');
         switchPanelTab('nav');
         setDisplay('routeControlSection', 'block');
         setDisplay('results', 'none');
 
-        // Route API
         try {
             const origin = `${appState.currentPos.lat},${appState.currentPos.lng}`;
             const destination = `${dest.lat},${dest.lng}`;
@@ -539,24 +539,20 @@ if (WN.booted) {
             }
             setDisplay('instructionsSection', 'block');
             
-            // Draw
             if (appState.currentPolyline) appState.currentPolyline.setMap(null);
             const path = google.maps.geometry.encoding.decodePath(r.overview_polyline.points);
             appState.currentPolyline = new google.maps.Polyline({
                 path, map: appState.map, strokeColor: '#62b5ff', strokeWeight: 6
             });
             
-            // Fit bounds
             const b = new google.maps.LatLngBounds();
             b.extend(appState.currentPos);
             b.extend(dest);
             appState.map.fitBounds(b, { padding: 50 });
             
-            // MVP Score Calculation (if module loaded)
             if (typeof RouteEvaluator !== 'undefined') {
                 const wbgt = await RouteEvaluator.fetchWBGT();
                 const score = RouteEvaluator.calculateStressScore(r, appState.userProfile, wbgt);
-                console.log('Stress Score:', score);
                 const scoreEl = document.createElement('div');
                 scoreEl.style.cssText = 'margin-top:8px;padding:8px;background:rgba(0,0,0,0.1);border-radius:8px;font-size:12px;';
                 scoreEl.innerHTML = `ストレススコア: <strong>${score}</strong> (WBGT: ${wbgt})`;
@@ -591,13 +587,11 @@ if (WN.booted) {
        Event Binding
        ========================= */
     function bindUI() {
-        // Search
         const q = getEl('q');
         const btnSearchIcon = getEl('btnSearchIcon');
         if(btnSearchIcon) btnSearchIcon.onclick = () => performSearch(q ? q.value : '');
         if(q) q.onkeypress = (e) => { if(e.key==='Enter') performSearch(q.value); };
         
-        // Reset
         const btnReset = getEl('btnReset');
         if(btnReset) btnReset.onclick = () => {
             if(q) q.value = '';
@@ -607,23 +601,12 @@ if (WN.booted) {
             if(btnP) { btnP.textContent = '📍 ポイント選択'; btnP.style.background=''; btnP.style.color=''; }
         };
 
-        // UI Controls
-        const btnLocate = getEl('btnLocate');
-        if(btnLocate) btnLocate.onclick = () => acquireLocation();
+        getEl('btnLocate').onclick = () => acquireLocation();
+        getEl('btnLocatePanel').onclick = () => acquireLocation();
+        getEl('btnClosePanel').onclick = () => { setDisplay('searchPanel','none'); setDisplay('fabStack','flex'); };
+        getEl('btnSearch').onclick = () => { setDisplay('searchPanel','block'); setDisplay('fabStack','none'); };
+        getEl('btnStopRoute').onclick = () => stopNavigation();
         
-        const btnLocatePanel = getEl('btnLocatePanel');
-        if(btnLocatePanel) btnLocatePanel.onclick = () => acquireLocation();
-        
-        const btnClosePanel = getEl('btnClosePanel');
-        if(btnClosePanel) btnClosePanel.onclick = () => { setDisplay('searchPanel','none'); setDisplay('fabStack','flex'); };
-        
-        const btnSearch = getEl('btnSearch');
-        if(btnSearch) btnSearch.onclick = () => { setDisplay('searchPanel','block'); setDisplay('fabStack','none'); };
-        
-        const btnStopRoute = getEl('btnStopRoute');
-        if(btnStopRoute) btnStopRoute.onclick = () => stopNavigation();
-        
-        // Radius Chips
         const chips = [getEl('r10'), getEl('r20'), getEl('r30')];
         chips.forEach((el, idx) => {
             if(!el) return;
@@ -635,7 +618,6 @@ if (WN.booted) {
             };
         });
 
-        // Point Search
         const btnP = getEl('btnPointSearch');
         if(btnP) {
             btnP.onclick = () => {
@@ -646,7 +628,6 @@ if (WN.booted) {
             };
         }
 
-        // Map Modes
         const btnMapPhoto = getEl('btnMapPhoto');
         if(btnMapPhoto) btnMapPhoto.onclick = () => changeMapMode('photo');
         
@@ -656,13 +637,11 @@ if (WN.booted) {
         const btnMap3D = getEl('btnMap3D');
         if(btnMap3D) btnMap3D.onclick = () => changeMapMode('3d');
 
-        // User Profile Inputs (MVP)
         ['userLuggage', 'userCondition', 'userCompanion'].forEach(id => {
             const el = getEl(id);
             if(el) el.onchange = (e) => appState.userProfile[id.replace('user','').toLowerCase()] = e.target.value;
         });
         
-        // Location Save/Edit (Simplified for MVP)
         const btnSaveLocation = getEl('btnSaveLocation');
         if(btnSaveLocation) btnSaveLocation.onclick = () => {
             if(!appState.currentPos) return;
@@ -687,7 +666,7 @@ if (WN.booted) {
     }
 
     function startApp() {
-        console.log('[WalkNav] Starting Final Fix v5 (Manual)...');
+        console.log('[WalkNav] Starting Final Fix v6 (Standard Markers)...');
         applyUiFixes();
         setDisplay('searchPanel', 'block');
         setDisplay('fabStack', 'none');
@@ -699,7 +678,7 @@ if (WN.booted) {
         updateMapModeButtons(appState.mapMode);
         switchPanelTab('search');
         
-        acquireLocation(); // Starts GPS + Map Init
+        acquireLocation();
         startCompassListener();
     }
 
