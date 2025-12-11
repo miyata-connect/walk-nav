@@ -1,15 +1,15 @@
 'use strict';
 
-// WalkNav app.js - v38: Readable Format & Modal Fix
+// WalkNav app.js - v39: Fix Unresponsive Button & Zoom
 
-const ISSUE_ID = 'idx20251212_v38_readable_fix';
+const ISSUE_ID = 'idx20251212_v39_robust_events';
 
 // Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 
 // Cloudflare Worker
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
-const MAP_ID = '9110fb2763169e9d8f2b317e'; 
+const MAP_ID = '9110fb2763169e9d8f2b317e';
 
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
@@ -159,6 +159,7 @@ if (WN.booted) {
 
   /* === Edit Modal Logic === */
   function openEditModal() {
+    console.log('Opening Edit Modal...'); // Debug
     const modal = getEl('editSavedModal');
     const list = getEl('editModalList');
     if (!modal || !list) return;
@@ -550,7 +551,7 @@ if (WN.booted) {
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v38');
+      console.log('[WalkNav] Map initialized v39');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, {
@@ -843,10 +844,18 @@ if (WN.booted) {
   }
 
   function bindUI() {
-    // === ゾンビボタン駆除 ===
-    const oldBtn = document.getElementById('btnEditSaved');
-    if (oldBtn) oldBtn.remove();
-    // ======================
+    // ----------------------------------------------------
+    // 【修正】新旧両方のIDに対応し、確実にイベントを割り当てる
+    // ----------------------------------------------------
+    const btnNew = getEl('btnOpenEditModal'); // HTMLにある新ID
+    const btnOld = getEl('btnEditSavedList'); // 万が一古いIDの場合
+
+    // どちらか見つかった方にイベントを設定
+    if (btnNew) {
+      btnNew.onclick = openEditModal;
+    } else if (btnOld) {
+      btnOld.onclick = openEditModal;
+    }
 
     const q = getEl('q');
     if (getEl('btnSearchIcon')) getEl('btnSearchIcon').onclick = () => {
@@ -912,12 +921,6 @@ if (WN.booted) {
     const ph = document.querySelector('.panel-handle-area');
     if (ph) ph.onclick = () => getEl('searchPanel').classList.toggle('collapsed');
 
-    // === 新しい編集モーダルのイベント接続 ===
-    const openBtn = getEl('btnOpenEditModal');
-    if (openBtn) {
-      openBtn.onclick = openEditModal;
-    }
-
     if (getEl('btnCancelEdit')) getEl('btnCancelEdit').onclick = closeEditModal;
     if (getEl('btnSaveEdits')) getEl('btnSaveEdits').onclick = saveEditModalChanges;
   }
@@ -962,7 +965,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v38 (Readable Fix)...');
+    console.log('[WalkNav] Starting v39 (Readable Fix)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
