@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v34: Fix Duplicate Buttons & Modal Edit
+// WalkNav app.js - v35: Remove Duplicate Button Logic
 
-const ISSUE_ID = 'idx20251212_v34_modal_fix';
+const ISSUE_ID = 'idx20251212_v35_button_fix';
 
 // Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
@@ -67,14 +67,12 @@ if (WN.booted) {
     alert('保存しました: ' + name);
   }
 
-  // リストの描画（通常表示）
   function renderSavedLocations() {
     let listContainer = getEl('savedSectionContainer');
     if (!listContainer) return;
     
     listContainer.innerHTML = '';
     
-    // ヘッダー + リスト枠
     const section = document.createElement('div');
     section.className = 'saved-section';
     section.innerHTML = `<div class="nav-section-title">📂 保存した場所</div><div id="savedLocationsList"></div>`;
@@ -104,7 +102,7 @@ if (WN.booted) {
     });
   }
 
-  /* === Edit Modal Logic (New) === */
+  /* === Edit Modal Logic === */
   function openEditModal() {
     const modal = getEl('editSavedModal');
     const list = getEl('editModalList');
@@ -115,7 +113,6 @@ if (WN.booted) {
     if (appState.savedLocations.length === 0) {
       list.innerHTML = '<div style="text-align:center; color:#888; margin-top:20px;">保存された場所はありません</div>';
     } else {
-      // 編集用リスト生成
       appState.savedLocations.forEach((loc, idx) => {
         const item = document.createElement('div');
         item.className = 'edit-list-item';
@@ -129,18 +126,12 @@ if (WN.booted) {
         list.appendChild(item);
       });
       
-      // 削除ボタンのイベント設定
       list.querySelectorAll('.btn-delete-icon').forEach(btn => {
         btn.onclick = (e) => {
-          const idx = parseInt(e.target.dataset.deleteIdx);
-          // 画面上から削除（保存はまだしない）
           e.target.closest('.edit-list-item').remove();
-          // データ属性に「削除済み」マークをつけるか、UIから消すだけにして保存時に集計する
-          // ここではシンプルにDOMから消して、保存時に残っているDOMだけを吸い上げる方式にする
         };
       });
     }
-
     modal.style.display = 'flex';
   }
 
@@ -154,16 +145,14 @@ if (WN.booted) {
     if (!list) return;
 
     const newLocations = [];
-    // DOMに残っているアイテムだけを収集
     const items = list.querySelectorAll('.edit-list-item');
     
     items.forEach(item => {
       const input = item.querySelector('.edit-input-name');
-      const idx = parseInt(input.dataset.idx); // 元のインデックス（住所データの参照用）
+      const idx = parseInt(input.dataset.idx);
       const newName = input.value.trim();
       
       if (newName) {
-        // 元のデータから緯度経度などをコピーし、名前だけ更新
         const original = appState.savedLocations[idx];
         if (original) {
           newLocations.push({
@@ -177,7 +166,7 @@ if (WN.booted) {
     });
 
     appState.savedLocations = newLocations;
-    saveLocations(); // LocalStorageへ保存 & メインリスト再描画
+    saveLocations();
     closeEditModal();
   }
 
@@ -408,7 +397,7 @@ if (WN.booted) {
       appState.map.addListener('click', (e) => { if (appState.pointSearchMode && e.latLng) setSearchPoint(e.latLng.lat(), e.latLng.lng()); });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v34');
+      console.log('[WalkNav] Map initialized v35');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, { center, zoom: 17, gestureHandling: 'greedy', clickableIcons: true, disableDefaultUI: true });
@@ -618,13 +607,6 @@ if (WN.booted) {
     if (getEl('btnEditSavedList')) getEl('btnEditSavedList').onclick = openEditModal;
     if (getEl('btnCancelEdit')) getEl('btnCancelEdit').onclick = closeEditModal;
     if (getEl('btnSaveEdits')) getEl('btnSaveEdits').onclick = saveEditModalChanges;
-
-    const addressCard = document.querySelector('.address-card');
-    if (addressCard) {
-      if (!getEl('btnSaveCurrent')) {
-        // もしHTML側にボタンがない場合のフォールバック（今回はHTMLに追加済みなので実行されないはず）
-      }
-    }
   }
 
   function displayResults(places) {
@@ -646,7 +628,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v34 (Modal Edit)...');
+    console.log('[WalkNav] Starting v35 (Button Fix)...');
     loadUserProfile(); loadSavedLocations();
     bindUI(); renderSavedLocations();
     appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
