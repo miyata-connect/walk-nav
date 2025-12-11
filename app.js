@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v33: Unified Weather UI
+// WalkNav app.js - v34: Fix Duplicate Buttons & Modal Edit
 
-const ISSUE_ID = 'idx20251212_v33_unified_weather';
+const ISSUE_ID = 'idx20251212_v34_modal_fix';
 
 // Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
@@ -44,7 +44,7 @@ if (WN.booted) {
     currentPolyline: null, isNavigating: false, locationWatchId: null,
     compassWatchId: null, currentHeading: 0, isSimulation: false,
     currentRouteData: null, userProfile: { luggage: 'None', condition: 'Normal', companion: 'None' },
-    savedLocations: [], isEditingSaved: false,
+    savedLocations: [],
     mapMode: 'roadmap', searchInFlight: false, searchRadiusMeters: 10000,
     aiMode: 'normal', incidentData: null, cachedWeatherData: null
   };
@@ -66,71 +66,119 @@ if (WN.booted) {
     saveLocations();
     alert('保存しました: ' + name);
   }
-  function removeSavedLocation(index) {
-    if (confirm('削除しますか？')) {
-      appState.savedLocations.splice(index, 1);
-      saveLocations();
-    }
-  }
-  function renameSavedLocation(index) {
-    const oldName = appState.savedLocations[index].name;
-    const newName = prompt('新しい名前を入力してください', oldName);
-    if (newName && newName !== oldName) {
-      appState.savedLocations[index].name = newName;
-      saveLocations();
-    }
-  }
-  function toggleEditMode() {
-    appState.isEditingSaved = !appState.isEditingSaved;
-    renderSavedLocations();
-    const btn = getEl('btnEditSaved');
-    if (btn) {
-      btn.textContent = appState.isEditingSaved ? '完了' : '登録地修正';
-      btn.style.backgroundColor = appState.isEditingSaved ? '#25d07a' : '';
-      btn.style.color = appState.isEditingSaved ? '#fff' : '';
-    }
-  }
+
+  // リストの描画（通常表示）
   function renderSavedLocations() {
-    let listContainer = getEl('savedLocationsList');
-    if (!listContainer) {
-      const tabPane = getEl('tabPaneSearch');
-      if (!tabPane) return;
-      const section = document.createElement('div');
-      section.className = 'saved-section';
-      section.innerHTML = `<div class="nav-section-title">📂 保存した場所</div><div id="savedLocationsList" class="saved-list"></div>`;
-      tabPane.appendChild(section);
-      listContainer = getEl('savedLocationsList');
-    }
+    let listContainer = getEl('savedSectionContainer');
+    if (!listContainer) return;
+    
     listContainer.innerHTML = '';
+    
+    // ヘッダー + リスト枠
+    const section = document.createElement('div');
+    section.className = 'saved-section';
+    section.innerHTML = `<div class="nav-section-title">📂 保存した場所</div><div id="savedLocationsList"></div>`;
+    listContainer.appendChild(section);
+
+    const listEl = section.querySelector('#savedLocationsList');
+    
     if (appState.savedLocations.length === 0) {
-      listContainer.innerHTML = '<div style="font-size:12px; color:#888; text-align:center;">保存された場所はありません</div>';
+      listEl.innerHTML = '<div style="font-size:12px; color:#888; text-align:center;">保存された場所はありません</div>';
       return;
     }
-    appState.savedLocations.forEach((loc, index) => {
+
+    appState.savedLocations.forEach((loc) => {
       const item = document.createElement('div');
       item.className = 'saved-item';
-      if (appState.isEditingSaved) item.classList.add('editing');
-      const renameBtnHtml = appState.isEditingSaved ? `<button class="rename-btn" style="margin-right:4px;" data-idx="${index}">🖊️</button>` : '';
       item.innerHTML = `
         <div class="saved-info">
           <div class="saved-name">${loc.name}</div>
           <div class="saved-address">${loc.address || ''}</div>
         </div>
-        <div class="saved-actions">
-          ${renameBtnHtml}
-          <button class="delete-btn" data-idx="${index}">削除</button>
-        </div>
+        <div style="font-size:20px; color:#555;">›</div>
       `;
-      item.onclick = (e) => {
-        if (e.target.tagName === 'BUTTON') return;
-        if (appState.isEditingSaved) { renameSavedLocation(index); }
-        else { startNavigation({ name: loc.name, lat: loc.lat, lng: loc.lng }); }
+      item.onclick = () => {
+        startNavigation({ name: loc.name, lat: loc.lat, lng: loc.lng });
       };
-      item.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); removeSavedLocation(index); };
-      const renBtn = item.querySelector('.rename-btn');
-      if(renBtn) renBtn.onclick = (e) => { e.stopPropagation(); renameSavedLocation(index); };
-      listContainer.appendChild(item);
+      listEl.appendChild(item);
     });
+  }
+
+  /* === Edit Modal Logic (New) === */
+  function openEditModal() {
+    const modal = getEl('editSavedModal');
+    const list = getEl('editModalList');
+    if (!modal || !list) return;
+
+    list.innerHTML = '';
+    
+    if (appState.savedLocations.length === 0) {
+      list.innerHTML = '<div style="text-align:center; color:#888; margin-top:20px;">保存された場所はありません</div>';
+    } else {
+      // 編集用リスト生成
+      appState.savedLocations.forEach((loc, idx) => {
+        const item = document.createElement('div');
+        item.className = 'edit-list-item';
+        item.innerHTML = `
+          <div class="edit-item-inputs">
+            <input type="text" class="edit-input-name" value="${loc.name}" data-idx="${idx}">
+            <div class="edit-text-addr">${loc.address || '住所不明'}</div>
+          </div>
+          <button class="btn-delete-icon" data-delete-idx="${idx}">×</button>
+        `;
+        list.appendChild(item);
+      });
+      
+      // 削除ボタンのイベント設定
+      list.querySelectorAll('.btn-delete-icon').forEach(btn => {
+        btn.onclick = (e) => {
+          const idx = parseInt(e.target.dataset.deleteIdx);
+          // 画面上から削除（保存はまだしない）
+          e.target.closest('.edit-list-item').remove();
+          // データ属性に「削除済み」マークをつけるか、UIから消すだけにして保存時に集計する
+          // ここではシンプルにDOMから消して、保存時に残っているDOMだけを吸い上げる方式にする
+        };
+      });
+    }
+
+    modal.style.display = 'flex';
+  }
+
+  function closeEditModal() {
+    const modal = getEl('editSavedModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function saveEditModalChanges() {
+    const list = getEl('editModalList');
+    if (!list) return;
+
+    const newLocations = [];
+    // DOMに残っているアイテムだけを収集
+    const items = list.querySelectorAll('.edit-list-item');
+    
+    items.forEach(item => {
+      const input = item.querySelector('.edit-input-name');
+      const idx = parseInt(input.dataset.idx); // 元のインデックス（住所データの参照用）
+      const newName = input.value.trim();
+      
+      if (newName) {
+        // 元のデータから緯度経度などをコピーし、名前だけ更新
+        const original = appState.savedLocations[idx];
+        if (original) {
+          newLocations.push({
+            name: newName,
+            lat: original.lat,
+            lng: original.lng,
+            address: original.address
+          });
+        }
+      }
+    });
+
+    appState.savedLocations = newLocations;
+    saveLocations(); // LocalStorageへ保存 & メインリスト再描画
+    closeEditModal();
   }
 
   function loadUserProfile() {
@@ -172,25 +220,17 @@ if (WN.booted) {
     } catch (e) { return '現在地'; }
   }
 
-  // ★統合された天気カード生成 (v33改修)
   function buildWeatherHtml(current, forecast) {
     if (!current) return '<div style="font-size:12px;color:#888;padding:8px;">☁️ 天気情報取得中...</div>';
-    
-    // 現在の天気データ
     const curIcon = `https://openweathermap.org/img/wn/${current.weather[0].icon}@2x.png`;
     const curTemp = Math.round(current.main.temp);
     const curDesc = current.weather[0].description;
-    
-    // 降水確率（直近予報から取得）
     let curPop = 0;
     if (forecast && forecast.list && forecast.list[0]) {
       curPop = Math.round(forecast.list[0].pop * 100);
     }
-    
-    // 未来の天気 (3h, 6h, 9h)
     let forecastItemsHtml = '';
     if (forecast && forecast.list) {
-      // 1=3h後, 2=6h後, 3=9h後
       for (let i = 1; i <= 3; i++) {
         const item = forecast.list[i];
         if (item) {
@@ -198,7 +238,6 @@ if (WN.booted) {
           const fIcon = `https://openweathermap.org/img/wn/${item.weather[0].icon}.png`;
           const fTemp = Math.round(item.main.temp);
           const fPop = Math.round(item.pop * 100);
-          
           forecastItemsHtml += `
             <div class="weather-forecast-item">
               <span class="wf-time">${fTime}</span>
@@ -210,8 +249,6 @@ if (WN.booted) {
         }
       }
     }
-
-    // 統合カードHTML
     return `
       <div class="weather-unified-card">
         <div class="weather-current-section">
@@ -220,7 +257,6 @@ if (WN.booted) {
           <div class="weather-main-desc">${curDesc}</div>
           <div class="weather-pop-badge">☂ ${curPop}%</div>
         </div>
-        
         <div class="weather-forecast-row">
           ${forecastItemsHtml}
         </div>
@@ -229,54 +265,35 @@ if (WN.booted) {
   }
 
   async function updateAllWeatherUI(lat, lng) {
-    // データ取得
     const [current, forecast] = await Promise.all([fetchCurrentWeather(lat, lng), fetchForecast(lat, lng)]);
     appState.cachedWeatherData = { current, forecast };
-    
-    // HTML生成
     const html = buildWeatherHtml(current, forecast);
 
-    // 1. 検索タブ (tabPaneSearch) の表示更新
-    // 住所カードの下あたりに挿入または更新
     const searchPane = getEl('tabPaneSearch');
     if (searchPane) {
       let wEl = getEl('weatherDisplaySearch');
       if (!wEl) {
-        // まだ無ければ作成（住所カードの下）
         wEl = document.createElement('div');
         wEl.id = 'weatherDisplaySearch';
         const addrCard = document.querySelector('.address-card');
         if (addrCard && addrCard.parentNode === searchPane) {
           searchPane.insertBefore(wEl, addrCard.nextSibling);
-        } else {
-          // なければradiusチップの下あたり
-          const chips = searchPane.querySelector('.filter-chips-row');
-          if (chips) searchPane.insertBefore(wEl, chips.nextSibling);
         }
       }
-      wEl.innerHTML = html; 
-      wEl.style.display = 'block';
+      wEl.innerHTML = html; wEl.style.display = 'block';
     }
 
-    // 2. ナビタブ (tabPaneNav) の表示更新
     const navPane = getEl('tabPaneNav');
     if (navPane) {
       let wEl = getEl('weatherDisplayNav');
       if (!wEl) {
         wEl = document.createElement('div');
         wEl.id = 'weatherDisplayNav';
-        // 「現在地情報」の下あたり
         const locInfo = navPane.querySelector('.location-info');
-        if (locInfo && locInfo.parentNode) {
-          locInfo.parentNode.insertBefore(wEl, locInfo.nextSibling);
-        } else {
-          navPane.prepend(wEl);
-        }
+        if (locInfo && locInfo.parentNode) { locInfo.parentNode.insertBefore(wEl, locInfo.nextSibling); }
       }
-      wEl.innerHTML = html;
-      wEl.style.display = 'block';
+      wEl.innerHTML = html; wEl.style.display = 'block';
     }
-
     return current ? { desc: current.weather[0].description, temp: Math.round(current.main.temp) } : { desc: null };
   }
 
@@ -293,7 +310,6 @@ if (WN.booted) {
     }
   }
 
-  /* === Share URL Corrected === */
   function handleShareLocation() {
     let textBody, url;
     if (appState.isNavigating && appState.currentRouteData && appState.currentDestination) {
@@ -317,7 +333,6 @@ if (WN.booted) {
     } else {
       alertOnce('share_err', '位置情報がありません'); return;
     }
-
     if (navigator.share) {
       navigator.share({ title: 'WalkNav', text: textBody, url: url }).catch(e => console.log('Share canceled', e));
     } else {
@@ -393,7 +408,7 @@ if (WN.booted) {
       appState.map.addListener('click', (e) => { if (appState.pointSearchMode && e.latLng) setSearchPoint(e.latLng.lat(), e.latLng.lng()); });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v33');
+      console.log('[WalkNav] Map initialized v34');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, { center, zoom: 17, gestureHandling: 'greedy', clickableIcons: true, disableDefaultUI: true });
@@ -599,26 +614,15 @@ if (WN.booted) {
     const ph = document.querySelector('.panel-handle-area');
     if(ph) ph.onclick = () => getEl('searchPanel').classList.toggle('collapsed');
 
+    // モーダル関連イベント
+    if (getEl('btnEditSavedList')) getEl('btnEditSavedList').onclick = openEditModal;
+    if (getEl('btnCancelEdit')) getEl('btnCancelEdit').onclick = closeEditModal;
+    if (getEl('btnSaveEdits')) getEl('btnSaveEdits').onclick = saveEditModalChanges;
+
     const addressCard = document.querySelector('.address-card');
     if (addressCard) {
-      let actionRow = addressCard.nextElementSibling;
-      if (!actionRow || !actionRow.classList.contains('action-buttons-row')) {
-        actionRow = document.createElement('div');
-        actionRow.className = 'action-buttons-row';
-        addressCard.parentNode.insertBefore(actionRow, addressCard.nextSibling);
-      }
       if (!getEl('btnSaveCurrent')) {
-        const btn = document.createElement('button');
-        btn.id = 'btnSaveCurrent'; btn.className = 'btn btn-outline'; 
-        btn.textContent = '⭐ 現在地保存';
-        btn.onclick = handleSaveCurrentLocation;
-        actionRow.appendChild(btn);
-      }
-      if (!getEl('btnEditSaved')) {
-        const btn = document.createElement('button');
-        btn.id = 'btnEditSaved'; btn.className = 'btn btn-outline'; btn.textContent = '登録地修正';
-        btn.onclick = toggleEditMode;
-        actionRow.appendChild(btn);
+        // もしHTML側にボタンがない場合のフォールバック（今回はHTMLに追加済みなので実行されないはず）
       }
     }
   }
@@ -642,7 +646,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v33 (Unified Weather UI)...');
+    console.log('[WalkNav] Starting v34 (Modal Edit)...');
     loadUserProfile(); loadSavedLocations();
     bindUI(); renderSavedLocations();
     appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
