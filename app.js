@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v40: Coordinates in Modal & Fix Zoom/Events
+// WalkNav app.js - v41: Safer Coords & Zoom Fix
 
-const ISSUE_ID = 'idx20251212_v40_coords_fix';
+const ISSUE_ID = 'idx20251212_v41_final_check';
 
 // Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
@@ -157,7 +157,7 @@ if (WN.booted) {
     });
   }
 
-  /* === Edit Modal Logic (With Coordinates) === */
+  /* === Edit Modal Logic (Updated for Coords) === */
   function openEditModal() {
     console.log('Opening Edit Modal...');
     const modal = getEl('editSavedModal');
@@ -170,9 +170,11 @@ if (WN.booted) {
       list.innerHTML = '<div style="text-align:center; color:#888; margin-top:20px;">保存された場所はありません</div>';
     } else {
       appState.savedLocations.forEach((loc, idx) => {
-        // 座標の整形
-        const latStr = (loc.lat || 0).toFixed(6);
-        const lngStr = (loc.lng || 0).toFixed(6);
+        // ★座標を安全に数値変換して表示
+        const latVal = Number(loc.lat || 0);
+        const lngVal = Number(loc.lng || 0);
+        const latStr = latVal.toFixed(6);
+        const lngStr = lngVal.toFixed(6);
 
         const item = document.createElement('div');
         item.className = 'edit-list-item';
@@ -556,7 +558,7 @@ if (WN.booted) {
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v40');
+      console.log('[WalkNav] Map initialized v41');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, {
@@ -970,7 +972,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v40 (Coords & Events Fix)...');
+    console.log('[WalkNav] Starting v41 (Readable Fix)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
