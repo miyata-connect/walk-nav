@@ -1,4 +1,4 @@
-/* app.css (v40: Coordinates & Anti-Zoom) */
+/* app.css (v41: Coords Visibility Fix) */
 
 /* --------------------
    基本リセット
@@ -120,7 +120,6 @@ body {
   font-weight: 600;
   color: var(--text-muted);
   position: relative;
-  /* 連打拡大防止 */
   touch-action: manipulation;
 }
 
@@ -150,14 +149,8 @@ body {
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* --------------------
@@ -192,7 +185,6 @@ body {
   font-weight: 500;
   padding: 8px 14px;
   transition: all 0.2s;
-  /* 連打拡大防止 */
   touch-action: manipulation;
 }
 
@@ -204,8 +196,7 @@ body {
 }
 
 /* --------------------
-   ボタン (共通設定)
-   ※ここで touch-action: manipulation を指定し拡大を防ぐ
+   ボタン (touch-action: manipulation で拡大防止)
 -------------------- */
 .btn {
   border-radius: 999px;
@@ -219,7 +210,6 @@ body {
   justify-content: center;
   cursor: pointer;
   transition: opacity 0.2s;
-  /* 重要：ダブルタップ拡大を防止 */
   touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
@@ -280,7 +270,7 @@ body {
 }
 
 /* --------------------
-   天気カード (Unified)
+   天気カード
 -------------------- */
 .weather-unified-card {
   display: grid;
@@ -480,7 +470,7 @@ body {
 }
 
 /* --------------------
-   ナビ・FAB
+   ナビ・FAB・その他
 -------------------- */
 .nav-section-title {
   font-size: 13px;
@@ -562,11 +552,7 @@ body {
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .wn-user-marker {
   width: 20px;
@@ -702,11 +688,11 @@ body {
   text-overflow: ellipsis;
 }
 
-/* [New] 座標表示スタイル */
+/* ★[New] 座標表示スタイル（黄色で見やすく） */
 .edit-text-coords {
-  font-size: 10px;
-  color: #6b7280;
-  margin-top: 2px;
+  font-size: 11px;
+  color: #facc15;
+  margin-top: 4px;
   font-family: monospace;
 }
 
