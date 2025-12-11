@@ -1,4 +1,4 @@
-/* app.css (v38: Readable Format) */
+/* app.css (v39: Zoom Fix & Readable) */
 
 /* --------------------
    基本リセット
@@ -22,6 +22,9 @@ body {
   background: #000;
 }
 
+/* --------------------
+   カラートークン
+-------------------- */
 :root {
   --primary: #2563eb;
   --secondary: #4b5563;
@@ -81,6 +84,8 @@ body {
   justify-content: center;
   padding: 6px 0 8px;
   cursor: pointer;
+  /* ハンドル操作時のズーム防止 */
+  touch-action: none;
 }
 
 .panel-handle {
@@ -117,6 +122,8 @@ body {
   font-weight: 600;
   color: var(--text-muted);
   position: relative;
+  /* ボタン連打時のズーム防止 */
+  touch-action: manipulation;
 }
 
 .tab-btn.active {
@@ -145,18 +152,12 @@ body {
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* --------------------
-   UI要素（チップ・見出し）
+   チップ・見出し
 -------------------- */
 .section-title {
   margin: 12px 0 10px;
@@ -187,6 +188,8 @@ body {
   font-weight: 500;
   padding: 8px 14px;
   transition: all 0.2s;
+  /* ズーム防止 */
+  touch-action: manipulation;
 }
 
 .chip.active {
@@ -197,7 +200,7 @@ body {
 }
 
 /* --------------------
-   ボタン
+   ボタン (共通)
 -------------------- */
 .btn {
   border-radius: 999px;
@@ -211,6 +214,10 @@ body {
   justify-content: center;
   cursor: pointer;
   transition: opacity 0.2s;
+  /* 【重要】連打時の拡大防止 */
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .btn:active {
@@ -356,7 +363,7 @@ body {
 }
 
 /* --------------------
-   住所・検索
+   検索・住所
 -------------------- */
 .address-card {
   display: none;
@@ -424,7 +431,7 @@ body {
 }
 
 /* --------------------
-   保存リスト (メイン画面用)
+   保存リスト
 -------------------- */
 .saved-section {
   margin-top: 20px;
@@ -442,6 +449,8 @@ body {
   margin-bottom: 6px;
   border: 1px solid transparent;
   cursor: pointer;
+  /* リスト項目の連打拡大も防止 */
+  touch-action: manipulation;
 }
 
 .saved-item:active {
@@ -467,7 +476,7 @@ body {
 }
 
 /* --------------------
-   ナビゲーション・FAB・その他
+   ナビ・FAB
 -------------------- */
 .nav-section-title {
   font-size: 13px;
@@ -515,6 +524,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: manipulation;
 }
 
 .fab-btn.destination {
@@ -548,11 +558,7 @@ body {
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .wn-user-marker {
   width: 20px;
@@ -586,6 +592,7 @@ body {
   min-height: 40px;
   font-size: 14px;
   font-weight: 600;
+  touch-action: manipulation;
 }
 
 .map-mode-btn.active {
@@ -600,7 +607,7 @@ body {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.85);
-  z-index: 9999; /* 最前面 */
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -699,4 +706,5 @@ body {
   justify-content: center;
   font-size: 18px;
   cursor: pointer;
+  touch-action: manipulation;
 }
