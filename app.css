@@ -1,4 +1,4 @@
-/* app.css  (WalkNav - v33 Unified Weather UI) */
+/* app.css  (WalkNav - v34: Modal Fix - Full Format) */
 
 /* --------------------
    基本リセット
@@ -93,6 +93,10 @@ body {
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+.panel.collapsed {
+  transform: translateY(calc(100% - 40px));
 }
 
 /* パネル上部のつまみ */
@@ -223,7 +227,6 @@ body {
 
 /* --------------------
    Weather Unified Card (New)
-   現在と未来をまとめたカード
 -------------------- */
 .weather-unified-card {
   display: grid;
@@ -323,8 +326,14 @@ body {
   background: var(--panel-elevated);
   border: 1px solid var(--stroke-soft);
 }
-.address-title { font-size: 14px; font-weight: 600; }
-.address-coords { font-size: 11px; color: var(--text-muted); }
+.address-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.address-coords {
+  font-size: 11px;
+  color: var(--text-muted);
+}
 
 /* --------------------
    ボタン
@@ -343,23 +352,61 @@ body {
   outline: none;
   transition: opacity 0.2s;
 }
-.btn:active { opacity: 0.8; }
+.btn:active {
+  opacity: 0.8;
+}
 
-.btn-primary { background: var(--primary); color: #fff; }
-.btn-secondary { background: var(--panel-elevated); color: var(--text-muted); border: 1px solid var(--stroke-soft); }
-.btn-outline { background: transparent; color: var(--text-main); border: 1px solid var(--stroke-soft); }
-.btn-danger { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+.btn-secondary {
+  background: var(--panel-elevated);
+  color: var(--text-muted);
+  border: 1px solid var(--stroke-soft);
+}
+.btn-outline {
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--stroke-soft);
+}
+.btn-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+.btn-danger-block {
+  width: 100%;
+  background: #ef4444;
+  color: #fff;
+}
 
-.bottom-actions-row { display: flex; gap: 8px; margin-top: 16px; }
-.bottom-actions-row .btn { flex: 1; }
+.bottom-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.bottom-actions-row .btn {
+  flex: 1;
+}
 
-.action-buttons-row { display: flex; gap: 8px; margin: 8px 0 12px; }
-.action-buttons-row .btn { flex: 1; font-size: 13px; }
+.action-buttons-row {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+.action-buttons-row .btn {
+  flex: 1;
+  font-size: 13px;
+}
 
 /* --------------------
    検索ボックス
 -------------------- */
-.search-box-container { margin-top: 8px; margin-bottom: 12px; }
+.search-box-container {
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
 .input-wrapper {
   display: flex;
   align-items: center;
@@ -378,7 +425,14 @@ body {
   font-size: 16px;
   outline: none;
 }
-.input::placeholder { color: rgba(255,255,255,0.3); }
+.input::placeholder {
+  color: rgba(255,255,255,0.3);
+}
+.icon svg {
+  width: 20px;
+  height: 20px;
+  fill: #e5e7eb;
+}
 
 /* --------------------
    検索結果リスト
@@ -395,7 +449,9 @@ body {
   border-bottom: 1px solid rgba(255,255,255,0.05);
   font-size: 14px;
 }
-.result-item:last-child { border-bottom: none; }
+.result-item:last-child {
+  border-bottom: none;
+}
 
 /* --------------------
    ナビゲーション情報
@@ -410,13 +466,28 @@ body {
 .route-summary-card {
   padding: 14px;
   border-radius: 16px;
-  background: rgba(37, 99, 235, 0.1); /* Primary Soft */
+  background: rgba(37, 99, 235, 0.1);
   border: 1px solid rgba(37, 99, 235, 0.3);
   margin-bottom: 12px;
 }
-.route-dest { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-.route-stats { font-size: 20px; font-weight: 800; color: #fff; display: flex; gap: 12px; align-items: baseline; }
-.stat-time { font-size: 14px; font-weight: 500; color: #bfdbfe; }
+.route-dest {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.route-stats {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+.stat-time {
+  font-size: 14px;
+  font-weight: 500;
+  color: #bfdbfe;
+}
 
 .instructions-list {
   max-height: 25vh;
@@ -457,8 +528,14 @@ body {
   align-items: center;
   justify-content: center;
 }
-.fab-btn.destination { background: var(--accent); color: #fff; }
-.fab-btn.voice-btn { background: #333; color: #fff; }
+.fab-btn.destination {
+  background: var(--accent);
+  color: #fff;
+}
+.fab-btn.voice-btn {
+  background: #333;
+  color: #fff;
+}
 
 /* --------------------
    ローディング & その他
@@ -483,30 +560,200 @@ body {
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
 /* ユーザーマーカー */
 .wn-user-marker {
-  width: 20px; height: 20px;
-  background: #3b82f6; border: 3px solid #fff;
-  border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  width: 20px;
+  height: 20px;
+  background: #3b82f6;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
 .wn-point-marker {
-  width: 24px; height: 24px;
-  background: #ef4444; border: 3px solid #fff;
-  border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  width: 24px;
+  height: 24px;
+  background: #ef4444;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
 
 /* 保存済みリスト */
-.saved-section { margin-top: 20px; border-top: 1px solid var(--stroke-soft); padding-top: 10px; }
-.saved-item {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.05); margin-bottom: 6px;
+.saved-section {
+  margin-top: 20px;
+  border-top: 1px solid var(--stroke-soft);
+  padding-top: 10px;
 }
-.saved-name { font-weight: bold; font-size: 14px; }
-.saved-address { font-size: 11px; color: #9ca3af; }
-.delete-btn { background: #7f1d1d; color: #fca5a5; border:none; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
+.saved-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+  margin-bottom: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.saved-item:active {
+  background: rgba(255,255,255,0.1);
+}
+.saved-info {
+  overflow: hidden;
+}
+.saved-name {
+  font-weight: bold;
+  font-size: 14px;
+  color: #fff;
+}
+.saved-address {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* AIモード選択など */
-.route-mode-toggle { margin-top: 8px; display: flex; gap: 8px; }
-.route-mode-toggle .chip { padding: 4px 10px; min-height: 30px; font-size: 12px; }
+.route-mode-toggle {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+.route-mode-toggle .chip {
+  padding: 4px 10px;
+  min-height: 30px;
+  font-size: 12px;
+}
+
+/* 設定：地図モードボタン */
+.map-mode-buttons {
+  display: flex;
+  gap: 8px;
+}
+.map-mode-btn {
+  flex: 1;
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.6);
+  background: rgba(31,41,55,0.9);
+  color: #e5e7eb;
+  min-height: 40px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.map-mode-btn.active {
+  background: #fff;
+  color: #000;
+}
+
+/* --------------------------------------------------------
+   [New] Edit Modal Styles (v34 Added)
+-------------------------------------------------------- */
+.edit-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.edit-modal-content {
+  background: #1f2937;
+  width: 90%;
+  max-width: 400px;
+  max-height: 80vh;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.edit-modal-title {
+  padding: 16px;
+  margin: 0;
+  font-size: 16px;
+  color: #fff;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  text-align: center;
+}
+
+.edit-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.edit-modal-actions {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  gap: 10px;
+  background: #111827;
+}
+.edit-modal-actions .btn {
+  flex: 1;
+}
+
+/* Modal List Item */
+.edit-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  background: rgba(0,0,0,0.2);
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.edit-item-inputs {
+  flex: 1;
+  overflow: hidden;
+}
+
+.edit-input-name {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #4b5563;
+  color: #fff;
+  font-size: 15px;
+  padding: 4px 0;
+  border-radius: 0;
+  outline: none;
+}
+.edit-input-name:focus {
+  border-bottom-color: var(--accent);
+}
+
+.edit-text-addr {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-delete-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(239,68,68,0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239,68,68,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+}
