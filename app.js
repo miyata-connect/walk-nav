@@ -1,18 +1,18 @@
 'use strict';
 
-// WalkNav app.js - v22: Safe Map Init (Fallback) + Weather Proxy + Anti-Flash
+// WalkNav app.js - v23: Fix Map Init Timing + Strict Proxy + Anti-Flash
 
-const ISSUE_ID = 'idx20251211_v22_safe_map_init';
+const ISSUE_ID = 'idx20251211_v23_fix_map_timing';
 
-// Google Maps APIキー (クライアント側で地図表示に必要)
+// Google Maps APIキー (地図表示用: クライアント側に必須)
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 
-// Cloudflare Workerのエンドポイント
+// Cloudflare Workerのエンドポイント (天気・検索・ルートは全てここを経由)
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const MAP_ID = '9110fb2763169e9d8f2b317e'; 
 
 /* ==========================================================================
-   【最優先実行】CSS強制注入 (巨大アイコン防止)
+   【最優先実行】CSS強制注入 (巨大アイコン防止 & デザイン定義)
    ========================================================================== */
 (function applyImmediateCSS() {
   const styleId = 'wn-forced-layout-css';
@@ -27,7 +27,8 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
       background: #f5f5f5;
     }
 
-    /* === ★SVG巨大化防止: Google Maps以外はサイズ固定★ === */
+    /* === ★SVG巨大化防止: 初期ロード時は強制サイズ固定★ === */
+    /* Google Maps以外のSVGすべてに適用 */
     svg:not(.gm-style svg) {
       width: 24px !important;
       height: 24px !important;
@@ -45,7 +46,7 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
     .app { position: relative; width: 100%; height: 100%; overflow: hidden; background: #f5f5f5; }
     #map { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
 
-    /* パネル */
+    /* パネルデザイン */
     .panel {
       position: absolute; left: 0; right: 0; bottom: 0;
       max-height: 55vh; height: 55vh;
@@ -53,13 +54,13 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
       box-shadow: 0 -2px 15px rgba(0,0,0,0.15);
       display: flex; flex-direction: column; z-index: 1000;
       box-sizing: border-box; overflow: hidden;
-      transition: height 0.3s ease;
+      transition: height 0.3s ease; 
     }
     .panel.collapsed { height: 56px; }
     .panel-handle-area { padding: 6px 0 2px; display: flex; justify-content: center; cursor: pointer; }
     .panel-handle { width: 40px; height: 4px; border-radius: 999px; background: #e0e0e0; }
 
-    /* タブ */
+    /* タブヘッダー */
     .panel-tabs-header { display: flex; border-bottom: 1px solid #e5e5e5; background: #fafafa; }
     .panel-tabs-header .tab-btn { flex: 1; text-align: center; padding: 10px 4px; font-size: 14px; cursor: pointer; }
     .panel-tabs-header .tab-btn.active { font-weight: 600; border-bottom: 3px solid #25d07a; background: #ffffff; }
@@ -76,24 +77,46 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
     .weather-forecast-list { display: flex; flex-direction: column; gap: 4px; }
     .weather-forecast-item { display: flex; align-items: center; justify-content: space-between; background: #ffffff; padding: 4px 8px; border-radius: 6px; font-size: 12px; color: #333; }
 
-    /* UIパーツ */
-    .filter-chips-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px; }
+    /* 検索フィルターチップ */
+    .filter-chips-row { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px; }
     .filter-chips-row::-webkit-scrollbar { display: none; }
     .chip { flex: 0 0 auto; border-radius: 16px; border: 1px solid #ccc; padding: 6px 12px; font-size: 12px; background: #fff; cursor: pointer; }
     .chip.active { background: #25d07a; color: #fff; border-color: #25d07a; }
-    .search-box-container { margin: 4px 0 8px; }
+
+    /* 入力フォーム */
+    .search-box-container { margin-top: 4px; margin-bottom: 8px; }
     .input-wrapper { display: flex; align-items: center; border-radius: 999px; border: 1px solid #ccc; padding: 2px 8px; background: #fff; }
     .input-wrapper .input { border: none; flex: 1; font-size: 14px; padding: 8px 6px; outline: none; background: transparent; }
     .icon { display: inline-flex; align-items: center; justify-content: center; }
+    
+    /* 検索結果リスト */
     .results-list { margin-top: 4px; border-radius: 8px; border: 1px solid #eee; overflow: hidden; background: #fff; }
     .result-item { padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 13px; cursor: pointer; }
     .result-item:last-child { border-bottom: none; }
     .result-item:active { background: #f0f0f0; }
-    .address-card { margin: 4px 0 8px; padding: 8px 10px; border-radius: 8px; background: #f1f5f9; font-size: 12px; }
+
+    /* 住所カード */
+    .address-card { margin-top: 4px; margin-bottom: 8px; padding: 8px 10px; border-radius: 8px; background: #f1f5f9; font-size: 12px; }
+    .address-title { font-weight: 600; margin-bottom: 2px; }
+    .address-coords { color: #6b7280; }
+
+    /* ボタン類 */
+    .action-buttons-row, .bottom-actions-row { display: flex; gap: 8px; margin-top: 8px; }
+    .btn { flex: 1; border-radius: 999px; border: 1px solid #ccc; padding: 8px 10px; font-size: 13px; background: #fff; cursor: pointer; text-align: center;}
+    .btn-primary { border-color: #25d07a; background: #25d07a; color: #fff; }
+    .btn-secondary { background: #e5e7eb; border-color: #d1d5db; }
+    .btn-danger { border-color: #f97373; background: #fee2e2; color: #b91c1c; }
+    .btn-danger-block { width: 100%; border-color: #f97373; background: #fee2e2; color: #b91c1c; }
+
+    /* FAB */
     .fab-container { position: absolute; right: 12px; bottom: 58vh; display: flex; flex-direction: column; gap: 8px; z-index: 900; pointer-events: none; }
     .fab-container .fab-btn { pointer-events: auto; min-width: 48px; height: 40px; border-radius: 999px; border: none; padding: 0 12px; font-size: 12px; background: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.2); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
     .fab-container .fab-btn.destination { background: #25d07a; color: #fff; }
     .fab-container .fab-btn.voice-btn { background: #333; color: #fff; font-size: 16px; }
+
+    /* その他 */
+    .loading-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.9); z-index: 1100; }
+    .nav-section { margin-bottom: 12px; }
     .nav-section-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
     .incident-alert { border-radius: 8px; border: 1px solid #facc15; background: #fef9c3; color: #713f12; padding: 8px 10px; font-size: 12px; }
 
@@ -278,6 +301,7 @@ if (WN.booted) {
       });
       if (!resp.ok) throw new Error('Worker Error'); return await resp.json();
     } catch (e) {
+      console.warn('Worker search failed, fallback direct', e);
       const resp = await fetchWithRetry(`https://places.googleapis.com/v1/places:searchText`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': API_KEY, 'X-Goog-FieldMask': DEFAULT_MASK },
@@ -320,24 +344,23 @@ if (WN.booted) {
     } catch (_) {}
   }
 
-  /* === Map Logic (Safety Fix) === */
+  /* === Map Logic (Timing Fix) === */
   function initMap(center) {
     if (appState.map) { appState.map.setCenter(center); return; }
     const mapEl = getEl('map'); if (!mapEl) return;
     
-    // 基本オプション
     const options = { center, zoom: 17, gestureHandling: 'greedy', clickableIcons: true, disableDefaultUI: true };
 
     try {
-      // 1. まず Map ID 付きで初期化を試みる
+      // 1. Map ID ありで初期化を試みる
       appState.map = new google.maps.Map(mapEl, { ...options, mapId: MAP_ID });
       console.log('[WalkNav] Map initialized with ID');
     } catch (e) {
-      // 2. 失敗したら（Map Init Failed）、IDなしでリトライ（セーフモード）
-      console.warn('Map ID init failed, falling back to legacy map', e);
+      // 2. 失敗時は ID なしで再試行 (Safe Mode)
+      console.warn('Map ID init failed, fallback legacy', e);
       try {
         appState.map = new google.maps.Map(mapEl, options);
-        console.log('[WalkNav] Map initialized in Safe Mode (No ID)');
+        console.log('[WalkNav] Map initialized (Legacy)');
       } catch (e2) {
         alertOnce('map_fail', '地図の表示に失敗しました');
         return;
@@ -353,7 +376,7 @@ if (WN.booted) {
     appState.currentPos = { lat, lng };
     if (!appState.map) return;
 
-    // AdvancedMarkerが使えるかチェック
+    // AdvancedMarker 利用可否判定
     const useAdvanced = (google.maps.marker && google.maps.marker.AdvancedMarkerElement && appState.map.getMapCapabilities().isAdvancedMarkersAvailable !== false);
 
     if (useAdvanced) {
@@ -363,7 +386,7 @@ if (WN.booted) {
       } else { appState.userMarker.position = { lat, lng }; }
       if (appState.userMarkerElement) appState.userMarkerElement.style.transform = `rotate(${appState.currentHeading}deg)`;
     } else {
-      // フォールバック: 通常マーカー
+      // Fallback: Legacy Marker
       if (!appState.userMarker) {
         appState.userMarker = new google.maps.Marker({
           map: appState.map, position: { lat, lng }, zIndex: 1000,
@@ -432,7 +455,8 @@ if (WN.booted) {
   function startLocationWatcher() {
     if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
     appState.locationWatchId = navigator.geolocation.watchPosition(pos => {
-      setUserMarker(pos.coords.latitude, pos.coords.longitude);
+      const { latitude, longitude } = pos.coords;
+      setUserMarker(latitude, longitude);
       if (appState.isNavigating && appState.map) appState.map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
     }, null, LOCATION_OPTIONS);
   }
@@ -554,7 +578,6 @@ if (WN.booted) {
     appState.searchMarkers.forEach(m => { if(m.map) m.map=null; if(m.setMap) m.setMap(null); });
     appState.searchMarkers = [];
     
-    // AdvancedMarker使えるか
     const useAdvanced = (appState.map && google.maps.marker && google.maps.marker.AdvancedMarkerElement && appState.map.getMapCapabilities().isAdvancedMarkersAvailable !== false);
 
     places.slice(0, 5).forEach((p, i) => {
@@ -575,12 +598,25 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v22 (SafeMap + Proxy)...');
+    console.log('[WalkNav] Starting v23 (Wait Loop)...');
     loadUserProfile(); bindUI();
     appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
     switchPanelTab('search'); acquireLocation(); startCompassListener();
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(startApp, 100));
-  else setTimeout(startApp, 100);
+  /* === ★重要★ Google Maps APIの読み込み完了を待機するループ === */
+  function initializeWhenReady() {
+    if (typeof google !== 'undefined' && google.maps && google.maps.Map) {
+      startApp();
+    } else {
+      console.log('[WalkNav] Waiting for Google Maps API...');
+      setTimeout(initializeWhenReady, 200); // 0.2秒後に再チェック
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeWhenReady);
+  } else {
+    initializeWhenReady();
+  }
 }
