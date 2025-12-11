@@ -1,4 +1,4 @@
-/* app.css  (WalkNav - v34: Modal Fix - Full Format) */
+/* app.css (v38: Readable Format) */
 
 /* --------------------
    基本リセット
@@ -16,23 +16,14 @@ body {
   height: 100dvh !important;
   width: 100% !important;
   overflow: hidden !important;
-  overflow-x: hidden !important;
   overscroll-behavior: none;
   -webkit-text-size-adjust: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-               "Hiragino Sans", "Noto Sans JP", "Helvetica Neue",
-               Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
   background: #000;
 }
 
-/* --------------------
-   カラートークン
--------------------- */
 :root {
   --primary: #2563eb;
-  --primary-soft: rgba(37, 99, 235, 0.15);
-  --danger: #ef4444;
-  --danger-soft: rgba(239, 68, 68, 0.15);
   --secondary: #4b5563;
   --accent: #25d07a;
   --text-main: #f9fafb;
@@ -40,10 +31,6 @@ body {
   --panel-bg: rgba(20, 20, 24, 0.98);
   --panel-elevated: rgba(35, 35, 40, 1);
   --stroke-soft: rgba(255, 255, 255, 0.15);
-  --chip-bg: rgba(55, 65, 81, 0.9);
-  --chip-bg-active: #ffffff;
-  --chip-text: #e5e7eb;
-  --chip-text-active: #111827;
 }
 
 /* --------------------
@@ -52,8 +39,8 @@ body {
 .app {
   position: relative;
   width: 100%;
-  height: 100dvh !important;
-  overflow: hidden !important;
+  height: 100dvh;
+  overflow: hidden;
   background: #000;
 }
 
@@ -61,7 +48,7 @@ body {
   position: absolute;
   inset: 0;
   width: 100%;
-  height: 100dvh !important;
+  height: 100dvh;
 }
 
 /* --------------------
@@ -73,37 +60,25 @@ body {
   right: 0;
   bottom: 0;
   height: 55vh;
-  max-height: 65vh; 
-  background: linear-gradient(
-    to bottom,
-    rgba(15, 15, 18, 0.98),
-    rgba(10, 10, 12, 1)
-  );
+  max-height: 65vh;
+  background: linear-gradient(to bottom, rgba(15, 15, 18, 0.98), rgba(10, 10, 12, 1));
   box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.8);
-  padding: 8px 0 12px;
-  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 0 calc(12px + env(safe-area-inset-bottom, 0px));
   border-radius: 20px 20px 0 0;
   color: var(--text-main);
   display: flex;
   flex-direction: column;
   z-index: 1000;
   transition: transform 0.3s ease-out;
-  will-change: transform;
-  touch-action: manipulation;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
 }
 
 .panel.collapsed {
   transform: translateY(calc(100% - 40px));
 }
 
-/* パネル上部のつまみ */
 .panel-handle-area {
   display: flex;
   justify-content: center;
-  align-items: center; 
   padding: 6px 0 8px;
   cursor: pointer;
 }
@@ -116,7 +91,7 @@ body {
 }
 
 /* --------------------
-   タブ（操作 / 案内 / 設定）
+   タブ
 -------------------- */
 .panel-tabs-header {
   display: flex;
@@ -128,24 +103,19 @@ body {
 }
 
 .panel-tabs-body {
-  position: relative;
-  flex: 1 1 auto;
+  flex: 1;
   padding: 0 16px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 .tab-btn {
-  flex: 1 1 0;
+  flex: 1;
   text-align: center;
-  border-radius: 8px;
   padding: 8px 0;
   font-size: 14px;
   font-weight: 600;
   color: var(--text-muted);
-  background: transparent;
-  outline: none;
-  -webkit-tap-highlight-color: transparent;
   position: relative;
 }
 
@@ -165,42 +135,47 @@ body {
   border-radius: 2px;
 }
 
-/* タブコンテンツ切り替え */
 .tab-pane {
   display: none;
 }
+
 .tab-pane.active {
   display: block;
   animation: fadeIn 0.2s ease;
 }
+
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* --------------------
-   見出し・チップ
+   UI要素（チップ・見出し）
 -------------------- */
 .section-title {
   margin: 12px 0 10px;
   font-size: 16px;
   font-weight: 700;
   color: var(--text-main);
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .filter-chips-row {
   display: flex;
-  align-items: center;
   gap: 8px;
   margin-bottom: 12px;
-  flex-wrap: nowrap;
   overflow-x: auto;
   padding-bottom: 4px;
 }
-.filter-chips-row::-webkit-scrollbar { display: none; }
+
+.filter-chips-row::-webkit-scrollbar {
+  display: none;
+}
 
 .chip {
   flex: 0 0 auto;
@@ -211,10 +186,6 @@ body {
   font-size: 13px;
   font-weight: 500;
   padding: 8px 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  outline: none;
   transition: all 0.2s;
 }
 
@@ -223,116 +194,6 @@ body {
   color: #000;
   border-color: transparent;
   font-weight: 700;
-}
-
-/* --------------------
-   Weather Unified Card (New)
--------------------- */
-.weather-unified-card {
-  display: grid;
-  grid-template-columns: 1.2fr 1.8fr; /* 左:現在, 右:予報 */
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  border-radius: 16px;
-  padding: 12px;
-  margin-bottom: 16px;
-  align-items: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  gap: 12px;
-}
-
-/* 左側：現在 */
-.weather-current-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  border-right: 1px solid rgba(255,255,255,0.1);
-  padding-right: 12px;
-}
-.weather-main-icon {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-}
-.weather-main-temp {
-  font-size: 24px;
-  font-weight: 700;
-  color: #fff;
-  line-height: 1;
-  margin: 4px 0;
-}
-.weather-main-desc {
-  font-size: 11px;
-  color: #94a3b8;
-}
-.weather-pop-badge {
-  margin-top: 4px;
-  font-size: 11px;
-  background: rgba(37, 99, 235, 0.2);
-  color: #60a5fa;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 600;
-}
-
-/* 右側：未来 (3h/6h/9h) */
-.weather-forecast-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 4px;
-}
-.weather-forecast-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: rgba(255,255,255,0.03);
-  border-radius: 8px;
-  padding: 6px 4px;
-}
-.wf-time {
-  font-size: 10px;
-  color: #94a3b8;
-  margin-bottom: 2px;
-}
-.wf-icon {
-  width: 28px;
-  height: 28px;
-  margin-bottom: 2px;
-}
-.wf-temp {
-  font-size: 13px;
-  font-weight: 600;
-  color: #fff;
-}
-.wf-pop {
-  font-size: 10px;
-  color: #60a5fa;
-}
-
-/* --------------------
-   アドレスカードなど
--------------------- */
-.address-card {
-  display: none;
-  flex-direction: column;
-  gap: 2px;
-  padding: 12px;
-  margin-bottom: 12px;
-  border-radius: 12px;
-  background: var(--panel-elevated);
-  border: 1px solid var(--stroke-soft);
-}
-.address-title {
-  font-size: 14px;
-  font-weight: 600;
-}
-.address-coords {
-  font-size: 11px;
-  color: var(--text-muted);
 }
 
 /* --------------------
@@ -349,9 +210,9 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  outline: none;
   transition: opacity 0.2s;
 }
+
 .btn:active {
   opacity: 0.8;
 }
@@ -360,34 +221,29 @@ body {
   background: var(--primary);
   color: #fff;
 }
+
 .btn-secondary {
   background: var(--panel-elevated);
   color: var(--text-muted);
   border: 1px solid var(--stroke-soft);
 }
+
 .btn-outline {
   background: transparent;
   color: var(--text-main);
   border: 1px solid var(--stroke-soft);
 }
+
 .btn-danger {
   background: rgba(239, 68, 68, 0.2);
   color: #fca5a5;
   border: 1px solid rgba(239, 68, 68, 0.4);
 }
+
 .btn-danger-block {
   width: 100%;
   background: #ef4444;
   color: #fff;
-}
-
-.bottom-actions-row {
-  display: flex;
-  gap: 8px;
-  margin-top: 16px;
-}
-.bottom-actions-row .btn {
-  flex: 1;
 }
 
 .action-buttons-row {
@@ -395,28 +251,149 @@ body {
   gap: 8px;
   margin: 8px 0 12px;
 }
+
 .action-buttons-row .btn {
   flex: 1;
   font-size: 13px;
 }
 
-/* --------------------
-   検索ボックス
--------------------- */
-.search-box-container {
-  margin-top: 8px;
-  margin-bottom: 12px;
+.bottom-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
 }
+
+.bottom-actions-row .btn {
+  flex: 1;
+}
+
+/* --------------------
+   天気カード (Unified)
+-------------------- */
+.weather-unified-card {
+  display: grid;
+  grid-template-columns: 1.2fr 1.8fr;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 16px;
+  gap: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.weather-current-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  padding-right: 12px;
+}
+
+.weather-main-icon {
+  width: 48px;
+  height: 48px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.weather-main-temp {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  margin: 4px 0;
+}
+
+.weather-main-desc {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.weather-pop-badge {
+  margin-top: 4px;
+  font-size: 11px;
+  background: rgba(37, 99, 235, 0.2);
+  color: #60a5fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.weather-forecast-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.weather-forecast-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 6px 4px;
+}
+
+.wf-time {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.wf-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.wf-temp {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.wf-pop {
+  font-size: 10px;
+  color: #60a5fa;
+}
+
+/* --------------------
+   住所・検索
+-------------------- */
+.address-card {
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: var(--panel-elevated);
+  border: 1px solid var(--stroke-soft);
+}
+
+.address-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.address-coords {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.search-box-container {
+  margin: 8px 0 12px;
+}
+
 .input-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 0 14px;
   border-radius: 12px;
-  background: rgba(0,0,0,0.3);
+  background: rgba(0, 0, 0, 0.3);
   border: 1px solid var(--stroke-soft);
   height: 48px;
 }
+
 .input {
   flex: 1;
   border: none;
@@ -425,18 +402,13 @@ body {
   font-size: 16px;
   outline: none;
 }
-.input::placeholder {
-  color: rgba(255,255,255,0.3);
-}
+
 .icon svg {
   width: 20px;
   height: 20px;
   fill: #e5e7eb;
 }
 
-/* --------------------
-   検索結果リスト
--------------------- */
 .results-list {
   padding: 0;
   border-radius: 12px;
@@ -444,25 +416,66 @@ body {
   max-height: 35vh;
   overflow-y: auto;
 }
+
 .result-item {
   padding: 12px 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   font-size: 14px;
-}
-.result-item:last-child {
-  border-bottom: none;
 }
 
 /* --------------------
-   ナビゲーション情報
+   保存リスト (メイン画面用)
+-------------------- */
+.saved-section {
+  margin-top: 20px;
+  border-top: 1px solid var(--stroke-soft);
+  padding-top: 10px;
+}
+
+.saved-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  margin-bottom: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.saved-item:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.saved-info {
+  overflow: hidden;
+}
+
+.saved-name {
+  font-weight: bold;
+  font-size: 14px;
+  color: #fff;
+}
+
+.saved-address {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --------------------
+   ナビゲーション・FAB・その他
 -------------------- */
 .nav-section-title {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-muted);
   margin-bottom: 8px;
-  margin-top: 16px;
 }
+
 .route-summary-card {
   padding: 14px;
   border-radius: 16px;
@@ -470,11 +483,7 @@ body {
   border: 1px solid rgba(37, 99, 235, 0.3);
   margin-bottom: 12px;
 }
-.route-dest {
-  font-size: 15px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
+
 .route-stats {
   font-size: 20px;
   font-weight: 800;
@@ -483,29 +492,7 @@ body {
   gap: 12px;
   align-items: baseline;
 }
-.stat-time {
-  font-size: 14px;
-  font-weight: 500;
-  color: #bfdbfe;
-}
 
-.instructions-list {
-  max-height: 25vh;
-  overflow-y: auto;
-  border-radius: 12px;
-  background: var(--panel-elevated);
-  padding: 8px 0;
-}
-.nav-instruction-item {
-  padding: 10px 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-/* --------------------
-   FAB
--------------------- */
 .fab-container {
   position: absolute;
   right: 16px;
@@ -515,6 +502,7 @@ body {
   gap: 10px;
   z-index: 20;
 }
+
 .fab-btn {
   width: 50px;
   height: 50px;
@@ -522,142 +510,97 @@ body {
   border: none;
   background: #ffffff;
   color: #000;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
 .fab-btn.destination {
   background: var(--accent);
   color: #fff;
 }
+
 .fab-btn.voice-btn {
   background: #333;
   color: #fff;
 }
 
-/* --------------------
-   ローディング & その他
--------------------- */
 .loading-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 2000;
   color: #fff;
   flex-direction: column;
-  gap: 12px;
 }
+
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid rgba(255,255,255,0.3);
+  border: 3px solid rgba(255, 255, 255, 0.3);
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-/* ユーザーマーカー */
 .wn-user-marker {
   width: 20px;
   height: 20px;
   background: #3b82f6;
   border: 3px solid #fff;
   border-radius: 50%;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
+
 .wn-point-marker {
   width: 24px;
   height: 24px;
   background: #ef4444;
   border: 3px solid #fff;
   border-radius: 50%;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
-/* 保存済みリスト */
-.saved-section {
-  margin-top: 20px;
-  border-top: 1px solid var(--stroke-soft);
-  padding-top: 10px;
-}
-.saved-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 10px;
-  border-radius: 8px;
-  background: rgba(255,255,255,0.05);
-  margin-bottom: 6px;
-  border: 1px solid transparent;
-  cursor: pointer;
-}
-.saved-item:active {
-  background: rgba(255,255,255,0.1);
-}
-.saved-info {
-  overflow: hidden;
-}
-.saved-name {
-  font-weight: bold;
-  font-size: 14px;
-  color: #fff;
-}
-.saved-address {
-  font-size: 11px;
-  color: #9ca3af;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* AIモード選択など */
-.route-mode-toggle {
-  margin-top: 8px;
-  display: flex;
-  gap: 8px;
-}
-.route-mode-toggle .chip {
-  padding: 4px 10px;
-  min-height: 30px;
-  font-size: 12px;
-}
-
-/* 設定：地図モードボタン */
 .map-mode-buttons {
   display: flex;
   gap: 8px;
 }
+
 .map-mode-btn {
   flex: 1;
   border-radius: 999px;
-  border: 1px solid rgba(148,163,184,0.6);
-  background: rgba(31,41,55,0.9);
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: rgba(31, 41, 55, 0.9);
   color: #e5e7eb;
   min-height: 40px;
   font-size: 14px;
   font-weight: 600;
 }
+
 .map-mode-btn.active {
   background: #fff;
   color: #000;
 }
 
-/* --------------------------------------------------------
-   [New] Edit Modal Styles (v34 Added)
--------------------------------------------------------- */
+/* --------------------
+   登録地編集モーダル
+-------------------- */
 .edit-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.8);
-  z-index: 3000;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 9999; /* 最前面 */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -672,9 +615,9 @@ body {
   border-radius: 16px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .edit-modal-title {
@@ -682,7 +625,7 @@ body {
   margin: 0;
   font-size: 16px;
   color: #fff;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   text-align: center;
 }
 
@@ -695,22 +638,22 @@ body {
 
 .edit-modal-actions {
   padding: 12px 16px;
-  border-top: 1px solid rgba(255,255,255,0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   gap: 10px;
   background: #111827;
 }
+
 .edit-modal-actions .btn {
   flex: 1;
 }
 
-/* Modal List Item */
 .edit-list-item {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
-  background: rgba(0,0,0,0.2);
+  background: rgba(0, 0, 0, 0.2);
   padding: 8px 10px;
   border-radius: 8px;
 }
@@ -728,9 +671,9 @@ body {
   color: #fff;
   font-size: 15px;
   padding: 4px 0;
-  border-radius: 0;
   outline: none;
 }
+
 .edit-input-name:focus {
   border-bottom-color: var(--accent);
 }
@@ -748,9 +691,9 @@ body {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(239,68,68,0.2);
+  background: rgba(239, 68, 68, 0.2);
   color: #fca5a5;
-  border: 1px solid rgba(239,68,68,0.4);
+  border: 1px solid rgba(239, 68, 68, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
