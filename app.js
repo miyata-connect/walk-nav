@@ -1,12 +1,16 @@
 'use strict';
 
-// WalkNav app.js - v8 Logic + ForcedCSS + AI + Incidents + AdvancedMarker + Voice/Weather
+// WalkNav app.js - v10: AdvancedMarker Restored (with Map ID) + Voice/Weather
 
-const ISSUE_ID = 'idx20251211_voice_weather_v1';
+const ISSUE_ID = 'idx20251211_advanced_marker_restore_v1';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 // ▼▼▼ ここに OpenWeatherMap の APIキーを入れてください ▼▼▼
-const OPEN_WEATHER_KEY = 'c8769e4d98a76dc6717a9edb7ab3cc40';
+const OPEN_WEATHER_KEY = 'YOUR_OPENWEATHER_API_KEY';
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+// ▼▼▼ 取得された Map ID を設定 ▼▼▼
+const MAP_ID = '9110fb2763169e9d8f2b317e'; 
+
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
@@ -493,7 +497,6 @@ if (WN.booted) {
       const resp = await fetch(url);
       if (!resp.ok) return '住所不明';
       const data = await resp.json();
-      // 読み上げやすい形式に整形
       const addr = data.address;
       let humanAddr = '';
       if (addr.province) humanAddr += addr.province;
@@ -512,7 +515,7 @@ if (WN.booted) {
   // 2. OpenWeatherMap API で天気取得
   async function fetchOpenWeather(lat, lng) {
     if (!OPEN_WEATHER_KEY || OPEN_WEATHER_KEY === 'YOUR_OPENWEATHER_API_KEY') {
-      return { desc: '天気情報なし(APIキー未設定)', temp: null };
+      return { desc: '天気情報なし', temp: null };
     }
     const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${OPEN_WEATHER_KEY}&lang=ja&units=metric`;
     try {
@@ -534,12 +537,11 @@ if (WN.booted) {
       alert('お使いのブラウザは音声読み上げに対応していません。');
       return;
     }
-    // キャンセルして重複発話防止
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'ja-JP';
-    u.rate = 1.0; // 速度
-    u.pitch = 1.0; // 高さ
+    u.rate = 1.0; 
+    u.pitch = 1.0; 
     u.volume = 1.0;
     window.speechSynthesis.speak(u);
   }
@@ -551,11 +553,8 @@ if (WN.booted) {
       return;
     }
     const { lat, lng } = appState.currentPos;
-    
-    // ユーザーへのフィードバック（バイブ等）
     if (navigator.vibrate) navigator.vibrate(50);
     
-    // 並列取得
     const [addressText, weatherData] = await Promise.all([
       fetchAddressNominatim(lat, lng),
       fetchOpenWeather(lat, lng)
@@ -564,7 +563,6 @@ if (WN.booted) {
     let msg = `現在地は、${addressText}です。`;
     if (weatherData.temp !== null) {
       msg += `天気は${weatherData.desc}、気温は${weatherData.temp}度です。`;
-      // 簡単な一言アドバイス生成
       if (weatherData.desc.includes('雨')) msg += '足元にご注意ください。';
       else if (weatherData.temp > 28) msg += '熱中症にご注意ください。';
       else if (weatherData.temp < 10) msg += '暖かくしてお過ごしください。';
@@ -715,6 +713,7 @@ if (WN.booted) {
       appState.map = new google.maps.Map(mapEl, {
         center,
         zoom: 17,
+        mapId: MAP_ID, // ★ここにMap IDを設定★
         gestureHandling: 'greedy',
         clickableIcons: true,
         disableDefaultUI: true
@@ -728,7 +727,7 @@ if (WN.booted) {
 
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized');
+      console.log('[WalkNav] Map initialized with AdvancedMarker (Map ID)');
     } catch (e) {
       console.error('[WalkNav] Map failed:', e);
       alertOnce('map_fail', '地図の初期化に失敗しました');
@@ -1284,7 +1283,7 @@ if (WN.booted) {
 
   function startApp() {
     console.log(
-      '[WalkNav] Starting Logic + ForcedCSS + AI + Incidents + AdvancedMarker + Voice/Weather v8.0...'
+      '[WalkNav] Starting Logic + ForcedCSS + AI + Incidents + AdvancedMarker (RESTORED) + Voice/Weather v10.0...'
     );
     applyForcedLayoutCSS();
     loadUserProfile();
