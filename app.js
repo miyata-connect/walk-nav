@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v10: AdvancedMarker Restored (with Map ID) + Voice/Weather
+// WalkNav app.js - v11: Fix Giant Icon Flash (CSS Immediate Injection) + AdvancedMarker + Voice/Weather
 
-const ISSUE_ID = 'idx20251211_advanced_marker_restore_v1';
+const ISSUE_ID = 'idx20251211_fix_flash_v1';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 // ▼▼▼ ここに OpenWeatherMap の APIキーを入れてください ▼▼▼
 const OPEN_WEATHER_KEY = 'YOUR_OPENWEATHER_API_KEY';
@@ -58,11 +58,16 @@ function injectStyleOnce(key, cssText) {
   const style = document.createElement('style');
   style.id = `wn-style-${key}`;
   style.textContent = cssText;
-  document.head.appendChild(style);
+  // headの先頭に追加して最速適用を目指す
+  if (document.head.firstChild) {
+    document.head.insertBefore(style, document.head.firstChild);
+  } else {
+    document.head.appendChild(style);
+  }
 }
 
 /* =========================
-   強制レイアウトCSS
+   強制レイアウトCSS (即時実行用)
    ========================= */
 function applyForcedLayoutCSS() {
   injectStyleOnce(
@@ -76,6 +81,17 @@ function applyForcedLayoutCSS() {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: #f5f5f5;
     }
+    /* === 安全装置: SVGが暴走しないように制限 === */
+    svg {
+      max-width: 24px;
+      max-height: 24px;
+    }
+    .wn-user-marker svg, 
+    .wn-search-marker svg {
+      max-width: none; /* マーカー内のSVGは制限しない */
+      max-height: none;
+    }
+    /* ======================================== */
     .app {
       position: relative;
       width: 100%;
@@ -407,6 +423,9 @@ if (WN.booted) {
   console.warn('[WalkNav] duplicate app.js blocked:', ISSUE_ID);
 } else {
   WN.booted = true;
+  
+  // ★重要★ ここで即座にスタイルを注入して巨大アイコンを防ぐ
+  applyForcedLayoutCSS();
 
   const appState = {
     map: null,
@@ -1283,9 +1302,8 @@ if (WN.booted) {
 
   function startApp() {
     console.log(
-      '[WalkNav] Starting Logic + ForcedCSS + AI + Incidents + AdvancedMarker (RESTORED) + Voice/Weather v10.0...'
+      '[WalkNav] Starting Logic + ForcedCSS (Anti-Flash) + AI + Incidents + AdvancedMarker + Voice/Weather v11.0...'
     );
-    applyForcedLayoutCSS();
     loadUserProfile();
     bindUI();
     appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
