@@ -1,9 +1,12 @@
 'use strict';
 
-// WalkNav app.js - v7 Logic + ForcedCSS + AI + Incidents + AdvancedMarker
+// WalkNav app.js - v8 Logic + ForcedCSS + AI + Incidents + AdvancedMarker + Voice/Weather
 
-const ISSUE_ID = 'idx20251210_forcecss_ai_incidents_advmarker_v2';
+const ISSUE_ID = 'idx20251211_voice_weather_v1';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
+// ▼▼▼ ここに OpenWeatherMap の APIキーを入れてください ▼▼▼
+const OPEN_WEATHER_KEY = 'c8769e4d98a76dc6717a9edb7ab3cc40';
+// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
@@ -311,6 +314,11 @@ function applyForcedLayoutCSS() {
       background: #25d07a;
       color: #fff;
     }
+    .fab-container .fab-btn.voice-btn {
+      background: #333;
+      color: #fff;
+      font-size: 16px;
+    }
     .loading-overlay {
       position: absolute;
       inset: 0;
@@ -475,6 +483,101 @@ if (WN.booted) {
       }
     }
   }
+
+  /* === 新機能: 音声案内 & 天気取得 === */
+
+  // 1. Nominatim API で詳細住所を取得 (OSM)
+  async function fetchAddressNominatim(lat, lng) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) return '住所不明';
+      const data = await resp.json();
+      // 読み上げやすい形式に整形
+      const addr = data.address;
+      let humanAddr = '';
+      if (addr.province) humanAddr += addr.province;
+      if (addr.city) humanAddr += addr.city;
+      if (addr.town) humanAddr += addr.town;
+      if (addr.village) humanAddr += addr.village;
+      if (addr.neighbourhood) humanAddr += `、${addr.neighbourhood}`;
+      if (!humanAddr) humanAddr = data.display_name || '現在地';
+      return humanAddr;
+    } catch (e) {
+      console.warn('Nominatim error', e);
+      return '現在地';
+    }
+  }
+
+  // 2. OpenWeatherMap API で天気取得
+  async function fetchOpenWeather(lat, lng) {
+    if (!OPEN_WEATHER_KEY || OPEN_WEATHER_KEY === 'YOUR_OPENWEATHER_API_KEY') {
+      return { desc: '天気情報なし(APIキー未設定)', temp: null };
+    }
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${OPEN_WEATHER_KEY}&lang=ja&units=metric`;
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) return { desc: '不明', temp: null };
+      const data = await resp.json();
+      const desc = data.weather && data.weather[0] ? data.weather[0].description : '不明';
+      const temp = data.main ? Math.round(data.main.temp) : null;
+      return { desc, temp };
+    } catch (e) {
+      console.warn('Weather error', e);
+      return { desc: '取得失敗', temp: null };
+    }
+  }
+
+  // 3. 音声合成 (Web Speech API)
+  function speakText(text) {
+    if (!window.speechSynthesis) {
+      alert('お使いのブラウザは音声読み上げに対応していません。');
+      return;
+    }
+    // キャンセルして重複発話防止
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ja-JP';
+    u.rate = 1.0; // 速度
+    u.pitch = 1.0; // 高さ
+    u.volume = 1.0;
+    window.speechSynthesis.speak(u);
+  }
+
+  // 4. 実行ハンドラ
+  async function handleVoiceAnnounce() {
+    if (!appState.currentPos) {
+      alertOnce('voice_no_pos', '現在地が取得できていません');
+      return;
+    }
+    const { lat, lng } = appState.currentPos;
+    
+    // ユーザーへのフィードバック（バイブ等）
+    if (navigator.vibrate) navigator.vibrate(50);
+    
+    // 並列取得
+    const [addressText, weatherData] = await Promise.all([
+      fetchAddressNominatim(lat, lng),
+      fetchOpenWeather(lat, lng)
+    ]);
+
+    let msg = `現在地は、${addressText}です。`;
+    if (weatherData.temp !== null) {
+      msg += `天気は${weatherData.desc}、気温は${weatherData.temp}度です。`;
+      // 簡単な一言アドバイス生成
+      if (weatherData.desc.includes('雨')) msg += '足元にご注意ください。';
+      else if (weatherData.temp > 28) msg += '熱中症にご注意ください。';
+      else if (weatherData.temp < 10) msg += '暖かくしてお過ごしください。';
+      else msg += '快適な気候ですね。';
+    } else {
+       msg += `天気情報は取得できませんでした。`;
+    }
+
+    console.log('[WalkNav] Speaking:', msg);
+    speakText(msg);
+  }
+
+  /* =========================================== */
 
   async function placesTextSearch(query, centerLat, centerLng) {
     const payload = {
@@ -1166,11 +1269,22 @@ if (WN.booted) {
         if (appState.currentRouteData) applyCurrentRouteSelection();
       };
     }
+    
+    // === 追加: 音声案内ボタンの動的生成 ===
+    const fabContainer = document.querySelector('.fab-container');
+    if (fabContainer && !getEl('btnVoiceAnnounce')) {
+      const btnVoice = document.createElement('button');
+      btnVoice.id = 'btnVoiceAnnounce';
+      btnVoice.className = 'fab-btn voice-btn';
+      btnVoice.innerHTML = '🎤';
+      btnVoice.onclick = handleVoiceAnnounce;
+      fabContainer.appendChild(btnVoice);
+    }
   }
 
   function startApp() {
     console.log(
-      '[WalkNav] Starting Logic + ForcedCSS + AI + Incidents + AdvancedMarker v7.1...'
+      '[WalkNav] Starting Logic + ForcedCSS + AI + Incidents + AdvancedMarker + Voice/Weather v8.0...'
     );
     applyForcedLayoutCSS();
     loadUserProfile();
