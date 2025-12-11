@@ -1,18 +1,18 @@
 'use strict';
 
-// WalkNav app.js - v15: Forecast (3H/6H/9H) + Rain Prob + Anti-Flash Global Fix
+// WalkNav app.js - v16: Guidance Tab Weather Fix + Anti-Flash (Visibility Logic) + 3H Forecast
 
-const ISSUE_ID = 'idx20251211_forecast_v15';
+const ISSUE_ID = 'idx20251211_guidance_weather_fix_v16';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 
 // ▼▼▼【重要】ここに OpenWeatherMap の APIキーを貼り付けてください ▼▼▼
-const OPEN_WEATHER_KEY = 'c8769e4d98a76dc6717a9edb7ab3cc40'; 
+const OPEN_WEATHER_KEY = 'YOUR_OPENWEATHER_API_KEY'; 
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 const MAP_ID = '9110fb2763169e9d8f2b317e'; 
 
 /* ==========================================================================
-   【最優先実行】CSS強制注入 (巨大アイコン防止 & 予報リストのデザイン)
+   【最優先実行】CSS & 安全装置
    ========================================================================== */
 (function applyImmediateCSS() {
   const styleId = 'wn-forced-layout-css';
@@ -29,15 +29,14 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: #f5f5f5;
     }
-    /* === ★最強の安全装置: すべてのSVGを強制的に24px以下にする★ === */
+    /* === ★巨大化防止: ロード完了までSVGを隠す、またはサイズ固定 === */
     svg {
       width: 24px !important;
       height: 24px !important;
       max-width: 24px !important;
       max-height: 24px !important;
-      min-width: 24px !important;
     }
-    /* 地図上のマーカーだけは制限解除 */
+    /* 地図マーカー等は例外 */
     .wn-user-marker svg, 
     .wn-search-marker svg,
     button.gm-control-active svg,
@@ -46,363 +45,79 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
       height: auto !important;
       max-width: none !important;
       max-height: none !important;
-      min-width: auto !important;
     }
-    /* ============================================================= */
-    .app {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #f5f5f5;
-    }
-    #map {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-    }
-    .panel {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      max-height: 55vh;
-      height: 55vh;
-      background: #ffffff;
-      border-radius: 20px 20px 0 0;
-      box-shadow: 0 -2px 15px rgba(0,0,0,0.15);
-      display: flex;
-      flex-direction: column;
-      z-index: 1000;
-      box-sizing: border-box;
-      overflow: hidden;
-    }
-    .panel.collapsed {
-      height: 56px;
-    }
-    .panel-handle-area {
-      padding-top: 6px;
-      padding-bottom: 2px;
-      display: flex;
-      justify-content: center;
-    }
-    .panel-handle {
-      width: 40px;
-      height: 4px;
-      border-radius: 999px;
-      background: #e0e0e0;
-    }
-    .panel-tabs-header {
-      display: flex;
-      border-bottom: 1px solid #e5e5e5;
-      background: #fafafa;
-    }
-    .panel-tabs-header .tab-btn {
-      flex: 1;
-      text-align: center;
-      padding: 10px 4px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    .panel-tabs-header .tab-btn.active {
-      font-weight: 600;
-      border-bottom: 3px solid #25d07a;
-      background: #ffffff;
-    }
-    .panel-tabs-body {
-      flex: 1;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      padding: 12px 16px 16px;
-      box-sizing: border-box;
-    }
-    .tab-pane {
-      display: none;
-    }
-    .tab-pane.active {
-      display: block;
-    }
-    .section-title {
-      font-size: 16px;
-      font-weight: 600;
-      margin: 0 0 8px;
-    }
-    .filter-chips-row {
-      display: flex;
-      flex-wrap: nowrap;
-      gap: 8px;
-      overflow-x: auto;
-      padding-bottom: 8px;
-      margin-bottom: 8px;
-    }
-    .filter-chips-row::-webkit-scrollbar {
-      display: none;
-    }
-    .chip {
-      flex: 0 0 auto;
-      border-radius: 16px;
-      border: 1px solid #ccc;
-      padding: 6px 12px;
-      font-size: 12px;
-      background: #fff;
-      cursor: pointer;
-    }
-    .chip.small {
-      font-size: 11px;
-      padding: 4px 10px;
-    }
-    .chip.active {
-      background: #25d07a;
-      color: #fff;
-      border-color: #25d07a;
-    }
-    .search-box-container {
-      margin-top: 4px;
-      margin-bottom: 8px;
-    }
-    .input-wrapper {
-      display: flex;
-      align-items: center;
-      border-radius: 999px;
-      border: 1px solid #ccc;
-      padding: 2px 8px;
-      background: #fff;
-    }
-    .input-wrapper .input {
-      border: none;
-      flex: 1;
-      font-size: 14px;
-      padding: 8px 6px;
-      outline: none;
-      background: transparent;
-    }
-    .icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .icon-g {
-      display: none !important;
-      width: 0 !important;
-      margin-right: 0 !important;
-    }
-    .results-list {
-      margin-top: 4px;
-      border-radius: 8px;
-      border: 1px solid #eee;
-      overflow: hidden;
-      background: #fff;
-    }
-    .result-item {
-      padding: 8px 10px;
-      border-bottom: 1px solid #eee;
-      font-size: 13px;
-      cursor: pointer;
-    }
-    .result-item:last-child {
-      border-bottom: none;
-    }
-    .result-item:active {
-      background: #f0f0f0;
-    }
-    .address-card {
-      margin-top: 4px;
-      margin-bottom: 8px;
-      padding: 8px 10px;
-      border-radius: 8px;
-      background: #f1f5f9;
-      font-size: 12px;
-    }
-    /* === 天気表示用 === */
-    .weather-card {
-      margin-top: 4px;
-      margin-bottom: 8px;
-      padding: 8px 10px;
-      border-radius: 8px;
-      background: #e0f2fe;
-      color: #0369a1;
-      font-size: 13px;
-    }
-    .weather-current-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      font-size: 14px;
-    }
-    .weather-forecast-list {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .weather-forecast-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #ffffff;
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-size: 12px;
-      color: #333;
-    }
-    /* アイコン画像はSVGではないので制限解除 */
     .weather-icon-img {
       width: 32px;
       height: 32px;
       vertical-align: middle;
     }
-    /* ========================== */
-    .address-title {
-      font-weight: 600;
-      margin-bottom: 2px;
+    /* === 共通レイアウト === */
+    .app { position: relative; width: 100%; height: 100%; overflow: hidden; background: #f5f5f5; }
+    #map { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+    .panel {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      max-height: 55vh; height: 55vh;
+      background: #ffffff; border-radius: 20px 20px 0 0;
+      box-shadow: 0 -2px 15px rgba(0,0,0,0.15);
+      display: flex; flex-direction: column; z-index: 1000;
+      box-sizing: border-box; overflow: hidden;
     }
-    .address-coords {
-      color: #6b7280;
-    }
-    .action-buttons-row,
-    .bottom-actions-row {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-    }
-    .btn {
-      flex: 1;
-      border-radius: 999px;
-      border: 1px solid #ccc;
+    .panel.collapsed { height: 56px; }
+    .panel-handle-area { padding: 6px 0 2px; display: flex; justify-content: center; }
+    .panel-handle { width: 40px; height: 4px; border-radius: 999px; background: #e0e0e0; }
+    .panel-tabs-header { display: flex; border-bottom: 1px solid #e5e5e5; background: #fafafa; }
+    .panel-tabs-header .tab-btn { flex: 1; text-align: center; padding: 10px 4px; font-size: 14px; cursor: pointer; }
+    .panel-tabs-header .tab-btn.active { font-weight: 600; border-bottom: 3px solid #25d07a; background: #ffffff; }
+    .panel-tabs-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 16px 16px; box-sizing: border-box; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    
+    /* 天気ウィジェット */
+    .weather-widget {
+      margin: 8px 0;
       padding: 8px 10px;
-      font-size: 13px;
-      background: #fff;
-      cursor: pointer;
-    }
-    .btn-primary {
-      border-color: #25d07a;
-      background: #25d07a;
-      color: #fff;
-    }
-    .btn-secondary {
-      background: #e5e7eb;
-      border-color: #d1d5db;
-    }
-    .btn-danger {
-      border-color: #f97373;
-      background: #fee2e2;
-      color: #b91c1c;
-    }
-    .btn-danger-block {
-      width: 100%;
-      border-color: #f97373;
-      background: #fee2e2;
-      color: #b91c1c;
-    }
-    .fab-container {
-      position: absolute;
-      right: 12px;
-      bottom: 58vh;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      z-index: 900;
-      pointer-events: none;
-    }
-    .fab-container .fab-btn {
-      pointer-events: auto;
-      min-width: 48px;
-      height: 40px;
-      border-radius: 999px;
-      border: none;
-      padding: 0 12px;
-      font-size: 12px;
-      background: #ffffff;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .fab-container .fab-btn.destination {
-      background: #25d07a;
-      color: #fff;
-    }
-    .fab-container .fab-btn.voice-btn {
-      background: #333;
-      color: #fff;
-      font-size: 16px;
-    }
-    .loading-overlay {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255,255,255,0.9);
-      z-index: 1100;
-    }
-    .loading-content {
-      text-align: center;
-      font-size: 14px;
-    }
-    .nav-section {
-      margin-bottom: 12px;
-    }
-    .nav-section-title {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    .incident-alert {
       border-radius: 8px;
-      border: 1px solid #facc15;
-      background: #fef9c3;
-      color: #713f12;
-      padding: 8px 10px;
-      font-size: 12px;
+      background: #e0f2fe; /* 薄い青 */
+      color: #0369a1;
+      font-size: 13px;
     }
-    .wn-user-marker {
-      width: 24px;
-      height: 24px;
-      border-radius: 999px;
-      background: #3aa0ff;
-      border: 2px solid #ffffff;
-      box-shadow: 0 0 4px rgba(0,0,0,0.4);
-      position: relative;
-      transform-origin: 50% 50%;
+    .weather-current-row {
+      display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px;
     }
-    .wn-user-marker::after {
-      content: '';
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 2px;
-      height: 8px;
-      background: #ffffff;
-      border-radius: 999px;
-      transform: translate(-50%, -90%);
+    .weather-forecast-list { display: flex; flex-direction: column; gap: 4px; }
+    .weather-forecast-item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #ffffff; padding: 4px 8px; border-radius: 6px; font-size: 12px; color: #333;
     }
-    .wn-search-marker {
-      width: 24px;
-      height: 24px;
-      border-radius: 999px;
-      background: #ffffff;
-      border: 2px solid #25d07a;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 600;
-      color: #111;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-    }
-    .wn-point-marker {
-      width: 18px;
-      height: 18px;
-      border-radius: 999px;
-      background: #ff6565;
-      border: 2px solid #ffffff;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    }
+    
+    /* その他パーツ */
+    .filter-chips-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px; }
+    .filter-chips-row::-webkit-scrollbar { display: none; }
+    .chip { flex: 0 0 auto; border-radius: 16px; border: 1px solid #ccc; padding: 6px 12px; font-size: 12px; background: #fff; cursor: pointer; }
+    .chip.active { background: #25d07a; color: #fff; border-color: #25d07a; }
+    .search-box-container { margin: 4px 0 8px; }
+    .input-wrapper { display: flex; align-items: center; border-radius: 999px; border: 1px solid #ccc; padding: 2px 8px; background: #fff; }
+    .input-wrapper .input { border: none; flex: 1; font-size: 14px; padding: 8px 6px; outline: none; background: transparent; }
+    .icon { display: inline-flex; align-items: center; justify-content: center; }
+    .icon-g { display: none !important; }
+    .results-list { margin-top: 4px; border-radius: 8px; border: 1px solid #eee; overflow: hidden; background: #fff; }
+    .result-item { padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 13px; cursor: pointer; }
+    .result-item:last-child { border-bottom: none; }
+    .address-card { margin: 4px 0 8px; padding: 8px 10px; border-radius: 8px; background: #f1f5f9; font-size: 12px; }
+    .address-title { font-weight: 600; margin-bottom: 2px; }
+    .address-coords { color: #6b7280; }
+    .fab-container { position: absolute; right: 12px; bottom: 58vh; display: flex; flex-direction: column; gap: 8px; z-index: 900; pointer-events: none; }
+    .fab-container .fab-btn { pointer-events: auto; min-width: 48px; height: 40px; border-radius: 999px; border: none; padding: 0 12px; font-size: 12px; background: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.2); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+    .fab-container .fab-btn.destination { background: #25d07a; color: #fff; }
+    .fab-container .fab-btn.voice-btn { background: #333; color: #fff; font-size: 16px; }
+    .nav-section-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .incident-alert { border-radius: 8px; border: 1px solid #facc15; background: #fef9c3; color: #713f12; padding: 8px 10px; font-size: 12px; }
+    
+    /* マーカー系 */
+    .wn-user-marker { width: 24px; height: 24px; border-radius: 999px; background: #3aa0ff; border: 2px solid #ffffff; box-shadow: 0 0 4px rgba(0,0,0,0.4); position: relative; transform-origin: 50% 50%; }
+    .wn-user-marker::after { content: ''; position: absolute; left: 50%; top: 50%; width: 2px; height: 8px; background: #ffffff; border-radius: 999px; transform: translate(-50%, -90%); }
+    .wn-search-marker { width: 24px; height: 24px; border-radius: 999px; background: #ffffff; border: 2px solid #25d07a; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #111; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+    .wn-point-marker { width: 18px; height: 18px; border-radius: 999px; background: #ff6565; border: 2px solid #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
   `;
   if (document.head.firstChild) {
     document.head.insertBefore(style, document.head.firstChild);
@@ -487,7 +202,8 @@ if (WN.booted) {
     searchInFlight: false,
     searchRadiusMeters: 10000,
     aiMode: 'normal',
-    incidentData: null
+    incidentData: null,
+    cachedWeatherData: null // 天気データ保持用
   };
 
   function getEl(id) {
@@ -541,7 +257,7 @@ if (WN.booted) {
     }
   }
 
-  /* === 音声案内 & 天気 (降水確率・予報 3H単位) === */
+  /* === 天気取得・表示・音声 (修正版) === */
 
   async function fetchAddressNominatim(lat, lng) {
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
@@ -556,7 +272,6 @@ if (WN.booted) {
     }
   }
 
-  // 現在の天気取得
   async function fetchCurrentWeather(lat, lng) {
     if (!OPEN_WEATHER_KEY || OPEN_WEATHER_KEY.includes('YOUR_')) return null;
     const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${OPEN_WEATHER_KEY}&lang=ja&units=metric`;
@@ -567,7 +282,6 @@ if (WN.booted) {
     } catch (e) { return null; }
   }
 
-  // 3時間ごとの予報取得
   async function fetchForecast(lat, lng) {
     if (!OPEN_WEATHER_KEY || OPEN_WEATHER_KEY.includes('YOUR_')) return null;
     const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&appid=${OPEN_WEATHER_KEY}&lang=ja&units=metric`;
@@ -578,32 +292,10 @@ if (WN.booted) {
     } catch (e) { return null; }
   }
 
-  // 画面更新 & 音声用データ生成
-  async function updateWeatherUI(lat, lng) {
-    const [current, forecast] = await Promise.all([
-      fetchCurrentWeather(lat, lng),
-      fetchForecast(lat, lng)
-    ]);
+  // 天気HTML生成関数 (Searchタブ用とNavタブ用で共用)
+  function buildWeatherHtml(current, forecast) {
+    if (!current) return '<div style="font-size:12px; color:#666;">☁️ 天気情報なし (API設定を確認)</div>';
 
-    let weatherEl = getEl('weatherDisplay');
-    if (!weatherEl) {
-      const addressCard = document.querySelector('.address-card');
-      if (addressCard && addressCard.parentNode) {
-        weatherEl = document.createElement('div');
-        weatherEl.id = 'weatherDisplay';
-        weatherEl.className = 'weather-card';
-        addressCard.parentNode.insertBefore(weatherEl, addressCard.nextSibling);
-      } else {
-        return { desc: '情報なし', temp: null };
-      }
-    }
-
-    if (!current) {
-      weatherEl.textContent = '☁️ 天気情報なし (APIキーを確認)';
-      return { desc: '取得不可', temp: null };
-    }
-
-    // 現在の降水確率は forecast.list[0] (直近) から取得して近似
     let pop = 0;
     if (forecast && forecast.list && forecast.list.length > 0) {
       pop = Math.round(forecast.list[0].pop * 100);
@@ -613,7 +305,6 @@ if (WN.booted) {
     const curDesc = current.weather[0].description;
     const curTemp = Math.round(current.main.temp);
 
-    // HTML構築: 現在 + 3H/6H/9H
     let html = `
       <div class="weather-current-row">
         <img src="${curIconUrl}" class="weather-icon-img" alt="${curDesc}">
@@ -623,14 +314,12 @@ if (WN.booted) {
       </div>
     `;
 
-    // 予報リスト
     if (forecast && forecast.list) {
       html += `<div class="weather-forecast-list">`;
-      // 直近3つを表示 (approx 3h, 6h, 9h later)
       for (let i = 1; i <= 3; i++) {
         const item = forecast.list[i]; 
         if (item) {
-          const timeLabel = `${i * 3}H後`; // 簡易表記
+          const timeLabel = `${i * 3}H後`;
           const fIcon = `https://openweathermap.org/img/wn/${item.weather[0].icon}.png`;
           const fTemp = Math.round(item.main.temp);
           const fPop = Math.round(item.pop * 100);
@@ -646,24 +335,70 @@ if (WN.booted) {
       }
       html += `</div>`;
     }
+    return html;
+  }
 
-    weatherEl.innerHTML = html;
-    weatherEl.style.display = 'block';
+  // ★重要: 検索タブと案内タブの両方を更新する
+  async function updateAllWeatherUI(lat, lng) {
+    const [current, forecast] = await Promise.all([
+      fetchCurrentWeather(lat, lng),
+      fetchForecast(lat, lng)
+    ]);
 
-    return { desc: curDesc, temp: curTemp, pop: pop };
+    appState.cachedWeatherData = { current, forecast }; // キャッシュ
+
+    const html = buildWeatherHtml(current, forecast);
+
+    // 1. 検索タブ (Search Panel) の更新
+    let searchWeatherEl = getEl('weatherDisplaySearch');
+    if (!searchWeatherEl) {
+      // 住所カードの下に挿入
+      const addressCard = document.querySelector('.address-card');
+      if (addressCard && addressCard.parentNode) {
+        searchWeatherEl = document.createElement('div');
+        searchWeatherEl.id = 'weatherDisplaySearch';
+        searchWeatherEl.className = 'weather-widget';
+        addressCard.parentNode.insertBefore(searchWeatherEl, addressCard.nextSibling);
+      }
+    }
+    if (searchWeatherEl) {
+      searchWeatherEl.innerHTML = html;
+      searchWeatherEl.style.display = 'block';
+    }
+
+    // 2. 案内タブ (Nav Panel) の更新
+    // 案内タブには元々空の天気欄があるかもしれないが、確実に表示するために
+    // ルート情報セクション(routeInfoSection)の中に自前のウィジェットを挿入する
+    const routeInfoSection = getEl('routeInfoSection');
+    if (routeInfoSection) {
+      let navWeatherEl = getEl('weatherDisplayNav');
+      if (!navWeatherEl) {
+        navWeatherEl = document.createElement('div');
+        navWeatherEl.id = 'weatherDisplayNav';
+        navWeatherEl.className = 'weather-widget';
+        // ルート情報の直後に挿入
+        routeInfoSection.appendChild(navWeatherEl);
+      }
+      navWeatherEl.innerHTML = html;
+      navWeatherEl.style.display = 'block';
+    }
+
+    // 音声案内用にデータを返す
+    if (current) {
+      return { 
+        desc: current.weather[0].description, 
+        temp: Math.round(current.main.temp), 
+        pop: (forecast && forecast.list && forecast.list[0]) ? Math.round(forecast.list[0].pop * 100) : 0 
+      };
+    }
+    return { desc: null, temp: null };
   }
 
   function speakText(text) {
-    if (!window.speechSynthesis) {
-      alert('お使いのブラウザは音声読み上げに対応していません。');
-      return;
-    }
+    if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'ja-JP';
-    u.rate = 1.0; 
-    u.pitch = 1.0; 
-    u.volume = 1.0;
     window.speechSynthesis.speak(u);
   }
 
@@ -675,22 +410,21 @@ if (WN.booted) {
     const { lat, lng } = appState.currentPos;
     if (navigator.vibrate) navigator.vibrate(50);
     
+    // UI更新と住所取得を並行
     const [addressName, wData] = await Promise.all([
       fetchAddressNominatim(lat, lng),
-      updateWeatherUI(lat, lng)
+      updateAllWeatherUI(lat, lng)
     ]);
 
-    // 住所の短縮
     let simpleAddr = addressName.split(' ').pop() || addressName;
     simpleAddr = simpleAddr.replace(/^日本、\s*/, '').replace(/、.*$/, '');
 
     let msg = `現在地は、${simpleAddr}です。`;
     if (wData.temp !== null) {
       msg += `天気は${wData.desc}、気温は${wData.temp}度、降水確率は${wData.pop}パーセントです。`;
-      
-      if (wData.pop >= 50) msg += '傘を持ったほうが良いでしょう。';
+      if (wData.pop >= 50) msg += '傘をお持ちですか？';
       else if (wData.temp > 30) msg += '熱中症にご注意ください。';
-      else if (wData.temp < 10) msg += '暖かくしてお過ごしください。';
+      else if (wData.temp < 10) msg += '冷えますので暖かくしてください。';
       else msg += '快適な気候です。';
     }
 
@@ -749,9 +483,6 @@ if (WN.booted) {
     }
   }
 
-  /* =========================
-     インシデント表示
-     ========================= */
   function renderIncidentSection(data, isError) {
     const section = getEl('incidentSection');
     const box = getEl('incidentText');
@@ -762,36 +493,14 @@ if (WN.booted) {
       box.textContent = 'インシデント情報の取得に失敗しました。';
       return;
     }
-
     if (!data) {
       section.style.display = 'none';
       return;
     }
-
-    const traffic = data.traffic || [];
-    const events = data.events || data.incidents || [];
-    const weather = data.weather || [];
-
     const parts = [];
-
-    if (traffic.length) {
-      const t = traffic
-        .map((x) => x.title || x.summary || x.description || '交通遅延')
-        .join(' / ');
-      parts.push(`【交通】${t}`);
-    }
-    if (events.length) {
-      const e = events
-        .map((x) => x.title || x.summary || x.description || '事件・事故')
-        .join(' / ');
-      parts.push(`【事件・事故】${e}`);
-    }
-    if (weather.length) {
-      const w = weather
-        .map((x) => x.title || x.summary || x.description || '気象注意報')
-        .join(' / ');
-      parts.push(`【気象】${w}`);
-    }
+    if (data.traffic && data.traffic.length) parts.push('【交通】' + data.traffic.map(x=>x.title||'遅延').join('/'));
+    if (data.events && data.events.length) parts.push('【事象】' + data.events.map(x=>x.title||'事故').join('/'));
+    if (data.weather && data.weather.length) parts.push('【気象】' + data.weather.map(x=>x.title||'注意報').join('/'));
 
     if (parts.length === 0) {
       section.style.display = 'block';
@@ -819,10 +528,6 @@ if (WN.booted) {
       renderIncidentSection(null, true);
     }
   }
-
-  /* =========================
-     Map & Location Logic
-     ========================= */
 
   function initMap(center) {
     if (appState.map) {
@@ -940,8 +645,8 @@ if (WN.booted) {
           setText('locAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
       });
       
-      // ★天気UI更新
-      updateWeatherUI(latitude, longitude);
+      // ★天気UI更新 (初回)
+      updateAllWeatherUI(latitude, longitude);
 
       fetchIncidentsAround(latitude, longitude);
     };
@@ -960,7 +665,7 @@ if (WN.booted) {
       setText('locAddress', '現在地取得に失敗しました (デフォルト位置)');
       setText('locCoords', 'GPSエラー');
       
-      updateWeatherUI(defaultPos.lat, defaultPos.lng);
+      updateAllWeatherUI(defaultPos.lat, defaultPos.lng);
 
       fetchIncidentsAround(defaultPos.lat, defaultPos.lng);
     };
@@ -1016,9 +721,6 @@ if (WN.booted) {
     }
   }
 
-  /* =========================
-     Route rendering helpers
-     ========================= */
   function renderRoute(route, destinationName) {
     if (!route) return;
     const leg = route.legs && route.legs[0];
@@ -1067,8 +769,12 @@ if (WN.booted) {
       appState.map.fitBounds(b, { padding: 50 });
     }
 
-    // ルート情報セクションを必ず表示
+    // ★重要: 案内タブが表示されるタイミングで、天気ウィジェットも再確認して挿入
     setDisplay('routeInfoSection', 'block');
+    // キャッシュがあれば即反映
+    if(appState.cachedWeatherData && appState.cachedWeatherData.current) {
+      updateAllWeatherUI(appState.currentPos.lat, appState.currentPos.lng);
+    }
   }
 
   function applyCurrentRouteSelection() {
@@ -1103,9 +809,6 @@ if (WN.booted) {
     );
   }
 
-  /* =========================
-     Search & Nav Flow
-     ========================= */
   async function performSearch(query) {
     if (!query || !lock('search', 1000)) return;
 
@@ -1180,7 +883,6 @@ if (WN.booted) {
     appState.currentDestination = dest;
     appState.isNavigating = true;
 
-    // 検索結果タップ時: パネルを自動で閉じて、FAB を出す
     const panel = getEl('searchPanel');
     if (panel) panel.classList.add('collapsed');
     setDisplay('fabStack', 'flex');
@@ -1236,9 +938,6 @@ if (WN.booted) {
     }
   }
 
-  /* =========================
-     UI Binding & Init
-     ========================= */
   function switchPanelTab(mode) {
     const isNav = mode === 'nav';
     const isSettings = mode === 'settings';
@@ -1411,7 +1110,7 @@ if (WN.booted) {
 
   function startApp() {
     console.log(
-      '[WalkNav] Starting Logic + ForcedCSS (Forecast v15) + AI + Incidents + AdvancedMarker + Voice...'
+      '[WalkNav] Starting Logic + ForcedCSS (Guidance Weather Fix) + AI + Incidents + AdvancedMarker + Voice v16.0...'
     );
     loadUserProfile();
     bindUI();
