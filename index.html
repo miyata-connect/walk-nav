@@ -6,7 +6,7 @@
   <title>WalkNav</title>
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <link rel="stylesheet" href="app.css?v=20251212-popup" />
+  <link rel="stylesheet" href="app.css?v=37" />
 </head>
 <body id="appBody">
 <div class="app">
@@ -40,7 +40,7 @@
         </div>
         <div class="action-buttons-row">
           <button class="btn btn-outline" id="btnSaveCurrent" style="border-color:#d97706; color:#d97706; background:rgba(254,243,199,0.1);">⭐ 現在地保存</button>
-          <button class="btn btn-outline" id="btnEditSavedList">登録地修正</button>
+          <button class="btn btn-outline" id="btnOpenEditModal">登録地修正</button>
         </div>
 
         <div class="search-box-container">
@@ -168,8 +168,7 @@
   <div id="editSavedModal" class="edit-modal-overlay" style="display:none;">
     <div class="edit-modal-content">
       <h3 class="edit-modal-title">登録地の編集</h3>
-      <div class="edit-modal-body" id="editModalList">
-        </div>
+      <div class="edit-modal-body" id="editModalList"></div>
       <div class="edit-modal-actions">
         <button id="btnCancelEdit" class="btn btn-secondary">キャンセル</button>
         <button id="btnSaveEdits" class="btn btn-primary">変更を保存</button>
@@ -180,7 +179,7 @@
 </div>
 
 <script src="RouteEvaluator.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=37"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&language=ja&region=JP&loading=async" async defer></script>
 
 <script>
@@ -199,7 +198,6 @@
     var paneSearch = document.getElementById('tabPaneSearch');
     var paneNav = document.getElementById('tabPaneNav');
     var paneSettings = document.getElementById('tabPaneSettings');
-
     function setMode(mode) {
       if (paneSearch) paneSearch.classList.toggle('active', mode === 'search');
       if (paneNav) paneNav.classList.toggle('active', mode === 'nav');
@@ -208,15 +206,11 @@
         b.classList.toggle('active', b.getAttribute('data-panel-tab') === mode);
       });
     }
-
     tabButtons.forEach(function(btn) {
-      btn.addEventListener('click', function () {
-        setMode(btn.getAttribute('data-panel-tab') || 'search');
-      });
+      btn.addEventListener('click', function () { setMode(btn.getAttribute('data-panel-tab') || 'search'); });
     });
     setMode('search');
   }
-
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initPanelTabs); }
   else { initPanelTabs(); }
 })();
