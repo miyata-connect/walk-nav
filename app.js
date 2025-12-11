@@ -1,31 +1,19 @@
 'use strict';
 
-// WalkNav app.js - v17: Weather via Cloudflare Proxy + Anti-Flash + Guidance Tab Fix
+// WalkNav app.js - v19: Hybrid Weather + Guidance Fix + Anti-Flash + Readable Format
 
-const ISSUE_ID = 'idx20251211_weather_via_proxy_v17';
+const ISSUE_ID = 'idx20251211_v19_readable_full';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 
-// ★ OpenWeatherのAPIキーは削除しました（Cloudflare Worker側で管理） ★
+// ▼▼▼【重要】OpenWeatherMap APIキー（Cloudflare失敗時の保険）▼▼▼
+const OPEN_WEATHER_KEY = 'YOUR_OPENWEATHER_API_KEY'; 
+// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 const MAP_ID = '9110fb2763169e9d8f2b317e'; 
-
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
-const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
-const MAX_RETRY = 3;
-const RETRY_DELAY = 1000;
-
-const LOCATION_OPTIONS = {
-  enableHighAccuracy: true,
-  timeout: 15000,
-  maximumAge: 0
-};
-
-const SAVED_LOCATIONS_KEY = 'walknav_saved_locations';
-const MAP_MODE_KEY = 'walknav_map_mode';
-const PROFILE_KEY = 'walknav_user_profile';
 
 /* ==========================================================================
-   【最優先実行】CSS & 安全装置
+   【最優先実行】CSS強制注入 (巨大アイコン防止 & デザイン定義)
    ========================================================================== */
 (function applyImmediateCSS() {
   const styleId = 'wn-forced-layout-css';
@@ -42,102 +30,400 @@ const PROFILE_KEY = 'walknav_user_profile';
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: #f5f5f5;
     }
-    /* === SVG巨大化防止 === */
-    svg {
+
+    /* === ★SVG巨大化防止: 初期ロード時は強制サイズ固定★ === */
+    svg:not(.gm-style svg) {
       width: 24px !important;
       height: 24px !important;
       max-width: 24px !important;
       max-height: 24px !important;
+      min-width: 24px !important;
     }
-    /* 地図マーカー等は例外 */
-    .wn-user-marker svg, 
-    .wn-search-marker svg,
-    button.gm-control-active svg,
-    .gm-style svg {
-      width: auto !important;
-      height: auto !important;
-      max-width: none !important;
-      max-height: none !important;
-    }
+    
     .weather-icon-img {
       width: 32px;
       height: 32px;
       vertical-align: middle;
     }
-    /* === 共通レイアウト === */
-    .app { position: relative; width: 100%; height: 100%; overflow: hidden; background: #f5f5f5; }
-    #map { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
-    .panel {
-      position: absolute; left: 0; right: 0; bottom: 0;
-      max-height: 55vh; height: 55vh;
-      background: #ffffff; border-radius: 20px 20px 0 0;
-      box-shadow: 0 -2px 15px rgba(0,0,0,0.15);
-      display: flex; flex-direction: column; z-index: 1000;
-      box-sizing: border-box; overflow: hidden;
+
+    /* アプリ基本レイアウト */
+    .app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #f5f5f5;
     }
-    .panel.collapsed { height: 56px; }
-    .panel-handle-area { padding: 6px 0 2px; display: flex; justify-content: center; }
-    .panel-handle { width: 40px; height: 4px; border-radius: 999px; background: #e0e0e0; }
-    .panel-tabs-header { display: flex; border-bottom: 1px solid #e5e5e5; background: #fafafa; }
-    .panel-tabs-header .tab-btn { flex: 1; text-align: center; padding: 10px 4px; font-size: 14px; cursor: pointer; }
-    .panel-tabs-header .tab-btn.active { font-weight: 600; border-bottom: 3px solid #25d07a; background: #ffffff; }
-    .panel-tabs-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 16px 16px; box-sizing: border-box; }
-    .tab-pane { display: none; }
-    .tab-pane.active { display: block; }
-    
-    /* 天気ウィジェット */
+    #map {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    /* パネルデザイン */
+    .panel {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      max-height: 55vh;
+      height: 55vh;
+      background: #ffffff;
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 -2px 15px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      z-index: 1000;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    .panel.collapsed {
+      height: 56px;
+    }
+    .panel-handle-area {
+      padding: 6px 0 2px;
+      display: flex;
+      justify-content: center;
+    }
+    .panel-handle {
+      width: 40px;
+      height: 4px;
+      border-radius: 999px;
+      background: #e0e0e0;
+    }
+
+    /* タブヘッダー */
+    .panel-tabs-header {
+      display: flex;
+      border-bottom: 1px solid #e5e5e5;
+      background: #fafafa;
+    }
+    .panel-tabs-header .tab-btn {
+      flex: 1;
+      text-align: center;
+      padding: 10px 4px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .panel-tabs-header .tab-btn.active {
+      font-weight: 600;
+      border-bottom: 3px solid #25d07a;
+      background: #ffffff;
+    }
+    .panel-tabs-body {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 12px 16px 16px;
+      box-sizing: border-box;
+    }
+    .tab-pane {
+      display: none;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+
+    /* 天気ウィジェット (共通デザイン) */
     .weather-widget {
       margin: 8px 0;
       padding: 8px 10px;
       border-radius: 8px;
-      background: #e0f2fe;
+      background: #e0f2fe; /* 薄い青 */
       color: #0369a1;
       font-size: 13px;
     }
     .weather-current-row {
-      display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 14px;
     }
-    .weather-forecast-list { display: flex; flex-direction: column; gap: 4px; }
+    .weather-forecast-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
     .weather-forecast-item {
-      display: flex; align-items: center; justify-content: space-between;
-      background: #ffffff; padding: 4px 8px; border-radius: 6px; font-size: 12px; color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #ffffff;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #333;
     }
-    
-    /* その他パーツ */
-    .filter-chips-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px; }
-    .filter-chips-row::-webkit-scrollbar { display: none; }
-    .chip { flex: 0 0 auto; border-radius: 16px; border: 1px solid #ccc; padding: 6px 12px; font-size: 12px; background: #fff; cursor: pointer; }
-    .chip.active { background: #25d07a; color: #fff; border-color: #25d07a; }
-    .search-box-container { margin: 4px 0 8px; }
-    .input-wrapper { display: flex; align-items: center; border-radius: 999px; border: 1px solid #ccc; padding: 2px 8px; background: #fff; }
-    .input-wrapper .input { border: none; flex: 1; font-size: 14px; padding: 8px 6px; outline: none; background: transparent; }
-    .icon { display: inline-flex; align-items: center; justify-content: center; }
-    .icon-g { display: none !important; }
-    .results-list { margin-top: 4px; border-radius: 8px; border: 1px solid #eee; overflow: hidden; background: #fff; }
-    .result-item { padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 13px; cursor: pointer; }
-    .result-item:last-child { border-bottom: none; }
-    .address-card { margin: 4px 0 8px; padding: 8px 10px; border-radius: 8px; background: #f1f5f9; font-size: 12px; }
-    .address-title { font-weight: 600; margin-bottom: 2px; }
-    .address-coords { color: #6b7280; }
-    .fab-container { position: absolute; right: 12px; bottom: 58vh; display: flex; flex-direction: column; gap: 8px; z-index: 900; pointer-events: none; }
-    .fab-container .fab-btn { pointer-events: auto; min-width: 48px; height: 40px; border-radius: 999px; border: none; padding: 0 12px; font-size: 12px; background: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.2); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-    .fab-container .fab-btn.destination { background: #25d07a; color: #fff; }
-    .fab-container .fab-btn.voice-btn { background: #333; color: #fff; font-size: 16px; }
-    .nav-section-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-    .incident-alert { border-radius: 8px; border: 1px solid #facc15; background: #fef9c3; color: #713f12; padding: 8px 10px; font-size: 12px; }
-    
-    /* マーカー系 */
-    .wn-user-marker { width: 24px; height: 24px; border-radius: 999px; background: #3aa0ff; border: 2px solid #ffffff; box-shadow: 0 0 4px rgba(0,0,0,0.4); position: relative; transform-origin: 50% 50%; }
-    .wn-user-marker::after { content: ''; position: absolute; left: 50%; top: 50%; width: 2px; height: 8px; background: #ffffff; border-radius: 999px; transform: translate(-50%, -90%); }
-    .wn-search-marker { width: 24px; height: 24px; border-radius: 999px; background: #ffffff; border: 2px solid #25d07a; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #111; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
-    .wn-point-marker { width: 18px; height: 18px; border-radius: 999px; background: #ff6565; border: 2px solid #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+
+    /* 検索フィルターチップ */
+    .filter-chips-row {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+    }
+    .filter-chips-row::-webkit-scrollbar {
+      display: none;
+    }
+    .chip {
+      flex: 0 0 auto;
+      border-radius: 16px;
+      border: 1px solid #ccc;
+      padding: 6px 12px;
+      font-size: 12px;
+      background: #fff;
+      cursor: pointer;
+    }
+    .chip.active {
+      background: #25d07a;
+      color: #fff;
+      border-color: #25d07a;
+    }
+
+    /* 入力フォーム */
+    .search-box-container {
+      margin-top: 4px;
+      margin-bottom: 8px;
+    }
+    .input-wrapper {
+      display: flex;
+      align-items: center;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      padding: 2px 8px;
+      background: #fff;
+    }
+    .input-wrapper .input {
+      border: none;
+      flex: 1;
+      font-size: 14px;
+      padding: 8px 6px;
+      outline: none;
+      background: transparent;
+    }
+    .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .icon-g {
+      display: none !important;
+    }
+
+    /* 検索結果リスト */
+    .results-list {
+      margin-top: 4px;
+      border-radius: 8px;
+      border: 1px solid #eee;
+      overflow: hidden;
+      background: #fff;
+    }
+    .result-item {
+      padding: 8px 10px;
+      border-bottom: 1px solid #eee;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .result-item:last-child {
+      border-bottom: none;
+    }
+    .result-item:active {
+      background: #f0f0f0;
+    }
+
+    /* 住所カード */
+    .address-card {
+      margin-top: 4px;
+      margin-bottom: 8px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #f1f5f9;
+      font-size: 12px;
+    }
+    .address-title {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .address-coords {
+      color: #6b7280;
+    }
+
+    /* ボタン類 */
+    .action-buttons-row,
+    .bottom-actions-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .btn {
+      flex: 1;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      padding: 8px 10px;
+      font-size: 13px;
+      background: #fff;
+      cursor: pointer;
+    }
+    .btn-primary {
+      border-color: #25d07a;
+      background: #25d07a;
+      color: #fff;
+    }
+    .btn-secondary {
+      background: #e5e7eb;
+      border-color: #d1d5db;
+    }
+    .btn-danger {
+      border-color: #f97373;
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+    .btn-danger-block {
+      width: 100%;
+      border-color: #f97373;
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    /* FAB (右下の丸ボタン群) */
+    .fab-container {
+      position: absolute;
+      right: 12px;
+      bottom: 58vh;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 900;
+      pointer-events: none;
+    }
+    .fab-container .fab-btn {
+      pointer-events: auto;
+      min-width: 48px;
+      height: 40px;
+      border-radius: 999px;
+      border: none;
+      padding: 0 12px;
+      font-size: 12px;
+      background: #ffffff;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .fab-container .fab-btn.destination {
+      background: #25d07a;
+      color: #fff;
+    }
+    .fab-container .fab-btn.voice-btn {
+      background: #333;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    /* ローディング・その他 */
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.9);
+      z-index: 1100;
+    }
+    .loading-content {
+      text-align: center;
+      font-size: 14px;
+    }
+    .nav-section {
+      margin-bottom: 12px;
+    }
+    .nav-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .incident-alert {
+      border-radius: 8px;
+      border: 1px solid #facc15;
+      background: #fef9c3;
+      color: #713f12;
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
+    /* マーカー (AdvancedMarker) */
+    .wn-user-marker {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: #3aa0ff;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 4px rgba(0,0,0,0.4);
+      position: relative;
+      transform-origin: 50% 50%;
+    }
+    .wn-user-marker::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 2px;
+      height: 8px;
+      background: #ffffff;
+      border-radius: 999px;
+      transform: translate(-50%, -90%);
+    }
+    .wn-search-marker {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 2px solid #25d07a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: #111;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    .wn-point-marker {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: #ff6565;
+      border: 2px solid #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
   `;
+  
   if (document.head.firstChild) {
     document.head.insertBefore(style, document.head.firstChild);
   } else {
     document.head.appendChild(style);
   }
 })();
+
+const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
+const MAX_RETRY = 3;
+const RETRY_DELAY = 1000;
+
+const LOCATION_OPTIONS = {
+  enableHighAccuracy: true,
+  timeout: 15000,
+  maximumAge: 0
+};
+
+const SAVED_LOCATIONS_KEY = 'walknav_saved_locations';
+const MAP_MODE_KEY = 'walknav_map_mode';
+const PROFILE_KEY = 'walknav_user_profile';
 
 /* =========================
    Global State & Helpers
@@ -255,7 +541,52 @@ if (WN.booted) {
     }
   }
 
-  /* === 天気取得（Cloudflare経由）・表示・音声 === */
+  /* === 天気取得（ハイブリッド：Proxy -> Direct） === */
+  
+  // 共通フェッチ関数: Proxyで失敗したらDirectキーでリトライする堅牢設計
+  async function fetchWeatherSmart(endpoint, lat, lng) {
+    // 1. まずCloudflare Proxyを試す
+    try {
+      const proxyUrl = `${WORKER_ORIGIN}/${endpoint}`;
+      const resp = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lng, language: 'ja', units: 'metric' })
+      });
+      if (resp.ok) {
+        console.log(`[WalkNav] Weather via Proxy success: ${endpoint}`);
+        return await resp.json();
+      }
+    } catch (e) {
+      console.warn(`[WalkNav] Proxy failed for ${endpoint}, trying direct...`, e);
+    }
+
+    // 2. 失敗したらDirect API (要APIキー) を試す
+    if (!OPEN_WEATHER_KEY || OPEN_WEATHER_KEY.includes('YOUR_')) {
+      console.warn('[WalkNav] No valid API Key for fallback.');
+      return null;
+    }
+    
+    try {
+      const directUrl = `https://api.openweathermap.org/data/2.5/${endpoint}?lat=${lat}&lon=${lng}&appid=${OPEN_WEATHER_KEY}&lang=ja&units=metric`;
+      const resp = await fetch(directUrl);
+      if (resp.ok) {
+        console.log(`[WalkNav] Weather via Direct success: ${endpoint}`);
+        return await resp.json();
+      }
+    } catch (e) {
+      console.warn(`[WalkNav] Direct failed for ${endpoint}`, e);
+    }
+    return null;
+  }
+
+  async function fetchCurrentWeather(lat, lng) {
+    return fetchWeatherSmart('weather', lat, lng);
+  }
+
+  async function fetchForecast(lat, lng) {
+    return fetchWeatherSmart('forecast', lat, lng);
+  }
 
   async function fetchAddressNominatim(lat, lng) {
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
@@ -270,41 +601,9 @@ if (WN.booted) {
     }
   }
 
-  // ★ Cloudflare Worker経由で現在天気を取得
-  async function fetchCurrentWeather(lat, lng) {
-    try {
-      const resp = await fetchWithRetry(`${WORKER_ORIGIN}/weather`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lat, lng, language: 'ja', units: 'metric' })
-      });
-      if (!resp.ok) return null;
-      return await resp.json();
-    } catch (e) { 
-      console.warn('Weather proxy error', e);
-      return null; 
-    }
-  }
-
-  // ★ Cloudflare Worker経由で予報を取得
-  async function fetchForecast(lat, lng) {
-    try {
-      const resp = await fetchWithRetry(`${WORKER_ORIGIN}/forecast`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lat, lng, language: 'ja', units: 'metric' })
-      });
-      if (!resp.ok) return null;
-      return await resp.json();
-    } catch (e) { 
-      console.warn('Forecast proxy error', e);
-      return null; 
-    }
-  }
-
-  // 天気HTML生成関数
+  // HTML生成関数
   function buildWeatherHtml(current, forecast) {
-    if (!current) return '<div style="font-size:12px; color:#666;">☁️ 天気情報なし (Proxy設定を確認)</div>';
+    if (!current) return '<div style="font-size:12px; color:#666;">☁️ 天気取得エラー (接続確認)</div>';
 
     let pop = 0;
     if (forecast && forecast.list && forecast.list.length > 0) {
@@ -327,7 +626,7 @@ if (WN.booted) {
     if (forecast && forecast.list) {
       html += `<div class="weather-forecast-list">`;
       for (let i = 1; i <= 3; i++) {
-        const item = forecast.list[i]; 
+        const item = forecast.list[i];
         if (item) {
           const timeLabel = `${i * 3}H後`;
           const fIcon = `https://openweathermap.org/img/wn/${item.weather[0].icon}.png`;
@@ -348,6 +647,7 @@ if (WN.booted) {
     return html;
   }
 
+  // ★重要: SearchタブとNavタブの両方を更新する
   async function updateAllWeatherUI(lat, lng) {
     const [current, forecast] = await Promise.all([
       fetchCurrentWeather(lat, lng),
@@ -358,7 +658,7 @@ if (WN.booted) {
 
     const html = buildWeatherHtml(current, forecast);
 
-    // 1. 検索タブ (Search Panel) の更新
+    // 1. Search Panel更新
     let searchWeatherEl = getEl('weatherDisplaySearch');
     if (!searchWeatherEl) {
       const addressCard = document.querySelector('.address-card');
@@ -374,7 +674,7 @@ if (WN.booted) {
       searchWeatherEl.style.display = 'block';
     }
 
-    // 2. 案内タブ (Nav Panel) の更新
+    // 2. Nav Panel更新 (案内タブ)
     const routeInfoSection = getEl('routeInfoSection');
     if (routeInfoSection) {
       let navWeatherEl = getEl('weatherDisplayNav');
@@ -382,7 +682,7 @@ if (WN.booted) {
         navWeatherEl = document.createElement('div');
         navWeatherEl.id = 'weatherDisplayNav';
         navWeatherEl.className = 'weather-widget';
-        routeInfoSection.appendChild(navWeatherEl);
+        routeInfoSection.insertBefore(navWeatherEl, routeInfoSection.firstChild); // 先頭に追加
       }
       navWeatherEl.innerHTML = html;
       navWeatherEl.style.display = 'block';
@@ -411,37 +711,31 @@ if (WN.booted) {
       alertOnce('voice_no_pos', '現在地が取得できていません');
       return;
     }
-    const { lat, lng } = appState.currentPos;
     if (navigator.vibrate) navigator.vibrate(50);
     
-    const [addressName, wData] = await Promise.all([
-      fetchAddressNominatim(lat, lng),
-      updateAllWeatherUI(lat, lng)
+    const [addr, wData] = await Promise.all([
+      fetchAddressNominatim(appState.currentPos.lat, appState.currentPos.lng),
+      updateAllWeatherUI(appState.currentPos.lat, appState.currentPos.lng)
     ]);
 
-    let simpleAddr = addressName.split(' ').pop() || addressName;
-    simpleAddr = simpleAddr.replace(/^日本、\s*/, '').replace(/、.*$/, '');
-
-    let msg = `現在地は、${simpleAddr}です。`;
+    let simpleAddr = addr.split(' ').pop().replace(/^日本、\s*/, '').replace(/、.*$/, '');
+    let msg = `現在地、${simpleAddr}。`;
     if (wData.temp !== null) {
-      msg += `天気は${wData.desc}、気温は${wData.temp}度、降水確率は${wData.pop}パーセントです。`;
-      if (wData.pop >= 50) msg += '傘をお持ちですか？';
-      else if (wData.temp > 30) msg += '熱中症にご注意ください。';
-      else if (wData.temp < 10) msg += '冷えますので暖かくしてください。';
-      else msg += '快適な気候です。';
+      msg += `天気${wData.desc}、${wData.temp}度、降水確率${wData.pop}パーセント。`;
+      if (wData.pop >= 50) msg += '傘が必要です。';
     }
-
+    
     console.log('[WalkNav] Speaking:', msg);
     speakText(msg);
   }
 
-  /* =========================================== */
-
-  async function placesTextSearch(query, centerLat, centerLng) {
+  /* === その他ロジック === */
+  
+  async function placesTextSearch(query, lat, lng) {
     const payload = {
       textQuery: query,
       locationBias: {
-        circle: { center: { latitude: centerLat, longitude: centerLng }, radius: appState.searchRadiusMeters }
+        circle: { center: { latitude: lat, longitude: lng }, radius: appState.searchRadiusMeters }
       },
       languageCode: 'ja'
     };
@@ -451,10 +745,11 @@ if (WN.booted) {
         headers: { 'Content-Type': 'application/json', 'X-Goog-FieldMask': DEFAULT_MASK },
         body: JSON.stringify(payload)
       });
-      if (!resp.ok) throw new Error(`WORKER ${resp.status}`);
+      if (!resp.ok) throw new Error('Worker Error');
       return await resp.json();
     } catch (e) {
-      console.warn('Fallback to Direct:', e);
+      // Fallback
+      console.warn('Worker search failed, fallback to direct');
       const resp = await fetchWithRetry(`https://places.googleapis.com/v1/places:searchText`, {
         method: 'POST',
         headers: {
@@ -464,7 +759,6 @@ if (WN.booted) {
         },
         body: JSON.stringify(payload)
       });
-      if (!resp.ok) throw new Error(`DIRECT ${resp.status}`);
       return await resp.json();
     }
   }
@@ -476,61 +770,43 @@ if (WN.booted) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ latlng: { lat, lng }, language: 'ja' })
       });
-      if (!resp.ok) throw new Error(`WORKER ${resp.status}`);
+      if (!resp.ok) throw new Error('Worker Error');
       return await resp.json();
     } catch (e) {
-      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=ja&key=${API_KEY}`;
-      const resp = await fetchWithRetry(url);
-      if (!resp.ok) throw new Error(`DIRECT ${resp.status}`);
+      // Fallback
+      const resp = await fetchWithRetry(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=ja&key=${API_KEY}`);
       return await resp.json();
-    }
-  }
-
-  function renderIncidentSection(data, isError) {
-    const section = getEl('incidentSection');
-    const box = getEl('incidentText');
-    if (!section || !box) return;
-
-    if (isError) {
-      section.style.display = 'block';
-      box.textContent = 'インシデント情報の取得に失敗しました。';
-      return;
-    }
-    if (!data) {
-      section.style.display = 'none';
-      return;
-    }
-    const parts = [];
-    if (data.traffic && data.traffic.length) parts.push('【交通】' + data.traffic.map(x=>x.title||'遅延').join('/'));
-    if (data.events && data.events.length) parts.push('【事象】' + data.events.map(x=>x.title||'事故').join('/'));
-    if (data.weather && data.weather.length) parts.push('【気象】' + data.weather.map(x=>x.title||'注意報').join('/'));
-
-    if (parts.length === 0) {
-      section.style.display = 'block';
-      box.textContent = '半径10km以内に特筆すべきインシデントはありません。';
-    } else {
-      section.style.display = 'block';
-      box.textContent = parts.join(' ｜ ');
     }
   }
 
   async function fetchIncidentsAround(lat, lng) {
-    const payload = { lat, lng, radiusKm: 10 };
     try {
       const resp = await fetchWithRetry(`${WORKER_ORIGIN}/incidents`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ lat, lng, radiusKm: 10 })
       });
-      if (!resp.ok) throw new Error(`INCIDENTS ${resp.status}`);
+      if (!resp.ok) throw new Error('Error');
       const json = await resp.json();
-      appState.incidentData = json;
-      renderIncidentSection(json, false);
+      
+      const sec = getEl('incidentSection');
+      const box = getEl('incidentText');
+      if (sec && box) {
+        if (!json) { sec.style.display = 'none'; return; }
+        const parts = [];
+        if (json.traffic?.length) parts.push('交通:' + json.traffic.map(x=>x.title).join(','));
+        if (json.events?.length) parts.push('事故:' + json.events.map(x=>x.title).join(','));
+        if (json.weather?.length) parts.push('気象:' + json.weather.map(x=>x.title).join(','));
+        
+        sec.style.display = 'block';
+        box.textContent = parts.length ? parts.join(' / ') : '周辺の特筆すべきインシデントはありません';
+      }
     } catch (e) {
-      console.warn('[WalkNav] incidents fetch error:', e);
-      renderIncidentSection(null, true);
+      console.warn(e);
     }
   }
+
+  /* === Map & Marker === */
 
   function initMap(center) {
     if (appState.map) {
@@ -558,53 +834,42 @@ if (WN.booted) {
 
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized with AdvancedMarker (Map ID)');
+      console.log('[WalkNav] Map initialized v19 (Readable)');
     } catch (e) {
-      console.error('[WalkNav] Map failed:', e);
-      alertOnce('map_fail', '地図の初期化に失敗しました');
+      alertOnce('map_fail', 'Map Init Failed');
     }
   }
 
   function setUserMarker(lat, lng) {
     appState.currentPos = { lat, lng };
-    if (!appState.map) return;
-    if (!google.maps.marker || !google.maps.marker.AdvancedMarkerElement) {
-      console.error('AdvancedMarkerElement not available');
-      return;
-    }
+    if (!appState.map || !google.maps.marker || !google.maps.marker.AdvancedMarkerElement) return;
 
-    if (!appState.userMarkerElement) {
+    if (!appState.userMarker) {
       const el = document.createElement('div');
       el.className = 'wn-user-marker';
       appState.userMarkerElement = el;
-    }
-
-    if (!appState.userMarker) {
+      
       appState.userMarker = new google.maps.marker.AdvancedMarkerElement({
         map: appState.map,
         position: { lat, lng },
-        content: appState.userMarkerElement,
+        content: el,
         zIndex: 1000
       });
     } else {
       appState.userMarker.position = { lat, lng };
     }
 
-    appState.userMarkerElement.style.transform = `rotate(${appState.currentHeading}deg)`;
+    if (appState.userMarkerElement) {
+      appState.userMarkerElement.style.transform = `rotate(${appState.currentHeading}deg)`;
+    }
   }
 
   function setSearchPoint(lat, lng) {
     appState.searchPoint = { lat, lng };
     if (!appState.map) return;
-    if (!google.maps.marker || !google.maps.marker.AdvancedMarkerElement) {
-      console.error('AdvancedMarkerElement not available');
-      return;
-    }
 
     if (appState.searchPointMarker) {
-      try {
-        appState.searchPointMarker.map = null;
-      } catch (_) {}
+      try { appState.searchPointMarker.map = null; } catch (_) {}
       appState.searchPointMarker = null;
     }
 
@@ -621,14 +886,11 @@ if (WN.booted) {
     setText('pointAddress', '取得中…');
     setDisplay('pointAddressBlock', 'flex');
     setText('pointCoords', `Lat: ${lat.toFixed(5)}`);
-    geocode(lat, lng)
-      .then((data) => {
-        if (data.results?.[0])
-          setText('pointAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
-        else setText('pointAddress', '不明な場所');
-      })
-      .catch(() => setText('pointAddress', '取得エラー'));
-
+    
+    geocode(lat, lng).then(d => {
+      setText('pointAddress', d.results?.[0]?.formatted_address.replace(/^日本、\s*/, '') || '不明');
+    });
+    
     fetchIncidentsAround(lat, lng);
   }
 
@@ -637,124 +899,89 @@ if (WN.booted) {
       const { latitude, longitude } = pos.coords;
       const loading = getEl('loading');
       if (loading) loading.remove();
+
       if (!appState.mapInitialized) initMap({ lat: latitude, lng: longitude });
       else appState.map.setCenter({ lat: latitude, lng: longitude });
 
       setUserMarker(latitude, longitude);
-
       setText('locCoords', `Lat: ${latitude.toFixed(5)}`);
-      geocode(latitude, longitude).then((data) => {
-        if (data.results?.[0])
-          setText('locAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
+      
+      geocode(latitude, longitude).then(d => {
+        setText('locAddress', d.results?.[0]?.formatted_address.replace(/^日本、\s*/, '') || '');
       });
       
+      // ★天気更新
       updateAllWeatherUI(latitude, longitude);
-
       fetchIncidentsAround(latitude, longitude);
     };
 
     const onError = (error) => {
-      console.warn('[WalkNav] Geolocation error:', error);
       const loading = getEl('loading');
       if (loading) loading.remove();
-
-      const defaultPos = { lat: 35.0, lng: 135.0 };
-      if (!appState.mapInitialized) initMap(defaultPos);
-      else appState.map.setCenter(defaultPos);
-
-      setUserMarker(defaultPos.lat, defaultPos.lng);
-
-      setText('locAddress', '現在地取得に失敗しました (デフォルト位置)');
+      
+      const def = { lat: 35.0, lng: 135.0 };
+      if (!appState.mapInitialized) initMap(def);
+      else appState.map.setCenter(def);
+      
+      setUserMarker(def.lat, def.lng);
+      setText('locAddress', '現在地取得失敗 (デフォルト)');
       setText('locCoords', 'GPSエラー');
       
-      updateAllWeatherUI(defaultPos.lat, defaultPos.lng);
-
-      fetchIncidentsAround(defaultPos.lat, defaultPos.lng);
+      updateAllWeatherUI(def.lat, def.lng);
+      fetchIncidentsAround(def.lat, def.lng);
     };
 
-    if (!navigator.geolocation) {
-      onError('Not supported');
-      return;
-    }
     navigator.geolocation.getCurrentPosition(onSuccess, onError, LOCATION_OPTIONS);
   }
 
   function startCompassListener() {
-    if (!window.DeviceOrientationEvent) return;
-    const handler = (e) => {
+    window.addEventListener('deviceorientation', (e) => {
       if (appState.isNavigating) return;
       const h = e.webkitCompassHeading || (e.absolute ? e.alpha : null);
-      if (h != null) {
+      if (h != null && appState.userMarkerElement) {
         appState.currentHeading = h;
-        if (appState.userMarkerElement) {
-          appState.userMarkerElement.style.transform = `rotate(${h}deg)`;
-        }
+        appState.userMarkerElement.style.transform = `rotate(${h}deg)`;
       }
-    };
-    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-      DeviceOrientationEvent.requestPermission().then((s) => {
-        if (s === 'granted') window.addEventListener('deviceorientation', handler, true);
-      });
-    } else {
-      window.addEventListener('deviceorientationabsolute', handler, true);
-      window.addEventListener('deviceorientation', handler, true);
-    }
+    }, true);
   }
 
   function startLocationWatcher() {
     if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
-    appState.locationWatchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setUserMarker(latitude, longitude);
-        if (appState.isNavigating && appState.map) {
-          appState.map.panTo({ lat: latitude, lng: longitude });
-        }
-      },
-      () => {},
-      LOCATION_OPTIONS
-    );
+    appState.locationWatchId = navigator.geolocation.watchPosition(pos => {
+      const { latitude, longitude } = pos.coords;
+      setUserMarker(latitude, longitude);
+      if (appState.isNavigating && appState.map) {
+        appState.map.panTo({ lat: latitude, lng: longitude });
+      }
+    }, null, LOCATION_OPTIONS);
   }
 
-  function stopLocationWatcher() {
-    if (appState.locationWatchId) {
-      navigator.geolocation.clearWatch(appState.locationWatchId);
-      appState.locationWatchId = null;
-    }
-  }
+  /* === Route === */
 
-  function renderRoute(route, destinationName) {
-    if (!route) return;
-    const leg = route.legs && route.legs[0];
-    if (!leg) return;
+  function renderRoute(route, destName) {
+    if (!route || !route.legs[0]) return;
+    const leg = route.legs[0];
 
-    setText('destinationName', destinationName || '目的地');
-    setText('routeDistance', leg.distance?.text || '');
-    setText('routeTime', `徒歩 ${leg.duration?.text || ''}`);
+    setText('destinationName', destName || '目的地');
+    setText('routeDistance', leg.distance?.text);
+    setText('routeTime', `徒歩 ${leg.duration?.text}`);
 
     const list = getEl('navPanelInstructions');
     if (list) {
       list.innerHTML = '';
-      (leg.steps || []).forEach((s) => {
+      leg.steps.forEach(s => {
         const d = document.createElement('div');
         d.className = 'nav-instruction-item';
         d.style.padding = '8px 0';
         d.style.borderBottom = '1px solid #eee';
-        d.textContent =
-          s.html_instructions.replace(/<[^>]+>/g, '') +
-          (s.distance?.text ? ` (${s.distance.text})` : '');
+        d.textContent = s.html_instructions.replace(/<[^>]+>/g, '') + (s.distance?.text ? ` (${s.distance.text})` : '');
         list.appendChild(d);
       });
     }
     setDisplay('instructionsSection', 'block');
 
     if (appState.currentPolyline) appState.currentPolyline.setMap(null);
-    if (
-      google.maps.geometry &&
-      google.maps.geometry.encoding &&
-      route.overview_polyline &&
-      route.overview_polyline.points
-    ) {
+    if (google.maps.geometry) {
       const path = google.maps.geometry.encoding.decodePath(route.overview_polyline.points);
       appState.currentPolyline = new google.maps.Polyline({
         path,
@@ -764,73 +991,188 @@ if (WN.booted) {
       });
     }
 
-    if (appState.currentPos && appState.map && leg.end_location) {
-      const b = new google.maps.LatLngBounds();
-      b.extend(appState.currentPos);
-      b.extend(leg.end_location);
-      appState.map.fitBounds(b, { padding: 50 });
-    }
-
+    const b = new google.maps.LatLngBounds();
+    b.extend(appState.currentPos);
+    b.extend(leg.end_location);
+    appState.map.fitBounds(b, { padding: 50 });
+    
     setDisplay('routeInfoSection', 'block');
-    // キャッシュから天気復元
-    if(appState.cachedWeatherData && appState.cachedWeatherData.current) {
+    
+    // ★Navタブ表示時に天気も更新（キャッシュがあれば即時）
+    if (appState.cachedWeatherData && appState.cachedWeatherData.current) {
       updateAllWeatherUI(appState.currentPos.lat, appState.currentPos.lng);
     }
   }
 
-  function applyCurrentRouteSelection() {
-    const data = appState.currentRouteData;
-    if (!data || !data.routes || data.routes.length === 0) return;
+  async function startNavigation(dest) {
+    if (!appState.currentPos) return;
+    appState.currentDestination = dest;
+    appState.isNavigating = true;
 
-    let chosen = { route: data.routes[0], index: 0, reason: '' };
-
-    if (window.RouteEvaluator && typeof window.RouteEvaluator.pickBestRoute === 'function') {
-      chosen = window.RouteEvaluator.pickBestRoute(
-        data.routes,
-        appState.userProfile,
-        appState.aiMode
-      );
-    }
-
-    appState.currentRouteData.selectedIndex = chosen.index;
-    appState.currentRouteData.reason = chosen.reason;
-
-    console.log(
-      '[WalkNav] Route selection mode=',
-      appState.aiMode,
-      'index=',
-      chosen.index,
-      'reason=',
-      chosen.reason
-    );
-
-    renderRoute(
-      chosen.route,
-      appState.currentDestination ? appState.currentDestination.name : '目的地'
-    );
-  }
-
-  async function performSearch(query) {
-    if (!query || !lock('search', 1000)) return;
-
-    const center =
-      appState.pointSearchMode && appState.searchPoint
-        ? appState.searchPoint
-        : appState.currentPos;
-
-    if (!center) {
-      alertOnce('no_pos', '検索中心（現在地）が特定できません');
-      return;
-    }
+    getEl('searchPanel').classList.add('collapsed');
+    setDisplay('fabStack', 'flex');
+    setDisplay('searchPanel', 'block');
+    switchPanelTab('nav');
+    setDisplay('routeControlSection', 'block');
+    setDisplay('results', 'none');
 
     try {
-      const data = await placesTextSearch(query, center.lat, center.lng);
-      const places = (data && data.places) || [];
-      displayResults(places);
-      if (places.length === 0) alertOnce('no_res', '見つかりませんでした');
+      const resp = await fetchWithRetry(`${WORKER_ORIGIN}/directions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          origin: `${appState.currentPos.lat},${appState.currentPos.lng}`,
+          destination: `${dest.lat},${dest.lng}`,
+          mode: 'walking',
+          language: 'ja'
+        })
+      });
+      const json = await resp.json();
+      
+      // ルート選択ロジック（AI等）
+      let chosen = { route: json.routes[0], index: 0 };
+      if (window.RouteEvaluator && typeof window.RouteEvaluator.pickBestRoute === 'function') {
+        chosen = window.RouteEvaluator.pickBestRoute(json.routes, appState.userProfile, appState.aiMode);
+      }
+      appState.currentRouteData = { routes: json.routes, selectedIndex: chosen.index };
+
+      renderRoute(chosen.route, dest.name);
+      startLocationWatcher();
+      fetchIncidentsAround(dest.lat, dest.lng);
+
     } catch (e) {
       console.error(e);
-      alertOnce('search_err', '検索エラーが発生しました');
+      alertOnce('route_err', 'ルート取得失敗');
+      stopNavigation(); // エラー時は戻す
+    }
+  }
+
+  function stopNavigation() {
+    if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
+    appState.isNavigating = false;
+    
+    if (appState.currentPolyline) appState.currentPolyline.setMap(null);
+    
+    setDisplay('routeControlSection', 'none');
+    setDisplay('instructionsSection', 'none');
+    setDisplay('routeInfoSection', 'none');
+    setDisplay('btnDestination', 'none');
+    setDisplay('fabStack', 'none');
+    setDisplay('btnSearch', 'flex');
+    
+    switchPanelTab('search');
+    
+    if (appState.currentPos && appState.map) {
+      appState.map.panTo(appState.currentPos);
+      appState.map.setZoom(17);
+    }
+  }
+
+  function switchPanelTab(mode) {
+    const s = getEl('tabPaneSearch');
+    const n = getEl('tabPaneNav');
+    const st = getEl('tabPaneSettings');
+    
+    if (s) s.classList.toggle('active', mode !== 'nav' && mode !== 'settings');
+    if (n) n.classList.toggle('active', mode === 'nav');
+    if (st) st.classList.toggle('active', mode === 'settings');
+
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.panelTab === (mode === 'settings' ? 'settings' : mode === 'nav' ? 'nav' : 'search'));
+    });
+  }
+
+  function changeMapMode(mode) {
+    localStorage.setItem(MAP_MODE_KEY, mode);
+    appState.mapMode = mode;
+    if (appState.map) {
+      appState.map.setMapTypeId(
+        mode === 'photo' ? google.maps.MapTypeId.SATELLITE :
+        mode === '3d' ? google.maps.MapTypeId.HYBRID :
+        google.maps.MapTypeId.ROADMAP
+      );
+      appState.map.setTilt(mode === '3d' ? 45 : 0);
+    }
+    ['btnMapPhoto', 'btnMapRoadmap', 'btnMap3D'].forEach(id => {
+      const el = getEl(id);
+      if (el) el.classList.toggle('active', el.dataset.mode === mode);
+    });
+  }
+
+  /* === UI Binding === */
+
+  function bindUI() {
+    const q = getEl('q');
+    if (getEl('btnSearchIcon')) {
+      getEl('btnSearchIcon').onclick = () => {
+        placesTextSearch(q.value, appState.currentPos.lat, appState.currentPos.lng)
+          .then(d => displayResults(d.places || []));
+      };
+    }
+    if (q) {
+      q.onkeypress = (e) => { if (e.key === 'Enter') getEl('btnSearchIcon').click(); };
+    }
+
+    if (getEl('btnReset')) {
+      getEl('btnReset').onclick = () => {
+        q.value = '';
+        setDisplay('results', 'none');
+        appState.pointSearchMode = false;
+        const b = getEl('btnPointSearch');
+        if(b) { b.textContent = '📍 ポイント選択'; b.style.background = ''; b.style.color = ''; }
+      };
+    }
+
+    if (getEl('btnLocate')) getEl('btnLocate').onclick = acquireLocation;
+    if (getEl('btnLocatePanel')) getEl('btnLocatePanel').onclick = acquireLocation;
+
+    if (getEl('btnClosePanel')) {
+      getEl('btnClosePanel').onclick = () => getEl('searchPanel').classList.add('collapsed');
+    }
+    if (getEl('btnSearch')) {
+      getEl('btnSearch').onclick = () => getEl('searchPanel').classList.remove('collapsed');
+    }
+    
+    if (getEl('btnStopRoute')) {
+      getEl('btnStopRoute').onclick = stopNavigation;
+    }
+
+    [10, 20, 30].forEach((d) => {
+      const el = getEl(`r${d}`);
+      if (el) {
+        el.onclick = () => {
+          appState.searchRadiusMeters = d * 1000;
+          setText('radiusLabel', `${d}km`);
+          document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+          el.classList.add('active');
+        };
+      }
+    });
+
+    if (getEl('btnPointSearch')) {
+      getEl('btnPointSearch').onclick = () => {
+        appState.pointSearchMode = !appState.pointSearchMode;
+        const b = getEl('btnPointSearch');
+        b.textContent = appState.pointSearchMode ? '📍 選択中...' : '📍 ポイント選択';
+        b.style.background = appState.pointSearchMode ? '#25d07a' : '';
+        b.style.color = appState.pointSearchMode ? '#fff' : '';
+      };
+    }
+
+    ['btnMapPhoto', 'btnMapRoadmap', 'btnMap3D'].forEach(id => {
+      const el = getEl(id);
+      if (el) el.onclick = () => changeMapMode(el.dataset.mode);
+    });
+    
+    // Voice Button
+    const fabContainer = document.querySelector('.fab-container');
+    if (fabContainer && !getEl('btnVoiceAnnounce')) {
+      const btn = document.createElement('button');
+      btn.id = 'btnVoiceAnnounce';
+      btn.className = 'fab-btn voice-btn';
+      btn.innerHTML = '🎤';
+      btn.onclick = handleVoiceAnnounce;
+      fabContainer.appendChild(btn);
     }
   }
 
@@ -841,278 +1183,33 @@ if (WN.booted) {
     setDisplay('results', 'block');
     setDisplay('instructionsSection', 'none');
 
-    appState.searchMarkers.forEach((m) => {
-      try {
-        m.map = null;
-      } catch (_) {}
-    });
+    appState.searchMarkers.forEach(m => { try { m.map = null; } catch (_) {} });
     appState.searchMarkers = [];
 
-    if (!google.maps.marker || !google.maps.marker.AdvancedMarkerElement) {
-      console.error('AdvancedMarkerElement not available');
-    }
-
     places.slice(0, 5).forEach((p, i) => {
-      const lat = p.location.latitude;
-      const lng = p.location.longitude;
-      const name = p.displayName?.text || '名称不明';
-
       const item = document.createElement('div');
       item.className = 'result-item';
-      item.innerHTML = `<div>${i + 1}. ${name}</div><div style="font-size:0.8em;opacity:0.7">${p.formattedAddress}</div>`;
-      item.onclick = () => startNavigation({ name, lat, lng });
+      item.innerHTML = `<div>${i + 1}. ${p.displayName?.text || '名称不明'}</div><div style="font-size:0.8em;opacity:0.7">${p.formattedAddress || ''}</div>`;
+      item.onclick = () => startNavigation({ name: p.displayName?.text, lat: p.location.latitude, lng: p.location.longitude });
       div.appendChild(item);
 
-      if (google.maps.marker && google.maps.marker.AdvancedMarkerElement && appState.map) {
-        const markerEl = document.createElement('div');
-        markerEl.className = 'wn-search-marker';
-        markerEl.textContent = String(i + 1);
-
-        const m = new google.maps.marker.AdvancedMarkerElement({
+      if (appState.map && google.maps.marker.AdvancedMarkerElement) {
+        const el = document.createElement('div');
+        el.className = 'wn-search-marker';
+        el.textContent = String(i + 1);
+        
+        appState.searchMarkers.push(new google.maps.marker.AdvancedMarkerElement({
           map: appState.map,
-          position: { lat, lng },
-          content: markerEl,
-          title: name
-        });
-        appState.searchMarkers.push(m);
+          position: { lat: p.location.latitude, lng: p.location.longitude },
+          content: el,
+          title: p.displayName?.text
+        }));
       }
     });
   }
 
-  async function startNavigation(dest) {
-    if (!appState.currentPos) return;
-    appState.currentDestination = dest;
-    appState.isNavigating = true;
-
-    const panel = getEl('searchPanel');
-    if (panel) panel.classList.add('collapsed');
-    setDisplay('fabStack', 'flex');
-
-    setDisplay('searchPanel', 'block');
-    switchPanelTab('nav');
-    setDisplay('routeControlSection', 'block');
-    setDisplay('results', 'none');
-
-    try {
-      const origin = `${appState.currentPos.lat},${appState.currentPos.lng}`;
-      const destination = `${dest.lat},${dest.lng}`;
-      const resp = await fetchWithRetry(`${WORKER_ORIGIN}/directions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ origin, destination, mode: 'walking', language: 'ja' })
-      });
-      const json = await resp.json();
-      const routes = json.routes || [];
-      if (!routes[0]) throw new Error('No route');
-
-      appState.currentRouteData = {
-        routes,
-        selectedIndex: 0,
-        reason: ''
-      };
-
-      applyCurrentRouteSelection();
-      startLocationWatcher();
-
-      fetchIncidentsAround(dest.lat, dest.lng);
-    } catch (e) {
-      console.error(e);
-      alertOnce('route_err', 'ルートが見つかりませんでした');
-      stopNavigation();
-    }
-  }
-
-  function stopNavigation() {
-    stopLocationWatcher();
-    appState.isNavigating = false;
-    if (appState.currentPolyline) appState.currentPolyline.setMap(null);
-    setDisplay('routeControlSection', 'none');
-    setDisplay('instructionsSection', 'none');
-    setDisplay('routeInfoSection', 'none');
-    setDisplay('btnDestination', 'none');
-    setDisplay('fabStack', 'none');
-    setDisplay('btnSearch', 'flex');
-    switchPanelTab('search');
-    if (appState.currentPos && appState.map) {
-      appState.map.panTo(appState.currentPos);
-      appState.map.setZoom(17);
-    }
-  }
-
-  function switchPanelTab(mode) {
-    const isNav = mode === 'nav';
-    const isSettings = mode === 'settings';
-    const s = getEl('tabPaneSearch');
-    const n = getEl('tabPaneNav');
-    const st = getEl('tabPaneSettings');
-    if (s) s.classList.toggle('active', !isNav && !isSettings);
-    if (n) n.classList.toggle('active', isNav);
-    if (st) st.classList.toggle('active', isSettings);
-
-    document.querySelectorAll('.tab-btn').forEach((btn) => {
-      btn.classList.toggle(
-        'active',
-        btn.dataset.panelTab === (isSettings ? 'settings' : isNav ? 'nav' : 'search')
-      );
-    });
-  }
-
-  function changeMapMode(mode) {
-    if (!appState.map) return;
-    localStorage.setItem(MAP_MODE_KEY, mode);
-    appState.mapMode = mode;
-    const type =
-      mode === 'photo'
-        ? google.maps.MapTypeId.SATELLITE
-        : mode === '3d'
-        ? google.maps.MapTypeId.HYBRID
-        : google.maps.MapTypeId.ROADMAP;
-    appState.map.setMapTypeId(type);
-    appState.map.setTilt(mode === '3d' ? 45 : 0);
-    ['btnMapPhoto', 'btnMapRoadmap', 'btnMap3D'].forEach((id) => {
-      const el = getEl(id);
-      if (el) el.classList.toggle('active', el.dataset.mode === mode);
-    });
-  }
-
-  function bindUI() {
-    const q = getEl('q');
-    const btnSearchIcon = getEl('btnSearchIcon');
-    if (btnSearchIcon) btnSearchIcon.onclick = () => performSearch(q ? q.value : '');
-    if (q)
-      q.onkeypress = (e) => {
-        if (e.key === 'Enter') performSearch(q.value);
-      };
-
-    const btnReset = getEl('btnReset');
-    if (btnReset) {
-      btnReset.onclick = () => {
-        if (q) q.value = '';
-        setDisplay('results', 'none');
-        appState.pointSearchMode = false;
-        const btnPInner = getEl('btnPointSearch');
-        if (btnPInner) {
-          btnPInner.textContent = '📍 ポイント選択';
-          btnPInner.style.background = '';
-          btnPInner.style.color = '';
-        }
-      };
-    }
-
-    const btnLocate = getEl('btnLocate');
-    if (btnLocate) btnLocate.onclick = () => acquireLocation();
-    const btnLocatePanel = getEl('btnLocatePanel');
-    if (btnLocatePanel) btnLocatePanel.onclick = () => acquireLocation();
-
-    const btnClosePanel = getEl('btnClosePanel');
-    if (btnClosePanel) {
-      btnClosePanel.onclick = () => {
-        const panel = getEl('searchPanel');
-        if (panel) panel.classList.add('collapsed');
-      };
-    }
-
-    const btnSearch = getEl('btnSearch');
-    if (btnSearch) {
-      btnSearch.onclick = () => {
-        const panel = getEl('searchPanel');
-        if (panel) panel.classList.remove('collapsed');
-      };
-    }
-
-    const btnStopRoute = getEl('btnStopRoute');
-    if (btnStopRoute) btnStopRoute.onclick = () => stopNavigation();
-
-    const chips = [getEl('r10'), getEl('r20'), getEl('r30')];
-    chips.forEach((el, idx) => {
-      if (!el) return;
-      el.onclick = () => {
-        chips.forEach((c) => c && c.classList.remove('active'));
-        el.classList.add('active');
-        appState.searchRadiusMeters = (idx + 1) * 10000;
-        setText('radiusLabel', `${(idx + 1) * 10}km`);
-      };
-    });
-
-    const btnP = getEl('btnPointSearch');
-    if (btnP) {
-      btnP.onclick = () => {
-        appState.pointSearchMode = !appState.pointSearchMode;
-        btnP.textContent = appState.pointSearchMode ? '📍 選択中...' : '📍 ポイント選択';
-        btnP.style.background = appState.pointSearchMode ? '#25d07a' : '';
-        btnP.style.color = appState.pointSearchMode ? '#fff' : '';
-      };
-    }
-
-    const btnMapPhoto = getEl('btnMapPhoto');
-    if (btnMapPhoto) btnMapPhoto.onclick = () => changeMapMode('photo');
-    const btnMapRoadmap = getEl('btnMapRoadmap');
-    if (btnMapRoadmap) btnMapRoadmap.onclick = () => changeMapMode('roadmap');
-    const btnMap3D = getEl('btnMap3D');
-    if (btnMap3D) btnMap3D.onclick = () => changeMapMode('3d');
-
-    const selLuggage = getEl('userLuggage');
-    const selCondition = getEl('userCondition');
-    const selCompanion = getEl('userCompanion');
-
-    if (selLuggage) {
-      selLuggage.value = appState.userProfile.luggage;
-      selLuggage.onchange = () => {
-        appState.userProfile.luggage = selLuggage.value;
-        persistUserProfile();
-        if (appState.currentRouteData) applyCurrentRouteSelection();
-      };
-    }
-    if (selCondition) {
-      selCondition.value = appState.userProfile.condition;
-      selCondition.onchange = () => {
-        appState.userProfile.condition = selCondition.value;
-        persistUserProfile();
-        if (appState.currentRouteData) applyCurrentRouteSelection();
-      };
-    }
-    if (selCompanion) {
-      selCompanion.value = appState.userProfile.companion;
-      selCompanion.onchange = () => {
-        appState.userProfile.companion = selCompanion.value;
-        persistUserProfile();
-        if (appState.currentRouteData) applyCurrentRouteSelection();
-      };
-    }
-
-    const btnRouteNormal = getEl('btnRouteNormal');
-    const btnRouteAiShortest = getEl('btnRouteAiShortest');
-    if (btnRouteNormal && btnRouteAiShortest) {
-      btnRouteNormal.onclick = () => {
-        appState.aiMode = 'normal';
-        btnRouteNormal.classList.add('active');
-        btnRouteAiShortest.classList.remove('active');
-        if (appState.currentRouteData) applyCurrentRouteSelection();
-      };
-      btnRouteAiShortest.onclick = () => {
-        appState.aiMode = 'ai';
-        btnRouteAiShortest.classList.add('active');
-        btnRouteNormal.classList.remove('active');
-        if (appState.currentRouteData) applyCurrentRouteSelection();
-      };
-    }
-    
-    // === 音声案内ボタン ===
-    const fabContainer = document.querySelector('.fab-container');
-    if (fabContainer && !getEl('btnVoiceAnnounce')) {
-      const btnVoice = document.createElement('button');
-      btnVoice.id = 'btnVoiceAnnounce';
-      btnVoice.className = 'fab-btn voice-btn';
-      btnVoice.innerHTML = '🎤';
-      btnVoice.onclick = handleVoiceAnnounce;
-      fabContainer.appendChild(btnVoice);
-    }
-  }
-
   function startApp() {
-    console.log(
-      '[WalkNav] Starting Logic + ForcedCSS (Proxy Weather v17) + AI + Incidents + AdvancedMarker + Voice...'
-    );
+    console.log('[WalkNav] Starting v19 Readable...');
     loadUserProfile();
     bindUI();
     appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
@@ -1121,17 +1218,9 @@ if (WN.booted) {
     startCompassListener();
   }
 
-  function initializeWhenReady() {
-    if (typeof google !== 'undefined' && google.maps && google.maps.Map) {
-      startApp();
-    } else {
-      setTimeout(initializeWhenReady, 100);
-    }
-  }
-
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeWhenReady);
+    document.addEventListener('DOMContentLoaded', () => setTimeout(startApp, 100));
   } else {
-    initializeWhenReady();
+    setTimeout(startApp, 100);
   }
 }
