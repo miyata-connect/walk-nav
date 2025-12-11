@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v35: Remove Duplicate Button Logic
+// WalkNav app.js - v36: Force Remove Duplicate & Cache Busting
 
-const ISSUE_ID = 'idx20251212_v35_button_fix';
+const ISSUE_ID = 'idx20251212_v36_force_fix';
 
 // Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
@@ -397,7 +397,7 @@ if (WN.booted) {
       appState.map.addListener('click', (e) => { if (appState.pointSearchMode && e.latLng) setSearchPoint(e.latLng.lat(), e.latLng.lng()); });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v35');
+      console.log('[WalkNav] Map initialized v36');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, { center, zoom: 17, gestureHandling: 'greedy', clickableIcons: true, disableDefaultUI: true });
@@ -565,6 +565,11 @@ if (WN.booted) {
   }
 
   function bindUI() {
+    // ===【重要】自己修復: 万が一古いJSが重複ボタン(btnEditSaved)を作っていたら削除する ===
+    const ghostBtn = document.getElementById('btnEditSaved');
+    if (ghostBtn) ghostBtn.remove();
+    // =========================================================================
+
     const q = getEl('q');
     if (getEl('btnSearchIcon')) getEl('btnSearchIcon').onclick = () => {
       let lat, lng;
@@ -603,7 +608,7 @@ if (WN.booted) {
     const ph = document.querySelector('.panel-handle-area');
     if(ph) ph.onclick = () => getEl('searchPanel').classList.toggle('collapsed');
 
-    // モーダル関連イベント
+    // モーダル関連イベント (HTMLにある正しいボタンID)
     if (getEl('btnEditSavedList')) getEl('btnEditSavedList').onclick = openEditModal;
     if (getEl('btnCancelEdit')) getEl('btnCancelEdit').onclick = closeEditModal;
     if (getEl('btnSaveEdits')) getEl('btnSaveEdits').onclick = saveEditModalChanges;
@@ -628,7 +633,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v35 (Button Fix)...');
+    console.log('[WalkNav] Starting v36 (Force Fix)...');
     loadUserProfile(); loadSavedLocations();
     bindUI(); renderSavedLocations();
     appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
