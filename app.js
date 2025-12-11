@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v30: Weather Text "降水確率" + Route Share Link + JP Force
+// WalkNav app.js - v31: Weather Text Layout Fix + Forced Point Route + Map Language Reload
 
-const ISSUE_ID = 'idx20251211_v30_weather_share_fix';
+const ISSUE_ID = 'idx20251211_v31_weather_text_point_route';
 
 // Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
@@ -41,13 +41,13 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
     .tab-pane { display: none; }
     .tab-pane.active { display: block; }
 
-    /* 天気ウィジェット (文字表示対応) */
+    /* 天気ウィジェット (文字切れ対策) */
     .weather-widget { margin: 8px 0; padding: 8px 10px; border-radius: 8px; background: #e0f2fe; color: #0369a1; font-size: 13px; }
-    .weather-current-row { display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+    .weather-current-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px; }
     .weather-forecast-list { display: flex; flex-direction: column; gap: 4px; }
-    .weather-forecast-item { display: flex; align-items: center; justify-content: space-between; background: #ffffff; padding: 4px 8px; border-radius: 6px; font-size: 12px; color: #333; }
-    /* 降水確率の文字強調 */
-    .pop-text { color: #2563eb; font-weight: bold; font-size: 12px; margin-left: auto; }
+    .weather-forecast-item { display: flex; align-items: center; justify-content: space-between; background: #ffffff; padding: 6px 8px; border-radius: 6px; font-size: 12px; color: #333; }
+    /* 降水確率の文字表示 */
+    .pop-text { color: #2563eb; font-weight: bold; font-size: 12px; white-space: nowrap; }
 
     .saved-section { margin-top: 16px; border-top: 1px solid #eee; padding-top: 8px; }
     .saved-title { font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #555; }
@@ -258,22 +258,26 @@ if (WN.booted) {
     } catch (e) { return '現在地'; }
   }
 
-  // ★天気の文字表示ロジック (v30: 文字のみに変更)
+  // ★天気の文字表示ロジック (v31 Fix: 文字切れ防止)
   function buildWeatherHtml(current, forecast) {
     if (!current) return '<div style="font-size:12px; color:#666;">☁️ 天気情報なし (Proxy設定を確認)</div>';
     let pop = 0; if (forecast && forecast.list?.[0]) pop = Math.round(forecast.list[0].pop * 100);
     const curIcon = `https://openweathermap.org/img/wn/${current.weather[0].icon}.png`;
     
-    // 現在の天気: 「降水確率: 〇〇%」と明記
+    // 現在の天気
     const html = `
       <div class="weather-current-row">
-        <img src="${curIcon}" class="weather-icon-img" alt="${current.weather[0].description}">
-        <span>${current.weather[0].description}</span>
-        <span style="margin-left:auto;">${Math.round(current.main.temp)}℃</span>
-        <span class="pop-text">降水確率: ${pop}%</span>
+        <div style="display:flex; align-items:center;">
+          <img src="${curIcon}" class="weather-icon-img" alt="${current.weather[0].description}">
+          <span>${current.weather[0].description}</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span>${Math.round(current.main.temp)}℃</span>
+          <span class="pop-text">降水確率: ${pop}%</span>
+        </div>
       </div>`;
       
-    // 予報リスト: アイコン横に「降水確率:〇〇%」
+    // 予報リスト
     let forecastHtml = '';
     if (forecast && forecast.list) {
       forecastHtml += `<div class="weather-forecast-list">`;
@@ -282,9 +286,11 @@ if (WN.booted) {
         if (item) {
           forecastHtml += `
             <div class="weather-forecast-item">
-              <span style="width:40px; font-weight:bold;">${i * 3}H後</span>
-              <img src="https://openweathermap.org/img/wn/${item.weather[0].icon}.png" style="width:24px; height:24px;">
-              <span>${Math.round(item.main.temp)}℃</span>
+              <span style="width:36px; font-weight:bold;">${i * 3}H後</span>
+              <div style="display:flex; align-items:center;">
+                <img src="https://openweathermap.org/img/wn/${item.weather[0].icon}.png" style="width:24px; height:24px;">
+                <span>${Math.round(item.main.temp)}℃</span>
+              </div>
               <span class="pop-text">降水確率: ${Math.round(item.pop * 100)}%</span>
             </div>`;
         }
@@ -334,11 +340,11 @@ if (WN.booted) {
     }
   }
 
-  /* === Share (v30: Route Link) === */
+  /* === Share (v30 Fix: Route Link) === */
   function handleShareLocation() {
     let textBody, url;
     
-    // ナビゲーション中ならルートURL (Directions) を生成
+    // ナビゲーション中ならルートURL
     if (appState.isNavigating && appState.currentRouteData && appState.currentDestination) {
       const dest = appState.currentDestination;
       const leg = appState.currentRouteData.routes[0].legs[0];
@@ -348,11 +354,6 @@ if (WN.booted) {
       
       textBody = `🏁 ルート共有 (WalkNav)\n出発: ${startAddr}\n到着: ${dest.name}\n🚶 徒歩: ${leg.duration.text} (${leg.distance.text})`;
       
-      // Google Maps Directions URL
-      // origin/destination に座標または地名を入れる
-      // origin_place_id などは省略し、座標指定で確実性を取る
-      // format: https://www.google.com/maps/dir/?api=1&origin=LAT,LNG&destination=LAT,LNG&travelmode=walking
-      // note: Google Maps API v3 objects use lat()/lng() methods, but JSON results have lat/lng props.
       const sLat = (typeof startLoc.lat === 'function') ? startLoc.lat() : startLoc.lat;
       const sLng = (typeof startLoc.lng === 'function') ? startLoc.lng() : startLoc.lng;
       const dLat = (typeof endLoc.lat === 'function') ? endLoc.lat() : endLoc.lat;
@@ -361,11 +362,9 @@ if (WN.booted) {
       url = `https://www.google.com/maps/dir/?api=1&origin=${sLat},${sLng}&destination=${dLat},${dLng}&travelmode=walking`;
       
     } else if (appState.pointSearchMode && appState.searchPoint) {
-      // ポイント指定
       textBody = `📍 指定地点 (WalkNav)`;
       url = `https://www.google.com/maps/search/?api=1&query=${appState.searchPoint.lat},${appState.searchPoint.lng}`;
     } else if (appState.currentPos) {
-      // 現在地
       textBody = `📍 現在地 (WalkNav)`;
       url = `https://www.google.com/maps/search/?api=1&query=${appState.currentPos.lat},${appState.currentPos.lng}`;
     } else {
@@ -439,6 +438,32 @@ if (WN.booted) {
     } catch (_) {}
   }
 
+  /* === Map Force Reload Logic (v31) === */
+  // Google Mapsが英語でロードされていた場合、強制的に削除して日本語でリロードする
+  function ensureJapaneseMap() {
+    const existingScripts = document.querySelectorAll('script[src*="maps.googleapis.com"]');
+    let hasJapanese = false;
+    existingScripts.forEach(s => {
+      if (s.src.includes('language=ja')) hasJapanese = true;
+    });
+
+    // まだ日本語版がロードされていない場合
+    if (!hasJapanese && existingScripts.length > 0) {
+      console.log('[WalkNav] Reloading Map API with Japanese...');
+      existingScripts.forEach(s => s.remove()); // 既存を削除
+      window.google = undefined; // グローバル汚染をクリア
+      
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&v=weekly&libraries=places,marker,geometry&language=ja&region=JP&loading=async`;
+      script.async = true;
+      script.defer = true;
+      script.onload = initializeWhenReady; // ロード完了後に初期化再開
+      document.body.appendChild(script);
+      return false; // リロード中なので初期化を中断
+    }
+    return true; // 日本語版がある、または初回
+  }
+
   function initMap(center) {
     if (appState.map) { appState.map.setCenter(center); return; }
     const mapEl = getEl('map'); if (!mapEl) return;
@@ -447,7 +472,7 @@ if (WN.booted) {
       appState.map.addListener('click', (e) => { if (appState.pointSearchMode && e.latLng) setSearchPoint(e.latLng.lat(), e.latLng.lng()); });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v30');
+      console.log('[WalkNav] Map initialized v31');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, { center, zoom: 17, gestureHandling: 'greedy', clickableIcons: true, disableDefaultUI: true });
@@ -522,7 +547,7 @@ if (WN.booted) {
     if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
     appState.locationWatchId = navigator.geolocation.watchPosition(pos => {
       setUserMarker(pos.coords.latitude, pos.coords.longitude);
-      // ポイント選択モード中は強制移動しない
+      // ★Point Modeのときは地図を勝手に動かさない
       if (appState.isNavigating && appState.map && !appState.pointSearchMode) {
         appState.map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       }
@@ -533,7 +558,7 @@ if (WN.booted) {
     if (!route?.legs?.[0]) return;
     const leg = route.legs[0];
     
-    // 出発地の表示ロジック
+    // UI表示
     const startName = leg.start_address ? leg.start_address.replace(/^日本、\s*/, '') : '現在地';
     const title = appState.pointSearchMode ? `🚩 出発: ${startName}\n🏁 到着: ${destName}` : destName || '目的地';
     setText('destinationName', title);
@@ -566,6 +591,7 @@ if (WN.booted) {
   async function startNavigation(dest) {
     if (!appState.currentPos) return;
     
+    // ★重要: PointSearchModeならSearchPointを起点にする
     let originLat, originLng;
     if (appState.pointSearchMode && appState.searchPoint) {
       originLat = appState.searchPoint.lat; originLng = appState.searchPoint.lng;
@@ -699,9 +725,13 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v30 (JP Force + Share)...');
+    console.log('[WalkNav] Starting v31 (WeatherText/PointRoute/JPMap)...');
     loadUserProfile(); loadSavedLocations();
     bindUI(); renderSavedLocations();
+    
+    // ★日本語マップ強制ロード処理
+    if (!ensureJapaneseMap()) return; // リロードするなら一旦終了
+
     appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
     switchPanelTab('search'); acquireLocation(); startCompassListener();
   }
