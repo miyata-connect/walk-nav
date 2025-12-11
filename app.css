@@ -1,4 +1,4 @@
-/* app.css (v39: Zoom Fix & Readable) */
+/* app.css (v40: Coordinates & Anti-Zoom) */
 
 /* --------------------
    基本リセット
@@ -20,11 +20,10 @@ body {
   -webkit-text-size-adjust: 100%;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
   background: #000;
+  /* 画面全体のズーム操作を無効化 */
+  touch-action: manipulation;
 }
 
-/* --------------------
-   カラートークン
--------------------- */
 :root {
   --primary: #2563eb;
   --secondary: #4b5563;
@@ -84,7 +83,6 @@ body {
   justify-content: center;
   padding: 6px 0 8px;
   cursor: pointer;
-  /* ハンドル操作時のズーム防止 */
   touch-action: none;
 }
 
@@ -122,7 +120,7 @@ body {
   font-weight: 600;
   color: var(--text-muted);
   position: relative;
-  /* ボタン連打時のズーム防止 */
+  /* 連打拡大防止 */
   touch-action: manipulation;
 }
 
@@ -152,8 +150,14 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* --------------------
@@ -188,7 +192,7 @@ body {
   font-weight: 500;
   padding: 8px 14px;
   transition: all 0.2s;
-  /* ズーム防止 */
+  /* 連打拡大防止 */
   touch-action: manipulation;
 }
 
@@ -200,7 +204,8 @@ body {
 }
 
 /* --------------------
-   ボタン (共通)
+   ボタン (共通設定)
+   ※ここで touch-action: manipulation を指定し拡大を防ぐ
 -------------------- */
 .btn {
   border-radius: 999px;
@@ -214,7 +219,7 @@ body {
   justify-content: center;
   cursor: pointer;
   transition: opacity 0.2s;
-  /* 【重要】連打時の拡大防止 */
+  /* 重要：ダブルタップ拡大を防止 */
   touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
@@ -449,7 +454,6 @@ body {
   margin-bottom: 6px;
   border: 1px solid transparent;
   cursor: pointer;
-  /* リスト項目の連打拡大も防止 */
   touch-action: manipulation;
 }
 
@@ -558,7 +562,11 @@ body {
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 .wn-user-marker {
   width: 20px;
@@ -692,6 +700,14 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* [New] 座標表示スタイル */
+.edit-text-coords {
+  font-size: 10px;
+  color: #6b7280;
+  margin-top: 2px;
+  font-family: monospace;
 }
 
 .btn-delete-icon {
