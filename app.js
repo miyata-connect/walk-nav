@@ -1,15 +1,28 @@
 'use strict';
 
-// WalkNav app.js - v16: Guidance Tab Weather Fix + Anti-Flash (Visibility Logic) + 3H Forecast
+// WalkNav app.js - v17: Weather via Cloudflare Proxy + Anti-Flash + Guidance Tab Fix
 
-const ISSUE_ID = 'idx20251211_guidance_weather_fix_v16';
+const ISSUE_ID = 'idx20251211_weather_via_proxy_v17';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 
-// ▼▼▼【重要】ここに OpenWeatherMap の APIキーを貼り付けてください ▼▼▼
-const OPEN_WEATHER_KEY = ' '; 
-// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+// ★ OpenWeatherのAPIキーは削除しました（Cloudflare Worker側で管理） ★
 
 const MAP_ID = '9110fb2763169e9d8f2b317e'; 
+
+const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
+const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
+const MAX_RETRY = 3;
+const RETRY_DELAY = 1000;
+
+const LOCATION_OPTIONS = {
+  enableHighAccuracy: true,
+  timeout: 15000,
+  maximumAge: 0
+};
+
+const SAVED_LOCATIONS_KEY = 'walknav_saved_locations';
+const MAP_MODE_KEY = 'walknav_map_mode';
+const PROFILE_KEY = 'walknav_user_profile';
 
 /* ==========================================================================
    【最優先実行】CSS & 安全装置
@@ -29,7 +42,7 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: #f5f5f5;
     }
-    /* === ★巨大化防止: ロード完了までSVGを隠す、またはサイズ固定 === */
+    /* === SVG巨大化防止 === */
     svg {
       width: 24px !important;
       height: 24px !important;
@@ -77,7 +90,7 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
       margin: 8px 0;
       padding: 8px 10px;
       border-radius: 8px;
-      background: #e0f2fe; /* 薄い青 */
+      background: #e0f2fe;
       color: #0369a1;
       font-size: 13px;
     }
@@ -125,21 +138,6 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
     document.head.appendChild(style);
   }
 })();
-
-const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
-const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
-const MAX_RETRY = 3;
-const RETRY_DELAY = 1000;
-
-const LOCATION_OPTIONS = {
-  enableHighAccuracy: true,
-  timeout: 15000,
-  maximumAge: 0
-};
-
-const SAVED_LOCATIONS_KEY = 'walknav_saved_locations';
-const MAP_MODE_KEY = 'walknav_map_mode';
-const PROFILE_KEY = 'walknav_user_profile';
 
 /* =========================
    Global State & Helpers
@@ -203,7 +201,7 @@ if (WN.booted) {
     searchRadiusMeters: 10000,
     aiMode: 'normal',
     incidentData: null,
-    cachedWeatherData: null // 天気データ保持用
+    cachedWeatherData: null
   };
 
   function getEl(id) {
@@ -257,7 +255,7 @@ if (WN.booted) {
     }
   }
 
-  /* === 天気取得・表示・音声 (修正版) === */
+  /* === 天気取得（Cloudflare経由）・表示・音声 === */
 
   async function fetchAddressNominatim(lat, lng) {
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
@@ -272,29 +270,41 @@ if (WN.booted) {
     }
   }
 
+  // ★ Cloudflare Worker経由で現在天気を取得
   async function fetchCurrentWeather(lat, lng) {
-    if (!OPEN_WEATHER_KEY || OPEN_WEATHER_KEY.includes('YOUR_')) return null;
-    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${OPEN_WEATHER_KEY}&lang=ja&units=metric`;
     try {
-      const resp = await fetch(url);
+      const resp = await fetchWithRetry(`${WORKER_ORIGIN}/weather`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lng, language: 'ja', units: 'metric' })
+      });
       if (!resp.ok) return null;
       return await resp.json();
-    } catch (e) { return null; }
+    } catch (e) { 
+      console.warn('Weather proxy error', e);
+      return null; 
+    }
   }
 
+  // ★ Cloudflare Worker経由で予報を取得
   async function fetchForecast(lat, lng) {
-    if (!OPEN_WEATHER_KEY || OPEN_WEATHER_KEY.includes('YOUR_')) return null;
-    const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&appid=${OPEN_WEATHER_KEY}&lang=ja&units=metric`;
     try {
-      const resp = await fetch(url);
+      const resp = await fetchWithRetry(`${WORKER_ORIGIN}/forecast`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lng, language: 'ja', units: 'metric' })
+      });
       if (!resp.ok) return null;
       return await resp.json();
-    } catch (e) { return null; }
+    } catch (e) { 
+      console.warn('Forecast proxy error', e);
+      return null; 
+    }
   }
 
-  // 天気HTML生成関数 (Searchタブ用とNavタブ用で共用)
+  // 天気HTML生成関数
   function buildWeatherHtml(current, forecast) {
-    if (!current) return '<div style="font-size:12px; color:#666;">☁️ 天気情報なし (API設定を確認)</div>';
+    if (!current) return '<div style="font-size:12px; color:#666;">☁️ 天気情報なし (Proxy設定を確認)</div>';
 
     let pop = 0;
     if (forecast && forecast.list && forecast.list.length > 0) {
@@ -338,21 +348,19 @@ if (WN.booted) {
     return html;
   }
 
-  // ★重要: 検索タブと案内タブの両方を更新する
   async function updateAllWeatherUI(lat, lng) {
     const [current, forecast] = await Promise.all([
       fetchCurrentWeather(lat, lng),
       fetchForecast(lat, lng)
     ]);
 
-    appState.cachedWeatherData = { current, forecast }; // キャッシュ
+    appState.cachedWeatherData = { current, forecast };
 
     const html = buildWeatherHtml(current, forecast);
 
     // 1. 検索タブ (Search Panel) の更新
     let searchWeatherEl = getEl('weatherDisplaySearch');
     if (!searchWeatherEl) {
-      // 住所カードの下に挿入
       const addressCard = document.querySelector('.address-card');
       if (addressCard && addressCard.parentNode) {
         searchWeatherEl = document.createElement('div');
@@ -367,8 +375,6 @@ if (WN.booted) {
     }
 
     // 2. 案内タブ (Nav Panel) の更新
-    // 案内タブには元々空の天気欄があるかもしれないが、確実に表示するために
-    // ルート情報セクション(routeInfoSection)の中に自前のウィジェットを挿入する
     const routeInfoSection = getEl('routeInfoSection');
     if (routeInfoSection) {
       let navWeatherEl = getEl('weatherDisplayNav');
@@ -376,14 +382,12 @@ if (WN.booted) {
         navWeatherEl = document.createElement('div');
         navWeatherEl.id = 'weatherDisplayNav';
         navWeatherEl.className = 'weather-widget';
-        // ルート情報の直後に挿入
         routeInfoSection.appendChild(navWeatherEl);
       }
       navWeatherEl.innerHTML = html;
       navWeatherEl.style.display = 'block';
     }
 
-    // 音声案内用にデータを返す
     if (current) {
       return { 
         desc: current.weather[0].description, 
@@ -410,7 +414,6 @@ if (WN.booted) {
     const { lat, lng } = appState.currentPos;
     if (navigator.vibrate) navigator.vibrate(50);
     
-    // UI更新と住所取得を並行
     const [addressName, wData] = await Promise.all([
       fetchAddressNominatim(lat, lng),
       updateAllWeatherUI(lat, lng)
@@ -645,7 +648,6 @@ if (WN.booted) {
           setText('locAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
       });
       
-      // ★天気UI更新 (初回)
       updateAllWeatherUI(latitude, longitude);
 
       fetchIncidentsAround(latitude, longitude);
@@ -769,9 +771,8 @@ if (WN.booted) {
       appState.map.fitBounds(b, { padding: 50 });
     }
 
-    // ★重要: 案内タブが表示されるタイミングで、天気ウィジェットも再確認して挿入
     setDisplay('routeInfoSection', 'block');
-    // キャッシュがあれば即反映
+    // キャッシュから天気復元
     if(appState.cachedWeatherData && appState.cachedWeatherData.current) {
       updateAllWeatherUI(appState.currentPos.lat, appState.currentPos.lng);
     }
@@ -1110,7 +1111,7 @@ if (WN.booted) {
 
   function startApp() {
     console.log(
-      '[WalkNav] Starting Logic + ForcedCSS (Guidance Weather Fix) + AI + Incidents + AdvancedMarker + Voice v16.0...'
+      '[WalkNav] Starting Logic + ForcedCSS (Proxy Weather v17) + AI + Incidents + AdvancedMarker + Voice...'
     );
     loadUserProfile();
     bindUI();
