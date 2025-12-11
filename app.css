@@ -1,4 +1,4 @@
-/* app.css (v43: Expanded Readable Format) */
+/* app.css (v45: Fully Expanded & Readable Format) */
 
 /* ------------------------------------------------------------------
    基本設定 (Reset & Base)
@@ -288,7 +288,6 @@ body {
   border: 1px solid rgba(56, 189, 248, 0.3);
   border-radius: 16px;
   padding: 14px 12px;
-  /* 住所との間に十分な余白を確保 */
   margin-top: 16px;
   margin-bottom: 16px;
   gap: 12px;
@@ -405,7 +404,6 @@ body {
   color: var(--text-muted);
 }
 
-/* 案内タブでの座標表示 (バッジ風) */
 .loc-coords {
   font-family: monospace;
   color: #facc15;
@@ -546,7 +544,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  z-index: 20;
+  z-index: 1200;
 }
 
 .fab-btn {
