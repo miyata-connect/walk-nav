@@ -6,7 +6,7 @@
   <title>WalkNav</title>
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <link rel="stylesheet" href="app.css?v=37" />
+  <link rel="stylesheet" href="app.css?v=41" />
 </head>
 <body id="appBody">
 <div class="app">
@@ -38,6 +38,7 @@
           <div class="address-title" id="pointAddress">ポイント：取得中...</div>
           <div class="address-coords" id="pointCoords"></div>
         </div>
+        
         <div class="action-buttons-row">
           <button class="btn btn-outline" id="btnSaveCurrent" style="border-color:#d97706; color:#d97706; background:rgba(254,243,199,0.1);">⭐ 現在地保存</button>
           <button class="btn btn-outline" id="btnOpenEditModal">登録地修正</button>
@@ -72,7 +73,6 @@
           </div>
         </div>
         <div id="weatherDisplayNav"></div>
-
         <div class="nav-section" id="routeInfoSection" style="display:none;">
           <div class="nav-section-title">🚶 ルート詳細</div>
           <div class="route-summary-card">
@@ -87,12 +87,10 @@
             </div>
           </div>
         </div>
-
         <div class="nav-section" id="incidentSection" style="display:none;">
           <div class="nav-section-title">⚠️ 交通情報・インシデント</div>
           <div id="incidentText" class="incident-alert"></div>
         </div>
-
         <div class="nav-section" id="instructionsSection" style="display:none;">
           <div class="nav-section-title">🧭 ステップバイステップ</div>
           <div id="navPanelInstructions" class="instructions-list"></div>
@@ -132,7 +130,6 @@
             </div>
           </div>
         </div>
-
         <div class="settings-group">
           <div class="settings-label" style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">地図表示モード</div>
           <div class="map-mode-buttons">
@@ -141,7 +138,6 @@
             <button id="btnMap3D" class="map-mode-btn" data-mode="3d">3D</button>
           </div>
         </div>
-
         <div id="routeControlSection" style="display:none;" class="settings-group">
           <div class="settings-label" style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">ナビゲーション操作</div>
           <div class="nav-controls-stack">
@@ -179,7 +175,7 @@
 </div>
 
 <script src="RouteEvaluator.js"></script>
-<script src="app.js?v=37"></script>
+<script src="app.js?v=41"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&language=ja&region=JP&loading=async" async defer></script>
 
 <script>
