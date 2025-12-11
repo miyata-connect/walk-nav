@@ -1,77 +1,26 @@
 'use strict';
 
-// WalkNav app.js - v12: Weather Display Added + AdvancedMarker + Voice + Anti-Flash
+// WalkNav app.js - v13: Anti-Flash ULTIMATE (Immediate CSS + !important) + Weather + Voice
 
-const ISSUE_ID = 'idx20251211_weather_display_v1';
+const ISSUE_ID = 'idx20251211_anti_flash_ultimate_v1';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 
 // ▼▼▼【重要】ここに OpenWeatherMap の APIキーを貼り付けてください ▼▼▼
-const OPEN_WEATHER_KEY = 'c8769e4d98a76dc6717a9edb7ab3cc40'; 
+const OPEN_WEATHER_KEY = 'YOUR_OPENWEATHER_API_KEY'; 
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 const MAP_ID = '9110fb2763169e9d8f2b317e'; 
 
-const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
-const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
-const MAX_RETRY = 3;
-const RETRY_DELAY = 1000;
+/* ==========================================================================
+   【最優先実行】CSS強制注入 (巨大アイコン防止のため、ロジックより先に実行)
+   ========================================================================== */
+(function applyImmediateCSS() {
+  const styleId = 'wn-forced-layout-css';
+  if (document.getElementById(styleId)) return;
 
-const LOCATION_OPTIONS = {
-  enableHighAccuracy: true,
-  timeout: 15000,
-  maximumAge: 0
-};
-
-const SAVED_LOCATIONS_KEY = 'walknav_saved_locations';
-const MAP_MODE_KEY = 'walknav_map_mode';
-const PROFILE_KEY = 'walknav_user_profile';
-
-/* =========================
-   Global State & Helpers
-   ========================= */
-const WN = (window.__WN_GLOBAL__ = window.__WN_GLOBAL__ || {
-  booted: false,
-  locks: Object.create(null),
-  alerts: Object.create(null),
-  styles: Object.create(null)
-});
-
-function lock(key, ms) {
-  const now = Date.now();
-  const until = WN.locks[key] || 0;
-  if (now < until) return false;
-  WN.locks[key] = now + ms;
-  return true;
-}
-
-function alertOnce(key, msg, ms = 1200) {
-  const now = Date.now();
-  const last = WN.alerts[key] || 0;
-  if (now - last < ms) return;
-  WN.alerts[key] = now;
-  alert(msg);
-}
-
-function injectStyleOnce(key, cssText) {
-  if (WN.styles[key]) return;
-  WN.styles[key] = true;
   const style = document.createElement('style');
-  style.id = `wn-style-${key}`;
-  style.textContent = cssText;
-  if (document.head.firstChild) {
-    document.head.insertBefore(style, document.head.firstChild);
-  } else {
-    document.head.appendChild(style);
-  }
-}
-
-/* =========================
-   強制レイアウトCSS (即時実行)
-   ========================= */
-function applyForcedLayoutCSS() {
-  injectStyleOnce(
-    'forced_layout',
-    `
+  style.id = styleId;
+  style.textContent = `
     html, body {
       height: 100%;
       margin: 0;
@@ -80,15 +29,15 @@ function applyForcedLayoutCSS() {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: #f5f5f5;
     }
-    svg {
-      max-width: 24px;
-      max-height: 24px;
+    /* === ★最強の安全装置: パネル内のSVGは物理的に巨大化させない★ === */
+    .panel svg, .icon svg, .search-box-container svg {
+      width: 24px !important;
+      height: 24px !important;
+      max-width: 24px !important;
+      max-height: 24px !important;
+      min-width: 24px !important; /* 潰れ防止 */
     }
-    .wn-user-marker svg, 
-    .wn-search-marker svg {
-      max-width: none;
-      max-height: none;
-    }
+    /* ============================================================= */
     .app {
       position: relative;
       width: 100%;
@@ -223,10 +172,6 @@ function applyForcedLayoutCSS() {
       align-items: center;
       justify-content: center;
     }
-    .icon svg {
-      width: 18px;
-      height: 18px;
-    }
     .icon-g {
       display: none !important;
       width: 0 !important;
@@ -259,13 +204,12 @@ function applyForcedLayoutCSS() {
       background: #f1f5f9;
       font-size: 12px;
     }
-    /* === 新規追加: 天気表示用CSS === */
     .weather-card {
       margin-top: 4px;
       margin-bottom: 8px;
       padding: 6px 10px;
       border-radius: 8px;
-      background: #e0f2fe; /* 薄い青 */
+      background: #e0f2fe;
       color: #0369a1;
       font-size: 13px;
       display: flex;
@@ -273,7 +217,6 @@ function applyForcedLayoutCSS() {
       gap: 6px;
       font-weight: 600;
     }
-    /* ========================== */
     .address-title {
       font-weight: 600;
       margin-bottom: 2px;
@@ -422,8 +365,54 @@ function applyForcedLayoutCSS() {
       border: 2px solid #ffffff;
       box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
-  `
-  );
+  `;
+  // 最速で適用するため head の先頭に挿入
+  if (document.head.firstChild) {
+    document.head.insertBefore(style, document.head.firstChild);
+  } else {
+    document.head.appendChild(style);
+  }
+})();
+
+const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
+const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
+const MAX_RETRY = 3;
+const RETRY_DELAY = 1000;
+
+const LOCATION_OPTIONS = {
+  enableHighAccuracy: true,
+  timeout: 15000,
+  maximumAge: 0
+};
+
+const SAVED_LOCATIONS_KEY = 'walknav_saved_locations';
+const MAP_MODE_KEY = 'walknav_map_mode';
+const PROFILE_KEY = 'walknav_user_profile';
+
+/* =========================
+   Global State & Helpers
+   ========================= */
+const WN = (window.__WN_GLOBAL__ = window.__WN_GLOBAL__ || {
+  booted: false,
+  locks: Object.create(null),
+  alerts: Object.create(null),
+  styles: Object.create(null)
+});
+
+function lock(key, ms) {
+  const now = Date.now();
+  const until = WN.locks[key] || 0;
+  if (now < until) return false;
+  WN.locks[key] = now + ms;
+  return true;
+}
+
+function alertOnce(key, msg, ms = 1200) {
+  const now = Date.now();
+  const last = WN.alerts[key] || 0;
+  if (now - last < ms) return;
+  WN.alerts[key] = now;
+  alert(msg);
 }
 
 /* =========================
@@ -434,8 +423,6 @@ if (WN.booted) {
   console.warn('[WalkNav] duplicate app.js blocked:', ISSUE_ID);
 } else {
   WN.booted = true;
-  
-  applyForcedLayoutCSS();
 
   const appState = {
     map: null,
@@ -558,14 +545,11 @@ if (WN.booted) {
     }
   }
 
-  // ★画面に天気を表示する関数
   async function updateWeatherUI(lat, lng) {
     const weatherData = await fetchOpenWeather(lat, lng);
     
-    // 表示用の要素を探すか作る
     let weatherEl = getEl('weatherDisplay');
     if (!weatherEl) {
-      // 住所カードの下に挿入する
       const addressCard = document.querySelector('.address-card');
       if (addressCard && addressCard.parentNode) {
         weatherEl = document.createElement('div');
@@ -573,7 +557,7 @@ if (WN.booted) {
         weatherEl.className = 'weather-card';
         addressCard.parentNode.insertBefore(weatherEl, addressCard.nextSibling);
       } else {
-        return; // 表示場所がない
+        return; 
       }
     }
 
@@ -584,7 +568,7 @@ if (WN.booted) {
       weatherEl.textContent = `☁️ 天気情報なし`;
       weatherEl.style.display = 'flex';
     }
-    return weatherData; // 音声案内用にデータを返す
+    return weatherData; 
   }
 
   function speakText(text) {
@@ -609,10 +593,9 @@ if (WN.booted) {
     const { lat, lng } = appState.currentPos;
     if (navigator.vibrate) navigator.vibrate(50);
     
-    // 画面表示更新と同時にデータ取得
     const [addressText, weatherData] = await Promise.all([
       fetchAddressNominatim(lat, lng),
-      updateWeatherUI(lat, lng) // ここで画面も更新
+      updateWeatherUI(lat, lng)
     ]);
 
     let msg = `現在地は、${addressText}です。`;
@@ -872,7 +855,6 @@ if (WN.booted) {
           setText('locAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
       });
       
-      // ★ここで天気を表示更新
       updateWeatherUI(latitude, longitude);
 
       fetchIncidentsAround(latitude, longitude);
@@ -1343,7 +1325,7 @@ if (WN.booted) {
 
   function startApp() {
     console.log(
-      '[WalkNav] Starting Logic + ForcedCSS (Anti-Flash) + AI + Incidents + AdvancedMarker + Voice + WeatherDisplay v12.0...'
+      '[WalkNav] Starting Logic + ForcedCSS (Anti-Flash ULTIMATE) + AI + Incidents + AdvancedMarker + Voice + WeatherDisplay v13.0...'
     );
     loadUserProfile();
     bindUI();
