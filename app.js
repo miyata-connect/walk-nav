@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v13: Anti-Flash ULTIMATE (Immediate CSS + !important) + Weather + Voice
+// WalkNav app.js - v15: Forecast (3H/6H/9H) + Rain Prob + Anti-Flash Global Fix
 
-const ISSUE_ID = 'idx20251211_anti_flash_ultimate_v1';
+const ISSUE_ID = 'idx20251211_forecast_v15';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 
 // ▼▼▼【重要】ここに OpenWeatherMap の APIキーを貼り付けてください ▼▼▼
@@ -12,7 +12,7 @@ const OPEN_WEATHER_KEY = 'YOUR_OPENWEATHER_API_KEY';
 const MAP_ID = '9110fb2763169e9d8f2b317e'; 
 
 /* ==========================================================================
-   【最優先実行】CSS強制注入 (巨大アイコン防止のため、ロジックより先に実行)
+   【最優先実行】CSS強制注入 (巨大アイコン防止 & 予報リストのデザイン)
    ========================================================================== */
 (function applyImmediateCSS() {
   const styleId = 'wn-forced-layout-css';
@@ -29,13 +29,24 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: #f5f5f5;
     }
-    /* === ★最強の安全装置: パネル内のSVGは物理的に巨大化させない★ === */
-    .panel svg, .icon svg, .search-box-container svg {
+    /* === ★最強の安全装置: すべてのSVGを強制的に24px以下にする★ === */
+    svg {
       width: 24px !important;
       height: 24px !important;
       max-width: 24px !important;
       max-height: 24px !important;
-      min-width: 24px !important; /* 潰れ防止 */
+      min-width: 24px !important;
+    }
+    /* 地図上のマーカーだけは制限解除 */
+    .wn-user-marker svg, 
+    .wn-search-marker svg,
+    button.gm-control-active svg,
+    .gm-style svg {
+      width: auto !important;
+      height: auto !important;
+      max-width: none !important;
+      max-height: none !important;
+      min-width: auto !important;
     }
     /* ============================================================= */
     .app {
@@ -204,19 +215,46 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
       background: #f1f5f9;
       font-size: 12px;
     }
+    /* === 天気表示用 === */
     .weather-card {
       margin-top: 4px;
       margin-bottom: 8px;
-      padding: 6px 10px;
+      padding: 8px 10px;
       border-radius: 8px;
       background: #e0f2fe;
       color: #0369a1;
       font-size: 13px;
+    }
+    .weather-current-row {
       display: flex;
       align-items: center;
       gap: 6px;
       font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 14px;
     }
+    .weather-forecast-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .weather-forecast-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #ffffff;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #333;
+    }
+    /* アイコン画像はSVGではないので制限解除 */
+    .weather-icon-img {
+      width: 32px;
+      height: 32px;
+      vertical-align: middle;
+    }
+    /* ========================== */
     .address-title {
       font-weight: 600;
       margin-bottom: 2px;
@@ -366,7 +404,6 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
       box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
   `;
-  // 最速で適用するため head の先頭に挿入
   if (document.head.firstChild) {
     document.head.insertBefore(style, document.head.firstChild);
   } else {
@@ -504,7 +541,7 @@ if (WN.booted) {
     }
   }
 
-  /* === 新機能: 音声案内 & 天気取得 & 表示 === */
+  /* === 音声案内 & 天気 (降水確率・予報 3H単位) === */
 
   async function fetchAddressNominatim(lat, lng) {
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
@@ -512,42 +549,42 @@ if (WN.booted) {
       const resp = await fetch(url);
       if (!resp.ok) return '住所不明';
       const data = await resp.json();
-      const addr = data.address;
-      let humanAddr = '';
-      if (addr.province) humanAddr += addr.province;
-      if (addr.city) humanAddr += addr.city;
-      if (addr.town) humanAddr += addr.town;
-      if (addr.village) humanAddr += addr.village;
-      if (addr.neighbourhood) humanAddr += `、${addr.neighbourhood}`;
-      if (!humanAddr) humanAddr = data.display_name || '現在地';
-      return humanAddr;
+      return data.display_name || '現在地';
     } catch (e) {
       console.warn('Nominatim error', e);
       return '現在地';
     }
   }
 
-  async function fetchOpenWeather(lat, lng) {
-    if (!OPEN_WEATHER_KEY || OPEN_WEATHER_KEY === 'YOUR_OPENWEATHER_API_KEY') {
-      return { desc: 'APIキー未設定', temp: null };
-    }
+  // 現在の天気取得
+  async function fetchCurrentWeather(lat, lng) {
+    if (!OPEN_WEATHER_KEY || OPEN_WEATHER_KEY.includes('YOUR_')) return null;
     const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${OPEN_WEATHER_KEY}&lang=ja&units=metric`;
     try {
       const resp = await fetch(url);
-      if (!resp.ok) return { desc: '取得不可', temp: null };
-      const data = await resp.json();
-      const desc = data.weather && data.weather[0] ? data.weather[0].description : '不明';
-      const temp = data.main ? Math.round(data.main.temp) : null;
-      return { desc, temp };
-    } catch (e) {
-      console.warn('Weather error', e);
-      return { desc: 'エラー', temp: null };
-    }
+      if (!resp.ok) return null;
+      return await resp.json();
+    } catch (e) { return null; }
   }
 
+  // 3時間ごとの予報取得
+  async function fetchForecast(lat, lng) {
+    if (!OPEN_WEATHER_KEY || OPEN_WEATHER_KEY.includes('YOUR_')) return null;
+    const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&appid=${OPEN_WEATHER_KEY}&lang=ja&units=metric`;
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) return null;
+      return await resp.json();
+    } catch (e) { return null; }
+  }
+
+  // 画面更新 & 音声用データ生成
   async function updateWeatherUI(lat, lng) {
-    const weatherData = await fetchOpenWeather(lat, lng);
-    
+    const [current, forecast] = await Promise.all([
+      fetchCurrentWeather(lat, lng),
+      fetchForecast(lat, lng)
+    ]);
+
     let weatherEl = getEl('weatherDisplay');
     if (!weatherEl) {
       const addressCard = document.querySelector('.address-card');
@@ -557,18 +594,63 @@ if (WN.booted) {
         weatherEl.className = 'weather-card';
         addressCard.parentNode.insertBefore(weatherEl, addressCard.nextSibling);
       } else {
-        return; 
+        return { desc: '情報なし', temp: null };
       }
     }
 
-    if (weatherData.temp !== null) {
-      weatherEl.textContent = `🌤️ ${weatherData.desc} / ${weatherData.temp}℃`;
-      weatherEl.style.display = 'flex';
-    } else {
-      weatherEl.textContent = `☁️ 天気情報なし`;
-      weatherEl.style.display = 'flex';
+    if (!current) {
+      weatherEl.textContent = '☁️ 天気情報なし (APIキーを確認)';
+      return { desc: '取得不可', temp: null };
     }
-    return weatherData; 
+
+    // 現在の降水確率は forecast.list[0] (直近) から取得して近似
+    let pop = 0;
+    if (forecast && forecast.list && forecast.list.length > 0) {
+      pop = Math.round(forecast.list[0].pop * 100);
+    }
+
+    const curIconUrl = `https://openweathermap.org/img/wn/${current.weather[0].icon}.png`;
+    const curDesc = current.weather[0].description;
+    const curTemp = Math.round(current.main.temp);
+
+    // HTML構築: 現在 + 3H/6H/9H
+    let html = `
+      <div class="weather-current-row">
+        <img src="${curIconUrl}" class="weather-icon-img" alt="${curDesc}">
+        <span>${curDesc}</span>
+        <span style="margin-left:auto;">${curTemp}℃</span>
+        <span style="color:#3b82f6; margin-left:8px;">☂️ ${pop}%</span>
+      </div>
+    `;
+
+    // 予報リスト
+    if (forecast && forecast.list) {
+      html += `<div class="weather-forecast-list">`;
+      // 直近3つを表示 (approx 3h, 6h, 9h later)
+      for (let i = 1; i <= 3; i++) {
+        const item = forecast.list[i]; 
+        if (item) {
+          const timeLabel = `${i * 3}H後`; // 簡易表記
+          const fIcon = `https://openweathermap.org/img/wn/${item.weather[0].icon}.png`;
+          const fTemp = Math.round(item.main.temp);
+          const fPop = Math.round(item.pop * 100);
+          html += `
+            <div class="weather-forecast-item">
+              <span style="width:40px; font-weight:bold;">${timeLabel}</span>
+              <img src="${fIcon}" style="width:24px; height:24px;">
+              <span>${fTemp}℃</span>
+              <span style="color:#3b82f6;">☂️ ${fPop}%</span>
+            </div>
+          `;
+        }
+      }
+      html += `</div>`;
+    }
+
+    weatherEl.innerHTML = html;
+    weatherEl.style.display = 'block';
+
+    return { desc: curDesc, temp: curTemp, pop: pop };
   }
 
   function speakText(text) {
@@ -593,20 +675,23 @@ if (WN.booted) {
     const { lat, lng } = appState.currentPos;
     if (navigator.vibrate) navigator.vibrate(50);
     
-    const [addressText, weatherData] = await Promise.all([
+    const [addressName, wData] = await Promise.all([
       fetchAddressNominatim(lat, lng),
       updateWeatherUI(lat, lng)
     ]);
 
-    let msg = `現在地は、${addressText}です。`;
-    if (weatherData && weatherData.temp !== null) {
-      msg += `天気は${weatherData.desc}、気温は${weatherData.temp}度です。`;
-      if (weatherData.desc.includes('雨')) msg += '足元にご注意ください。';
-      else if (weatherData.temp > 28) msg += '熱中症にご注意ください。';
-      else if (weatherData.temp < 10) msg += '暖かくしてお過ごしください。';
-      else msg += '快適な気候ですね。';
-    } else {
-       msg += `天気情報は取得できませんでした。`;
+    // 住所の短縮
+    let simpleAddr = addressName.split(' ').pop() || addressName;
+    simpleAddr = simpleAddr.replace(/^日本、\s*/, '').replace(/、.*$/, '');
+
+    let msg = `現在地は、${simpleAddr}です。`;
+    if (wData.temp !== null) {
+      msg += `天気は${wData.desc}、気温は${wData.temp}度、降水確率は${wData.pop}パーセントです。`;
+      
+      if (wData.pop >= 50) msg += '傘を持ったほうが良いでしょう。';
+      else if (wData.temp > 30) msg += '熱中症にご注意ください。';
+      else if (wData.temp < 10) msg += '暖かくしてお過ごしください。';
+      else msg += '快適な気候です。';
     }
 
     console.log('[WalkNav] Speaking:', msg);
@@ -855,6 +940,7 @@ if (WN.booted) {
           setText('locAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
       });
       
+      // ★天気UI更新
       updateWeatherUI(latitude, longitude);
 
       fetchIncidentsAround(latitude, longitude);
@@ -1311,7 +1397,7 @@ if (WN.booted) {
       };
     }
     
-    // === 追加: 音声案内ボタンの動的生成 ===
+    // === 音声案内ボタン ===
     const fabContainer = document.querySelector('.fab-container');
     if (fabContainer && !getEl('btnVoiceAnnounce')) {
       const btnVoice = document.createElement('button');
@@ -1325,7 +1411,7 @@ if (WN.booted) {
 
   function startApp() {
     console.log(
-      '[WalkNav] Starting Logic + ForcedCSS (Anti-Flash ULTIMATE) + AI + Incidents + AdvancedMarker + Voice + WeatherDisplay v13.0...'
+      '[WalkNav] Starting Logic + ForcedCSS (Forecast v15) + AI + Incidents + AdvancedMarker + Voice...'
     );
     loadUserProfile();
     bindUI();
