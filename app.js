@@ -1,14 +1,14 @@
 'use strict';
 
-// WalkNav app.js - v11: Fix Giant Icon Flash (CSS Immediate Injection) + AdvancedMarker + Voice/Weather
+// WalkNav app.js - v12: Weather Display Added + AdvancedMarker + Voice + Anti-Flash
 
-const ISSUE_ID = 'idx20251211_fix_flash_v1';
+const ISSUE_ID = 'idx20251211_weather_display_v1';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
-// ▼▼▼ ここに OpenWeatherMap の APIキーを入れてください ▼▼▼
-const OPEN_WEATHER_KEY = 'YOUR_OPENWEATHER_API_KEY';
+
+// ▼▼▼【重要】ここに OpenWeatherMap の APIキーを貼り付けてください ▼▼▼
+const OPEN_WEATHER_KEY = 'c8769e4d98a76dc6717a9edb7ab3cc40'; 
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-// ▼▼▼ 取得された Map ID を設定 ▼▼▼
 const MAP_ID = '9110fb2763169e9d8f2b317e'; 
 
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
@@ -58,7 +58,6 @@ function injectStyleOnce(key, cssText) {
   const style = document.createElement('style');
   style.id = `wn-style-${key}`;
   style.textContent = cssText;
-  // headの先頭に追加して最速適用を目指す
   if (document.head.firstChild) {
     document.head.insertBefore(style, document.head.firstChild);
   } else {
@@ -67,7 +66,7 @@ function injectStyleOnce(key, cssText) {
 }
 
 /* =========================
-   強制レイアウトCSS (即時実行用)
+   強制レイアウトCSS (即時実行)
    ========================= */
 function applyForcedLayoutCSS() {
   injectStyleOnce(
@@ -81,17 +80,15 @@ function applyForcedLayoutCSS() {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: #f5f5f5;
     }
-    /* === 安全装置: SVGが暴走しないように制限 === */
     svg {
       max-width: 24px;
       max-height: 24px;
     }
     .wn-user-marker svg, 
     .wn-search-marker svg {
-      max-width: none; /* マーカー内のSVGは制限しない */
+      max-width: none;
       max-height: none;
     }
-    /* ======================================== */
     .app {
       position: relative;
       width: 100%;
@@ -230,7 +227,6 @@ function applyForcedLayoutCSS() {
       width: 18px;
       height: 18px;
     }
-    /* Gマーク完全OFF */
     .icon-g {
       display: none !important;
       width: 0 !important;
@@ -263,6 +259,21 @@ function applyForcedLayoutCSS() {
       background: #f1f5f9;
       font-size: 12px;
     }
+    /* === 新規追加: 天気表示用CSS === */
+    .weather-card {
+      margin-top: 4px;
+      margin-bottom: 8px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: #e0f2fe; /* 薄い青 */
+      color: #0369a1;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+    /* ========================== */
     .address-title {
       font-weight: 600;
       margin-bottom: 2px;
@@ -424,7 +435,6 @@ if (WN.booted) {
 } else {
   WN.booted = true;
   
-  // ★重要★ ここで即座にスタイルを注入して巨大アイコンを防ぐ
   applyForcedLayoutCSS();
 
   const appState = {
@@ -507,9 +517,8 @@ if (WN.booted) {
     }
   }
 
-  /* === 新機能: 音声案内 & 天気取得 === */
+  /* === 新機能: 音声案内 & 天気取得 & 表示 === */
 
-  // 1. Nominatim API で詳細住所を取得 (OSM)
   async function fetchAddressNominatim(lat, lng) {
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
     try {
@@ -531,26 +540,53 @@ if (WN.booted) {
     }
   }
 
-  // 2. OpenWeatherMap API で天気取得
   async function fetchOpenWeather(lat, lng) {
     if (!OPEN_WEATHER_KEY || OPEN_WEATHER_KEY === 'YOUR_OPENWEATHER_API_KEY') {
-      return { desc: '天気情報なし', temp: null };
+      return { desc: 'APIキー未設定', temp: null };
     }
     const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${OPEN_WEATHER_KEY}&lang=ja&units=metric`;
     try {
       const resp = await fetch(url);
-      if (!resp.ok) return { desc: '不明', temp: null };
+      if (!resp.ok) return { desc: '取得不可', temp: null };
       const data = await resp.json();
       const desc = data.weather && data.weather[0] ? data.weather[0].description : '不明';
       const temp = data.main ? Math.round(data.main.temp) : null;
       return { desc, temp };
     } catch (e) {
       console.warn('Weather error', e);
-      return { desc: '取得失敗', temp: null };
+      return { desc: 'エラー', temp: null };
     }
   }
 
-  // 3. 音声合成 (Web Speech API)
+  // ★画面に天気を表示する関数
+  async function updateWeatherUI(lat, lng) {
+    const weatherData = await fetchOpenWeather(lat, lng);
+    
+    // 表示用の要素を探すか作る
+    let weatherEl = getEl('weatherDisplay');
+    if (!weatherEl) {
+      // 住所カードの下に挿入する
+      const addressCard = document.querySelector('.address-card');
+      if (addressCard && addressCard.parentNode) {
+        weatherEl = document.createElement('div');
+        weatherEl.id = 'weatherDisplay';
+        weatherEl.className = 'weather-card';
+        addressCard.parentNode.insertBefore(weatherEl, addressCard.nextSibling);
+      } else {
+        return; // 表示場所がない
+      }
+    }
+
+    if (weatherData.temp !== null) {
+      weatherEl.textContent = `🌤️ ${weatherData.desc} / ${weatherData.temp}℃`;
+      weatherEl.style.display = 'flex';
+    } else {
+      weatherEl.textContent = `☁️ 天気情報なし`;
+      weatherEl.style.display = 'flex';
+    }
+    return weatherData; // 音声案内用にデータを返す
+  }
+
   function speakText(text) {
     if (!window.speechSynthesis) {
       alert('お使いのブラウザは音声読み上げに対応していません。');
@@ -565,7 +601,6 @@ if (WN.booted) {
     window.speechSynthesis.speak(u);
   }
 
-  // 4. 実行ハンドラ
   async function handleVoiceAnnounce() {
     if (!appState.currentPos) {
       alertOnce('voice_no_pos', '現在地が取得できていません');
@@ -574,13 +609,14 @@ if (WN.booted) {
     const { lat, lng } = appState.currentPos;
     if (navigator.vibrate) navigator.vibrate(50);
     
+    // 画面表示更新と同時にデータ取得
     const [addressText, weatherData] = await Promise.all([
       fetchAddressNominatim(lat, lng),
-      fetchOpenWeather(lat, lng)
+      updateWeatherUI(lat, lng) // ここで画面も更新
     ]);
 
     let msg = `現在地は、${addressText}です。`;
-    if (weatherData.temp !== null) {
+    if (weatherData && weatherData.temp !== null) {
       msg += `天気は${weatherData.desc}、気温は${weatherData.temp}度です。`;
       if (weatherData.desc.includes('雨')) msg += '足元にご注意ください。';
       else if (weatherData.temp > 28) msg += '熱中症にご注意ください。';
@@ -732,7 +768,7 @@ if (WN.booted) {
       appState.map = new google.maps.Map(mapEl, {
         center,
         zoom: 17,
-        mapId: MAP_ID, // ★ここにMap IDを設定★
+        mapId: MAP_ID, 
         gestureHandling: 'greedy',
         clickableIcons: true,
         disableDefaultUI: true
@@ -835,6 +871,9 @@ if (WN.booted) {
         if (data.results?.[0])
           setText('locAddress', data.results[0].formatted_address.replace(/^日本、\s*/, ''));
       });
+      
+      // ★ここで天気を表示更新
+      updateWeatherUI(latitude, longitude);
 
       fetchIncidentsAround(latitude, longitude);
     };
@@ -852,6 +891,8 @@ if (WN.booted) {
 
       setText('locAddress', '現在地取得に失敗しました (デフォルト位置)');
       setText('locCoords', 'GPSエラー');
+      
+      updateWeatherUI(defaultPos.lat, defaultPos.lng);
 
       fetchIncidentsAround(defaultPos.lat, defaultPos.lng);
     };
@@ -1302,7 +1343,7 @@ if (WN.booted) {
 
   function startApp() {
     console.log(
-      '[WalkNav] Starting Logic + ForcedCSS (Anti-Flash) + AI + Incidents + AdvancedMarker + Voice/Weather v11.0...'
+      '[WalkNav] Starting Logic + ForcedCSS (Anti-Flash) + AI + Incidents + AdvancedMarker + Voice + WeatherDisplay v12.0...'
     );
     loadUserProfile();
     bindUI();
