@@ -1,13 +1,13 @@
 'use strict';
 
-// WalkNav app.js - v20: Final Proxy Integration + Anti-Flash Ultimate + Guidance Weather Fix
+// WalkNav app.js - v21: Strict Cloudflare Proxy (No Client Key) + Anti-Flash + Guidance Fix
 
-const ISSUE_ID = 'idx20251211_v20_final_proxy_fix';
+const ISSUE_ID = 'idx20251211_v21_strict_proxy';
 
-// Google Maps JavaScript APIキー (地図表示用: クライアント側に必須)
+// Google Maps APIキー (地図表示用はクライアントに必須)
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 
-// Cloudflare Workerのエンドポイント
+// Cloudflare Workerのエンドポイント (天気・検索・ルートは全てここを経由)
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const MAP_ID = '9110fb2763169e9d8f2b317e'; 
 
@@ -28,14 +28,13 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
     }
 
     /* === ★SVG巨大化防止: 初期ロード時は強制サイズ固定★ === */
-    /* Google Maps以外のSVGアイコンに適用 */
     svg:not(.gm-style svg) {
       width: 24px !important;
       height: 24px !important;
       max-width: 24px !important;
       max-height: 24px !important;
       min-width: 24px !important;
-      display: inline-block; /* 念のため */
+      display: inline-block;
     }
     
     .weather-icon-img {
@@ -54,7 +53,7 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
       box-shadow: 0 -2px 15px rgba(0,0,0,0.15);
       display: flex; flex-direction: column; z-index: 1000;
       box-sizing: border-box; overflow: hidden;
-      transition: height 0.3s ease; /* スムーズな開閉 */
+      transition: height 0.3s ease; 
     }
     .panel.collapsed { height: 56px; }
     .panel-handle-area { padding: 6px 0 2px; display: flex; justify-content: center; cursor: pointer; }
@@ -191,7 +190,7 @@ if (WN.booted) {
     }
   }
 
-  /* === 天気取得 (Cloudflare Proxy経由) === */
+  /* === 天気取得 (Cloudflare Proxyのみ) === */
   async function fetchWeatherProxy(endpoint, lat, lng) {
     try {
       // Workerのエンドポイント(/weather または /forecast)にPOSTリクエスト
@@ -219,7 +218,7 @@ if (WN.booted) {
   }
 
   function buildWeatherHtml(current, forecast) {
-    if (!current) return '<div style="font-size:12px; color:#666;">☁️ 天気取得エラー (接続確認)</div>';
+    if (!current) return '<div style="font-size:12px; color:#666;">☁️ 天気情報なし (Proxy設定を確認)</div>';
     let pop = 0; if (forecast && forecast.list?.[0]) pop = Math.round(forecast.list[0].pop * 100);
     const curIcon = `https://openweathermap.org/img/wn/${current.weather[0].icon}.png`;
     const html = `
@@ -355,7 +354,7 @@ if (WN.booted) {
       appState.map.addListener('click', (e) => { if (appState.pointSearchMode && e.latLng) setSearchPoint(e.latLng.lat(), e.latLng.lng()); });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v20');
+      console.log('[WalkNav] Map initialized v21');
     } catch (e) { alertOnce('map_fail', 'Map Init Failed'); }
   }
 
@@ -413,7 +412,8 @@ if (WN.booted) {
   function startLocationWatcher() {
     if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
     appState.locationWatchId = navigator.geolocation.watchPosition(pos => {
-      setUserMarker(pos.coords.latitude, pos.coords.longitude);
+      const { latitude, longitude } = pos.coords;
+      setUserMarker(latitude, longitude);
       if (appState.isNavigating && appState.map) appState.map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
     }, null, LOCATION_OPTIONS);
   }
@@ -446,7 +446,9 @@ if (WN.booted) {
     appState.map.fitBounds(b, { padding: 50 });
     setDisplay('routeInfoSection', 'block');
     // ★Navタブ表示時に天気も確実に更新
-    if (appState.currentPos) updateAllWeatherUI(appState.currentPos.lat, appState.currentPos.lng);
+    if (appState.cachedWeatherData && appState.cachedWeatherData.current) {
+      updateAllWeatherUI(appState.currentPos.lat, appState.currentPos.lng);
+    }
   }
 
   async function startNavigation(dest) {
@@ -544,7 +546,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v20 (Proxy+Fixes)...');
+    console.log('[WalkNav] Starting v21 Strict Proxy...');
     loadUserProfile(); bindUI();
     appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
     switchPanelTab('search'); acquireLocation(); startCompassListener();
