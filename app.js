@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v39: Fix Unresponsive Button & Zoom
+// WalkNav app.js - v40: Coordinates in Modal & Fix Zoom/Events
 
-const ISSUE_ID = 'idx20251212_v39_robust_events';
+const ISSUE_ID = 'idx20251212_v40_coords_fix';
 
 // Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
@@ -157,9 +157,9 @@ if (WN.booted) {
     });
   }
 
-  /* === Edit Modal Logic === */
+  /* === Edit Modal Logic (With Coordinates) === */
   function openEditModal() {
-    console.log('Opening Edit Modal...'); // Debug
+    console.log('Opening Edit Modal...');
     const modal = getEl('editSavedModal');
     const list = getEl('editModalList');
     if (!modal || !list) return;
@@ -170,12 +170,17 @@ if (WN.booted) {
       list.innerHTML = '<div style="text-align:center; color:#888; margin-top:20px;">保存された場所はありません</div>';
     } else {
       appState.savedLocations.forEach((loc, idx) => {
+        // 座標の整形
+        const latStr = (loc.lat || 0).toFixed(6);
+        const lngStr = (loc.lng || 0).toFixed(6);
+
         const item = document.createElement('div');
         item.className = 'edit-list-item';
         item.innerHTML = `
           <div class="edit-item-inputs">
             <input type="text" class="edit-input-name" value="${loc.name}" data-idx="${idx}">
             <div class="edit-text-addr">${loc.address || '住所不明'}</div>
+            <div class="edit-text-coords">📍 ${latStr}, ${lngStr}</div>
           </div>
           <button class="btn-delete-icon" data-delete-idx="${idx}">×</button>
         `;
@@ -551,7 +556,7 @@ if (WN.booted) {
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v39');
+      console.log('[WalkNav] Map initialized v40');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, {
@@ -965,7 +970,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v39 (Readable Fix)...');
+    console.log('[WalkNav] Starting v40 (Coords & Events Fix)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
