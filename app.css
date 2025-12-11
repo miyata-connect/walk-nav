@@ -1,813 +1,512 @@
-/* app.css  (WalkNav) */
+/* app.css  (WalkNav - v33 Unified Weather UI) */
 
 /* --------------------
-   基本リセット
+   基本リセット
 -------------------- */
 *,
 *::before,
 *::after {
-  box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 html,
 body {
-  margin: 0;
-  padding: 0;
-  /* 【競合解決】Jules氏のモバイル対応（100dvh, overflow: hidden）を統合 */
-  height: 100dvh !important;
-  width: 100% !important;
-  overflow: hidden !important;
-  overflow-x: hidden !important; /* 横スクロールを確実に防ぐ */
-  overscroll-behavior: none;
-  -webkit-text-size-adjust: 100%;
-  /* フォント設定をJules氏のブランチから統合（より標準的な指定を採用） */
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-               "Hiragino Sans", "Noto Sans JP", "Helvetica Neue",
-               Arial, sans-serif;
-  background: #000;
+  margin: 0;
+  padding: 0;
+  height: 100dvh !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Hiragino Sans", "Noto Sans JP", "Helvetica Neue",
+               Arial, sans-serif;
+  background: #000;
 }
 
 /* --------------------
-   カラートークン
+   カラートークン
 -------------------- */
 :root {
-  --primary: #2563eb;
-  --primary-soft: rgba(37, 99, 235, 0.08);
-  --danger: #ef4444;
-  --danger-soft: rgba(239, 68, 68, 0.08);
-  --secondary: #4b5563;
-  --accent: #25d07a;
-  --text-main: #f9fafb;
-  --text-muted: #9ca3af;
-  --panel-bg: rgba(20, 20, 24, 0.96);
-  --panel-elevated: rgba(31, 31, 36, 0.98);
-  --stroke-soft: rgba(255, 255, 255, 0.12);
-  --chip-bg: rgba(55, 65, 81, 0.9);
-  --chip-bg-active: #ffffff;
-  --chip-text: #e5e7eb;
-  --chip-text-active: #111827;
+  --primary: #2563eb;
+  --primary-soft: rgba(37, 99, 235, 0.15);
+  --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.15);
+  --secondary: #4b5563;
+  --accent: #25d07a;
+  --text-main: #f9fafb;
+  --text-muted: #9ca3af;
+  --panel-bg: rgba(20, 20, 24, 0.98);
+  --panel-elevated: rgba(35, 35, 40, 1);
+  --stroke-soft: rgba(255, 255, 255, 0.15);
+  --chip-bg: rgba(55, 65, 81, 0.9);
+  --chip-bg-active: #ffffff;
+  --chip-text: #e5e7eb;
+  --chip-text-active: #111827;
 }
 
 /* --------------------
-   レイアウト
+   レイアウト
 -------------------- */
 .app {
-  position: relative;
-  width: 100%;
-  /* 【競合解決】Jules氏のモバイル対応を適用 */
-  height: 100dvh !important;
-  overflow: hidden !important;
-  background: #000;
+  position: relative;
+  width: 100%;
+  height: 100dvh !important;
+  overflow: hidden !important;
+  background: #000;
 }
 
 #map {
-  position: absolute;
-  inset: 0;
-  /* 【競合解決】Jules氏の100dvhを統合 */
-  width: 100%;
-  height: 100dvh !important;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100dvh !important;
 }
 
 /* --------------------
-   下部パネル
+   下部パネル
 -------------------- */
 .panel {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  /* 【競合解決】パネルのスタイルをメインブランチ寄りに維持しつつ、モバイル対応と視覚効果を統合 */
-  height: 50vh;
-  max-height: 60vh; 
-  background: linear-gradient(
-    to bottom,
-    rgba(10, 10, 12, 0.96),
-    rgba(8, 8, 10, 0.98)
-  );
-  box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.8);
-  padding: 8px 0 12px;
-  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  border-radius: 0; /* ←上端のRを完全に削除（メインブランチの定義を採用） */
-  color: var(--text-main);
-  display: flex;
-  flex-direction: column;
-
-  /* Jules氏のブランチから統合するUIアニメーション向けの定義 */
-  z-index: 1000;
-  transition: transform 0.3s ease-out;
-  will-change: transform;
-  touch-action: manipulation;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 55vh;
+  max-height: 65vh; 
+  background: linear-gradient(
+    to bottom,
+    rgba(15, 15, 18, 0.98),
+    rgba(10, 10, 12, 1)
+  );
+  box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.8);
+  padding: 8px 0 12px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  border-radius: 20px 20px 0 0;
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  transition: transform 0.3s ease-out;
+  will-change: transform;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* パネル上部のつまみ */
 .panel-handle-area {
-  display: flex;
-  justify-content: center;
-  align-items: center; 
-  padding: 2px 0 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center; 
+  padding: 6px 0 8px;
+  cursor: pointer;
 }
 
 .panel-handle {
-  width: 64px;
-  height: 4px;
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.6);
+  width: 48px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.5);
 }
 
 /* --------------------
-   タブ（操作 / 案内 / 設定）
-   ※ボタン厚み統一
+   タブ（操作 / 案内 / 設定）
 -------------------- */
 .panel-tabs-header {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  padding: 0 16px 8px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 16px 8px;
+  border-bottom: 1px solid var(--stroke-soft);
+  margin-bottom: 8px;
 }
 
 .panel-tabs-body {
-  position: relative;
-  flex: 1 1 auto;
-  margin-top: 4px;
-  padding: 0 16px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  position: relative;
+  flex: 1 1 auto;
+  padding: 0 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-
 .tab-btn {
-  flex: 1 1 0;
-  text-align: center;
-  border-radius: 999px;
-  padding: 10px 0;
-  min-height: 44px;
-  font-size: 15px;
-  font-weight: 600;
-  border: 1px solid rgba(148, 163, 184, 0.5);
-  color: var(--text-muted);
-  background: rgba(31, 41, 55, 0.9);
-  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.6);
-  outline: none;
-  /* 【競合解決】Jules氏のモバイル向け定義を統合 */
-  -webkit-tap-highlight-color: transparent;
-  white-space: nowrap;
-  min-width: 0;
+  flex: 1 1 0;
+  text-align: center;
+  border-radius: 8px;
+  padding: 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
 }
 
 .tab-btn.active {
-  background: #ffffff;
-  color: #111827;
-  border-color: transparent;
+  color: var(--text-main);
 }
 
-/* --------------------
-   パネルボディ（スクロール）
--------------------- */
-/* (上記で統合済み) */
-
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+}
 
 /* タブコンテンツ切り替え */
 .tab-pane {
-  display: none;
+  display: none;
 }
-
 .tab-pane.active {
-  display: block;
+  display: block;
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* --------------------
-   見出し
+   見出し・チップ
 -------------------- */
 .section-title {
-  margin: 4px 0 10px;
-  font-size: 18px;
-  font-weight: 700;
+  margin: 12px 0 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-/* --------------------
-   距離チップ列（10km / 20km / 30km / ポイント選択）
-   ※厚みをタブと揃える
--------------------- */
 .filter-chips-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  padding-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
-
-.filter-chips-row::-webkit-scrollbar {
-  display: none;
-}
+.filter-chips-row::-webkit-scrollbar { display: none; }
 
 .chip {
-  flex: 0 0 auto;
-  min-width: 76px;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.5);
-  background: var(--chip-bg);
-  color: var(--chip-text);
-  font-size: 15px;
-  font-weight: 600;
-  padding: 10px 12px;
-  min-height: 44px; /* ←タブと厚み統一 */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  outline: none;
-  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.6);
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(30, 30, 35, 0.8);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+  transition: all 0.2s;
 }
 
 .chip.active {
-  background: var(--chip-bg-active);
-  color: var(--chip-text-active);
-  border-color: transparent;
-}
-
-.chip.point-select {
-  min-width: 120px;
-  padding-inline: 14px;
-}
-
-/* km の下のバー（細め） */
-.radius-bar,
-.radius-slider {
-  margin: 4px 0 12px;
-  height: 3px; /* 細く */
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.4);
-  overflow: hidden;
+  background: var(--text-main);
+  color: #000;
+  border-color: transparent;
+  font-weight: 700;
 }
 
 /* --------------------
-   アドレスカード（ポイント選択時）
+   Weather Unified Card (New)
+   現在と未来をまとめたカード
+-------------------- */
+.weather-unified-card {
+  display: grid;
+  grid-template-columns: 1.2fr 1.8fr; /* 左:現在, 右:予報 */
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 16px;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  gap: 12px;
+}
+
+/* 左側：現在 */
+.weather-current-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-right: 1px solid rgba(255,255,255,0.1);
+  padding-right: 12px;
+}
+.weather-main-icon {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+.weather-main-temp {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  margin: 4px 0;
+}
+.weather-main-desc {
+  font-size: 11px;
+  color: #94a3b8;
+}
+.weather-pop-badge {
+  margin-top: 4px;
+  font-size: 11px;
+  background: rgba(37, 99, 235, 0.2);
+  color: #60a5fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* 右側：未来 (3h/6h/9h) */
+.weather-forecast-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+}
+.weather-forecast-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+  padding: 6px 4px;
+}
+.wf-time {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-bottom: 2px;
+}
+.wf-icon {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 2px;
+}
+.wf-temp {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+.wf-pop {
+  font-size: 10px;
+  color: #60a5fa;
+}
+
+/* --------------------
+   アドレスカードなど
 -------------------- */
 .address-card {
-  display: none;
-  flex-direction: column;
-  gap: 2px;
-  padding: 10px 12px;
-  margin-bottom: 10px;
-  border-radius: 12px;
-  background: var(--panel-elevated);
-  border: 1px solid rgba(148, 163, 184, 0.4);
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: var(--panel-elevated);
+  border: 1px solid var(--stroke-soft);
 }
-
-.address-title {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.address-coords {
-  font-size: 12px;
-  color: var(--text-muted);
-}
+.address-title { font-size: 14px; font-weight: 600; }
+.address-coords { font-size: 11px; color: var(--text-muted); }
 
 /* --------------------
-   ボタン（汎用）
-   ※厚みを揃える
+   ボタン
 -------------------- */
 .btn {
-  border-radius: 999px;
-  border: none;
-  min-height: 44px;
-  padding: 10px 18px;
-  font-size: 15px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  outline: none;
-  box-shadow: 0 3px 7px rgba(15, 23, 42, 0.7);
+  border-radius: 999px;
+  border: none;
+  min-height: 40px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  transition: opacity 0.2s;
 }
+.btn:active { opacity: 0.8; }
 
-.btn-primary {
-  background: var(--primary);
-  color: #fff;
-}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-secondary { background: var(--panel-elevated); color: var(--text-muted); border: 1px solid var(--stroke-soft); }
+.btn-outline { background: transparent; color: var(--text-main); border: 1px solid var(--stroke-soft); }
+.btn-danger { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
 
-.btn-secondary {
-  background: rgba(55, 65, 81, 0.9);
-  color: #e5e7eb;
-}
+.bottom-actions-row { display: flex; gap: 8px; margin-top: 16px; }
+.bottom-actions-row .btn { flex: 1; }
 
-.btn-outline {
-  background: rgba(31, 41, 55, 0.9);
-  color: #e5e7eb;
-  border: 1px solid rgba(148, 163, 184, 0.6);
-}
-
-.btn-outline-primary {
-  background: var(--primary-soft);
-  color: var(--primary);
-  border: 1px solid rgba(129, 140, 248, 0.7);
-}
-
-.btn-danger {
-  background: var(--danger);
-  color: #fff;
-}
-
-.btn-danger-block {
-  background: var(--danger);
-  color: #fff;
-  width: 100%;
-}
-
-.btn-block {
-  width: 100%;
-}
-
-/* 検索パネル下部（リセット / 現在地 / 閉じる） */
-.bottom-actions-row {
-  display: flex;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.bottom-actions-row .btn {
-  flex: 1 1 0;
-}
-
-/* 現在地登録 / 登録地修正 */
-.action-buttons-row {
-  display: flex;
-  gap: 10px;
-  margin: 8px 0 10px;
-}
-
-.action-buttons-row .btn {
-  flex: 1 1 0;
-}
+.action-buttons-row { display: flex; gap: 8px; margin: 8px 0 12px; }
+.action-buttons-row .btn { flex: 1; font-size: 13px; }
 
 /* --------------------
-   検索ボックス
+   検索ボックス
 -------------------- */
-.search-box-container {
-  margin-top: 4px;
-}
-
+.search-box-container { margin-top: 8px; margin-bottom: 12px; }
 .input-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.96);
-  border: 1px solid rgba(148, 163, 184, 0.5);
-  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--stroke-soft);
+  height: 48px;
 }
-
 .input {
-  flex: 1 1 auto;
-  border: none;
-  background: transparent;
-  color: #f9fafb;
-  font-size: 15px;
-  outline: none;
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 16px;
+  outline: none;
 }
-
-.input::placeholder {
-  color: rgba(148, 163, 184, 0.9);
-}
-
-.icon {
-  flex: 0 0 auto;
-  width: 20px;
-  height: 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.85;
-}
-
-.icon svg {
-  width: 100%;
-  height: 100%;
-  fill: #e5e7eb;
-}
-
-.icon-g svg {
-  fill: #4285f4;
-}
-
-.icon-mic svg {
-  fill: #f97316;
-}
+.input::placeholder { color: rgba(255,255,255,0.3); }
 
 /* --------------------
-   検索結果リスト（スクロール）
+   検索結果リスト
 -------------------- */
 .results-list {
-  margin-top: 10px;
-  padding: 4px 0 8px;
-  border-radius: 14px;
-  background: rgba(17, 24, 39, 0.96);
-  max-height: 32vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  padding: 0;
+  border-radius: 12px;
+  background: var(--panel-elevated);
+  max-height: 35vh;
+  overflow-y: auto;
 }
-
 .result-item {
-  padding: 10px 14px;
-  border-bottom: 1px solid rgba(55, 65, 81, 0.9);
-  font-size: 14px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 14px;
 }
-
-.result-item:last-child {
-  border-bottom: none;
-}
-
-.result-item:hover {
-  background: rgba(31, 41, 55, 0.9);
-}
+.result-item:last-child { border-bottom: none; }
 
 /* --------------------
-   ナビ情報
+   ナビゲーション情報
 -------------------- */
-.nav-section {
-  margin: 6px 0 12px;
-}
-
 .nav-section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  margin-top: 16px;
 }
-
-.location-info {
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: var(--panel-elevated);
-  border: 1px solid rgba(75, 85, 99, 0.8);
-}
-
-.loc-coords {
-  font-size: 13px;
-  font-weight: 600;
-  color: #facc15;
-}
-
-.loc-address {
-  font-size: 13px;
-  margin-top: 4px;
-}
-
-/* 天気カード */
-.weather-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.weather-card {
-  padding: 10px 8px;
-  border-radius: 16px;
-  background: var(--panel-elevated);
-  border: 1px solid rgba(75, 85, 99, 0.8);
-  text-align: center;
-  font-size: 13px;
-}
-
-.weather-val {
-  display: block;
-  margin-top: 4px;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-/* ルートカード */
 .route-summary-card {
-  padding: 12px 12px 10px;
-  border-radius: 16px;
-  background: var(--panel-elevated);
-  border: 1px solid rgba(75, 85, 99, 0.8);
-  margin-bottom: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(37, 99, 235, 0.1); /* Primary Soft */
+  border: 1px solid rgba(37, 99, 235, 0.3);
+  margin-bottom: 12px;
 }
+.route-dest { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.route-stats { font-size: 20px; font-weight: 800; color: #fff; display: flex; gap: 12px; align-items: baseline; }
+.stat-time { font-size: 14px; font-weight: 500; color: #bfdbfe; }
 
-.route-dest {
-  font-size: 14px;
-  margin-bottom: 6px;
-}
-
-.route-stats {
-  display: flex;
-  gap: 12px;
-  align-items: baseline;
-  margin-bottom: 6px;
-}
-
-.stat-dist {
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.stat-time {
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.route-mode-toggle {
-  display: inline-flex;
-  gap: 6px;
-}
-
-.route-mode-toggle .chip.small {
-  min-height: 32px;
-  padding: 6px 10px;
-  font-size: 13px;
-  box-shadow: none;
-}
-
-/* インシデント */
-.incident-alert {
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(248, 113, 113, 0.1);
-  border: 1px solid rgba(248, 113, 113, 0.8);
-  font-size: 13px;
-}
-
-/* ステップバイステップ */
 .instructions-list {
-  max-height: 26vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  border-radius: 12px;
-  background: rgba(17, 24, 39, 0.96);
-  padding: 6px 0;
+  max-height: 25vh;
+  overflow-y: auto;
+  border-radius: 12px;
+  background: var(--panel-elevated);
+  padding: 8px 0;
 }
-
 .nav-instruction-item {
-  padding: 8px 10px;
-  border-bottom: 1px solid rgba(55, 65, 81, 0.9);
-  font-size: 13px;
-}
-
-.nav-instruction-item:last-child {
-  border-bottom: none;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 /* --------------------
-   設定タブ内
--------------------- */
-.settings-group {
-  margin-bottom: 14px;
-}
-
-.settings-label {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-}
-
-.map-mode-buttons,
-.tab-pos-buttons {
-  display: flex;
-  gap: 8px;
-}
-
-.map-mode-btn {
-  flex: 1 1 0;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.6);
-  background: rgba(31, 41, 55, 0.9);
-  color: #e5e7eb;
-  min-height: 44px;
-  padding: 10px 8px;
-  font-size: 14px;
-  font-weight: 600;
-  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.7);
-}
-
-.map-mode-btn.active {
-  background: #ffffff;
-  color: #111827;
-  border-color: transparent;
-}
-
-.tab-pos-buttons .chip {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-/* ナビ操作ボタン縦並び */
-.nav-controls-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* バージョン表示 */
-.app-version {
-  margin-top: 10px;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-/* --------------------
-   FAB ボタン（検索パネル / 現在地 / 目的地）
+   FAB
 -------------------- */
 .fab-container {
-  position: absolute;
-  right: 12px;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 20;
+  position: absolute;
+  right: 16px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 20;
 }
-
 .fab-btn {
-  border-radius: 999px;
-  border: none;
-  padding: 10px 14px;
-  min-height: 44px;
-  font-size: 14px;
-  font-weight: 600;
-  background: rgba(15, 23, 42, 0.95);
-  color: #e5e7eb;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.9);
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  border: none;
+  background: #ffffff;
+  color: #000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+.fab-btn.destination { background: var(--accent); color: #fff; }
+.fab-btn.voice-btn { background: #333; color: #fff; }
 
 /* --------------------
-   ローディング
+   ローディング & その他
 -------------------- */
 .loading-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 40;
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  color: #fff;
+  flex-direction: column;
+  gap: 12px;
+}
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ユーザーマーカー */
+.wn-user-marker {
+  width: 20px; height: 20px;
+  background: #3b82f6; border: 3px solid #fff;
+  border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+.wn-point-marker {
+  width: 24px; height: 24px;
+  background: #ef4444; border: 3px solid #fff;
+  border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
 
-.loading-content {
-  background: rgba(15, 23, 42, 0.98);
-  padding: 18px 22px;
-  border-radius: 18px;
-  text-align: center;
-  color: var(--text-main);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.9);
+/* 保存済みリスト */
+.saved-section { margin-top: 20px; border-top: 1px solid var(--stroke-soft); padding-top: 10px; }
+.saved-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.05); margin-bottom: 6px;
 }
+.saved-name { font-weight: bold; font-size: 14px; }
+.saved-address { font-size: 11px; color: #9ca3af; }
+.delete-btn { background: #7f1d1d; color: #fca5a5; border:none; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
 
-.loading-spinner {
-  width: 28px;
-  height: 28px;
-  margin: 0 auto 8px;
-  border-radius: 999px;
-  border: 3px solid rgba(148, 163, 184, 0.5);
-  border-top-color: #ffffff;
-  animation: spin 0.9s linear infinite;
-}
-
-.loading-text {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.loading-sub {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* --------------------
-   編集ダイアログ（登録地修正）
--------------------- */
-.edit-dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-}
-
-.edit-dialog {
-  width: min(520px, 92vw);
-  max-height: 70vh;
-  padding: 14px 16px 12px;
-  border-radius: 18px;
-  background: rgba(15, 23, 42, 0.98);
-  box-shadow: 0 22px 45px rgba(0, 0, 0, 0.9);
-  color: var(--text-main);
-  display: flex;
-  flex-direction: column;
-}
-
-.edit-dialog h3 {
-  margin: 0 0 10px;
-  font-size: 16px;
-}
-
-.edit-dialog-list {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  margin: 0 -4px 10px;
-  padding-right: 4px;
-}
-
-.edit-dialog-item {
-  padding: 8px 6px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-}
-
-.edit-dialog-item:hover {
-  background: rgba(31, 41, 55, 0.95);
-  border-color: rgba(55, 65, 81, 0.9);
-}
-
-.edit-dialog-item-title {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.edit-dialog-item-subtitle {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.edit-dialog-input {
-  width: 100%;
-  border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.7);
-  background: rgba(15, 23, 42, 0.96);
-  color: var(--text-main);
-  padding: 8px 10px;
-  font-size: 14px;
-  margin-bottom: 10px;
-}
-
-.edit-dialog-input::placeholder {
-  color: rgba(148, 163, 184, 0.9);
-}
-
-.edit-dialog-btn {
-  border-radius: 999px;
-  border: none;
-  min-height: 40px;
-  padding: 8px 14px;
-  font-size: 14px;
-  font-weight: 600;
-  margin-top: 4px;
-}
-
-.edit-dialog-btn-primary {
-  background: var(--primary);
-  color: #fff;
-}
-
-.edit-dialog-btn-secondary {
-  background: rgba(55, 65, 81, 0.95);
-  color: #e5e7eb;
-}
-
-.edit-dialog-btn-danger {
-  background: var(--danger);
-  color: #fff;
-}
-
-.edit-dialog-btn-group {
-  display: flex;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-.edit-dialog-message {
-  font-size: 14px;
-  margin-bottom: 8px;
-}
-
-/* --------------------
-   バージョンが小さいデバイス向け微調整
--------------------- */
-@media (max-width: 360px) {
-  .tab-btn {
-    font-size: 14px;
-  }
-  .chip,
-  .btn {
-    font-size: 14px;
-  }
-  .section-title {
-    font-size: 17px;
-  }
-}
+/* AIモード選択など */
+.route-mode-toggle { margin-top: 8px; display: flex; gap: 8px; }
+.route-mode-toggle .chip { padding: 4px 10px; min-height: 30px; font-size: 12px; }
