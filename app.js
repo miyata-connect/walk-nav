@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v43: Readable Format & UI Polish
+// WalkNav app.js - v45: Hide Panel on Route & Readable Format
 
-const ISSUE_ID = 'idx20251212_v43_readable_final';
+const ISSUE_ID = 'idx20251212_v45_hide_panel';
 
 // Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
@@ -163,7 +163,6 @@ if (WN.booted) {
 
   /* === Edit Modal Logic === */
   function openEditModal() {
-    console.log('Opening Edit Modal...');
     const modal = getEl('editSavedModal');
     const list = getEl('editModalList');
     if (!modal || !list) return;
@@ -561,7 +560,7 @@ if (WN.booted) {
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v43');
+      console.log('[WalkNav] Map initialized v45');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, {
@@ -685,7 +684,6 @@ if (WN.booted) {
       });
       setUserMarker(latitude, longitude);
 
-      // 案内タブの座標表示 (Lat / Lng)
       const latStr = latitude.toFixed(5);
       const lngStr = longitude.toFixed(5);
       setText('locCoords', `📍 ${latStr}, ${lngStr}`);
@@ -783,12 +781,19 @@ if (WN.booted) {
 
     appState.currentDestination = dest;
     appState.isNavigating = true;
-    getEl('searchPanel').classList.add('collapsed');
+    
+    // 【重要】ユーザー要望：ルート開始時にパネルを完全に非表示にする（FABなどを押しやすくするため）
+    const panel = getEl('searchPanel');
+    if (panel) {
+      panel.classList.add('collapsed');
+      panel.style.display = 'none'; // 物理的に消す
+    }
+
     setDisplay('fabStack', 'flex');
-    setDisplay('searchPanel', 'block');
-    switchPanelTab('nav');
     setDisplay('routeControlSection', 'block');
     setDisplay('results', 'none');
+    switchPanelTab('nav'); // 内部状態はNavにしておく
+
     try {
       const resp = await fetchWithRetry(`${WORKER_ORIGIN}/directions`, {
         method: 'POST',
@@ -825,6 +830,14 @@ if (WN.booted) {
     if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
     appState.isNavigating = false;
     if (appState.currentPolyline) appState.currentPolyline.setMap(null);
+    
+    // パネルを再表示
+    const panel = getEl('searchPanel');
+    if (panel) {
+      panel.style.display = 'flex';
+      panel.classList.remove('collapsed'); // 必要に応じて開く
+    }
+
     setDisplay('routeControlSection', 'none');
     setDisplay('instructionsSection', 'none');
     setDisplay('routeInfoSection', 'none');
@@ -832,6 +845,7 @@ if (WN.booted) {
     setDisplay('fabStack', 'none');
     setDisplay('btnSearch', 'flex');
     switchPanelTab('search');
+    
     if (appState.currentPos && appState.map) {
       appState.map.panTo(appState.currentPos);
       appState.map.setZoom(17);
@@ -859,8 +873,8 @@ if (WN.booted) {
   }
 
   function bindUI() {
-    const btnNew = getEl('btnOpenEditModal'); // HTMLにある新ID
-    const btnOld = getEl('btnEditSavedList'); // 万が一古いIDの場合
+    const btnNew = getEl('btnOpenEditModal');
+    const btnOld = getEl('btnEditSavedList');
 
     if (btnNew) {
       btnNew.onclick = openEditModal;
@@ -893,7 +907,16 @@ if (WN.booted) {
     if (getEl('btnLocate')) getEl('btnLocate').onclick = acquireLocation;
     if (getEl('btnLocatePanel')) getEl('btnLocatePanel').onclick = acquireLocation;
     if (getEl('btnClosePanel')) getEl('btnClosePanel').onclick = () => getEl('searchPanel').classList.add('collapsed');
-    if (getEl('btnSearch')) getEl('btnSearch').onclick = () => getEl('searchPanel').classList.remove('collapsed');
+    
+    // 【重要】検索ボタン（FAB）を押したときはパネルを再表示する
+    if (getEl('btnSearch')) getEl('btnSearch').onclick = () => {
+      const panel = getEl('searchPanel');
+      if (panel) {
+        panel.style.display = 'flex'; // 再表示
+        panel.classList.remove('collapsed');
+      }
+    };
+
     if (getEl('btnStopRoute')) getEl('btnStopRoute').onclick = stopNavigation;
     [10, 20, 30].forEach(d => {
       const el = getEl(`r${d}`);
@@ -976,7 +999,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v43 (Readable & Polish)...');
+    console.log('[WalkNav] Starting v45 (Readable & Panel Hide)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
