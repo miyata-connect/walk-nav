@@ -6,7 +6,7 @@ const ISSUE_ID = 'idx20251211_forecast_v15';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 
 // ▼▼▼【重要】ここに OpenWeatherMap の APIキーを貼り付けてください ▼▼▼
-const OPEN_WEATHER_KEY = 'YOUR_OPENWEATHER_API_KEY'; 
+const OPEN_WEATHER_KEY = 'c8769e4d98a76dc6717a9edb7ab3cc40'; 
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 const MAP_ID = '9110fb2763169e9d8f2b317e'; 
