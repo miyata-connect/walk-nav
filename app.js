@@ -1,13 +1,13 @@
 'use strict';
 
-// WalkNav app.js - v28: Fix Point-to-Point Navigation (Disable GPS Auto-Pan) + All Features
+// WalkNav app.js - v29: Weather Text Display (No Icon) + Map Language Fix Attempt
 
-const ISSUE_ID = 'idx20251211_v28_point_route_logic_fix';
+const ISSUE_ID = 'idx20251211_v29_weather_text_fix';
 
-// Google Maps APIキー (クライアント側で地図表示に必要)
+// Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 
-// Cloudflare Workerのエンドポイント
+// Cloudflare Worker
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const MAP_ID = '9110fb2763169e9d8f2b317e'; 
 
@@ -22,24 +22,33 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
   style.id = styleId;
   style.textContent = `
     html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; }
+    /* SVG巨大化防止 */
     svg:not(.gm-style svg) { width: 24px !important; height: 24px !important; max-width: 24px !important; max-height: 24px !important; min-width: 24px !important; display: inline-block; }
     .weather-icon-img { width: 32px; height: 32px; vertical-align: middle; }
+
     .app { position: relative; width: 100%; height: 100%; overflow: hidden; background: #f5f5f5; }
     #map { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+    
     .panel { position: absolute; left: 0; right: 0; bottom: 0; max-height: 55vh; height: 55vh; background: #ffffff; border-radius: 20px 20px 0 0; box-shadow: 0 -2px 15px rgba(0,0,0,0.15); display: flex; flex-direction: column; z-index: 1000; box-sizing: border-box; overflow: hidden; transition: height 0.3s ease; }
     .panel.collapsed { height: 56px; }
     .panel-handle-area { padding: 6px 0 2px; display: flex; justify-content: center; cursor: pointer; }
     .panel-handle { width: 40px; height: 4px; border-radius: 999px; background: #e0e0e0; }
+
     .panel-tabs-header { display: flex; border-bottom: 1px solid #e5e5e5; background: #fafafa; }
     .panel-tabs-header .tab-btn { flex: 1; text-align: center; padding: 10px 4px; font-size: 14px; cursor: pointer; }
     .panel-tabs-header .tab-btn.active { font-weight: 600; border-bottom: 3px solid #25d07a; background: #ffffff; }
     .panel-tabs-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 16px 16px; box-sizing: border-box; }
     .tab-pane { display: none; }
     .tab-pane.active { display: block; }
+
+    /* 天気ウィジェット (文字表示対応) */
     .weather-widget { margin: 8px 0; padding: 8px 10px; border-radius: 8px; background: #e0f2fe; color: #0369a1; font-size: 13px; }
     .weather-current-row { display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 8px; font-size: 14px; }
     .weather-forecast-list { display: flex; flex-direction: column; gap: 4px; }
     .weather-forecast-item { display: flex; align-items: center; justify-content: space-between; background: #ffffff; padding: 4px 8px; border-radius: 6px; font-size: 12px; color: #333; }
+    /* 降水確率の文字強調 */
+    .pop-text { color: #2563eb; font-weight: bold; font-size: 12px; }
+
     .saved-section { margin-top: 16px; border-top: 1px solid #eee; padding-top: 8px; }
     .saved-title { font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #555; }
     .saved-list { display: flex; flex-direction: column; gap: 8px; }
@@ -52,6 +61,7 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
     .saved-actions { display: flex; gap: 8px; align-items: center; }
     .delete-btn { background: #fee2e2; color: #b91c1c; border: none; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; }
     .rename-btn { background: #e0f2fe; color: #0369a1; border: none; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; }
+
     .filter-chips-row { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px; }
     .filter-chips-row::-webkit-scrollbar { display: none; }
     .chip { flex: 0 0 auto; border-radius: 16px; border: 1px solid #ccc; padding: 6px 12px; font-size: 12px; background: #fff; cursor: pointer; }
@@ -211,7 +221,6 @@ if (WN.booted) {
     try { localStorage.setItem(PROFILE_KEY, JSON.stringify(appState.userProfile)); } catch (_) {}
   }
 
-  /* === Cloudflare Proxy Calls === */
   async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
     for (let i = 0; i < retries; i++) {
       try {
@@ -224,6 +233,8 @@ if (WN.booted) {
       }
     }
   }
+
+  /* === Cloudflare Proxy Calls === */
   async function fetchWeatherProxy(endpoint, lat, lng) {
     try {
       const resp = await fetchWithRetry(`${WORKER_ORIGIN}/${endpoint}`, {
@@ -246,17 +257,22 @@ if (WN.booted) {
     } catch (e) { return '現在地'; }
   }
 
+  // ★天気の文字表示ロジック (v29)
   function buildWeatherHtml(current, forecast) {
-    if (!current) return '<div style="font-size:12px; color:#666;">☁️ 天気情報なし</div>';
+    if (!current) return '<div style="font-size:12px; color:#666;">☁️ 天気情報なし (Proxy設定を確認)</div>';
     let pop = 0; if (forecast && forecast.list?.[0]) pop = Math.round(forecast.list[0].pop * 100);
     const curIcon = `https://openweathermap.org/img/wn/${current.weather[0].icon}.png`;
+    
+    // 現在の天気: 「降水確率: 〇〇%」と明記
     const html = `
       <div class="weather-current-row">
         <img src="${curIcon}" class="weather-icon-img" alt="${current.weather[0].description}">
         <span>${current.weather[0].description}</span>
         <span style="margin-left:auto;">${Math.round(current.main.temp)}℃</span>
-        <span style="color:#3b82f6; margin-left:8px;">☂️ ${pop}%</span>
+        <span style="margin-left:8px;" class="pop-text">降水確率: ${pop}%</span>
       </div>`;
+      
+    // 予報リスト: スペースの関係で「降水: 〇〇%」と短縮
     let forecastHtml = '';
     if (forecast && forecast.list) {
       forecastHtml += `<div class="weather-forecast-list">`;
@@ -268,7 +284,7 @@ if (WN.booted) {
               <span style="width:40px; font-weight:bold;">${i * 3}H後</span>
               <img src="https://openweathermap.org/img/wn/${item.weather[0].icon}.png" style="width:24px; height:24px;">
               <span>${Math.round(item.main.temp)}℃</span>
-              <span style="color:#3b82f6;">☂️ ${Math.round(item.pop * 100)}%</span>
+              <span class="pop-text">降水: ${Math.round(item.pop * 100)}%</span>
             </div>`;
         }
       }
@@ -281,6 +297,7 @@ if (WN.booted) {
     const [current, forecast] = await Promise.all([fetchCurrentWeather(lat, lng), fetchForecast(lat, lng)]);
     appState.cachedWeatherData = { current, forecast };
     const html = buildWeatherHtml(current, forecast);
+
     let searchEl = getEl('weatherDisplaySearch');
     if (!searchEl) {
       const card = document.querySelector('.address-card');
@@ -290,6 +307,7 @@ if (WN.booted) {
       }
     }
     if (searchEl) { searchEl.innerHTML = html; searchEl.style.display = 'block'; }
+
     const routeInfo = getEl('routeInfoSection');
     if (routeInfo) {
       let navEl = getEl('weatherDisplayNav');
@@ -321,7 +339,6 @@ if (WN.booted) {
     if (appState.isNavigating && appState.currentRouteData && appState.currentDestination) {
       const dest = appState.currentDestination;
       const leg = appState.currentRouteData.routes[0].legs[0];
-      // 出発地点の名称
       const startAddr = leg.start_address ? leg.start_address.replace(/^日本、\s*/, '') : '指定地点';
       textBody = `🏁 ルート共有\n出発: ${startAddr}\n到着: ${dest.name}\n🚶 徒歩: ${leg.duration.text} (${leg.distance.text})\n`;
       lat = dest.lat; lng = dest.lng;
@@ -407,7 +424,7 @@ if (WN.booted) {
       appState.map.addListener('click', (e) => { if (appState.pointSearchMode && e.latLng) setSearchPoint(e.latLng.lat(), e.latLng.lng()); });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v28');
+      console.log('[WalkNav] Map initialized v29');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, { center, zoom: 17, gestureHandling: 'greedy', clickableIcons: true, disableDefaultUI: true });
@@ -478,12 +495,11 @@ if (WN.booted) {
     }, true);
   }
 
-  // ★重要: ナビ中の位置情報監視とマップ制御
   function startLocationWatcher() {
     if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
     appState.locationWatchId = navigator.geolocation.watchPosition(pos => {
       setUserMarker(pos.coords.latitude, pos.coords.longitude);
-      // ★ポイント選択モード（シミュレーション）中は、マップを現在地に強制移動させない
+      // ポイント選択モード中は強制移動しない
       if (appState.isNavigating && appState.map && !appState.pointSearchMode) {
         appState.map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       }
@@ -494,10 +510,10 @@ if (WN.booted) {
     if (!route?.legs?.[0]) return;
     const leg = route.legs[0];
     
-    // UI表示: 出発地がある場合は表示
+    // 出発地の表示ロジック
     const startName = leg.start_address ? leg.start_address.replace(/^日本、\s*/, '') : '現在地';
     const title = appState.pointSearchMode ? `🚩 出発: ${startName}\n🏁 到着: ${destName}` : destName || '目的地';
-    setText('destinationName', title); 
+    setText('destinationName', title);
     setText('routeDistance', leg.distance?.text); setText('routeTime', `徒歩 ${leg.duration?.text}`);
     
     const list = getEl('navPanelInstructions');
@@ -518,10 +534,8 @@ if (WN.booted) {
       });
     }
     const b = new google.maps.LatLngBounds(); b.extend(appState.currentPos); b.extend(leg.end_location);
-    // ルート全体が見えるように調整
     if (leg.start_location) b.extend(leg.start_location);
     appState.map.fitBounds(b, { padding: 50 });
-    
     setDisplay('routeInfoSection', 'block');
     if (appState.cachedWeatherData?.current) updateAllWeatherUI(appState.currentPos.lat, appState.currentPos.lng);
   }
@@ -529,7 +543,6 @@ if (WN.booted) {
   async function startNavigation(dest) {
     if (!appState.currentPos) return;
     
-    // ★ポイント選択モードなら、その場所を起点にする
     let originLat, originLng;
     if (appState.pointSearchMode && appState.searchPoint) {
       originLat = appState.searchPoint.lat; originLng = appState.searchPoint.lng;
@@ -540,7 +553,6 @@ if (WN.booted) {
     appState.currentDestination = dest; appState.isNavigating = true;
     getEl('searchPanel').classList.add('collapsed');
     setDisplay('fabStack', 'flex'); setDisplay('searchPanel', 'block'); switchPanelTab('nav'); setDisplay('routeControlSection', 'block'); setDisplay('results', 'none');
-    
     try {
       const resp = await fetchWithRetry(`${WORKER_ORIGIN}/directions`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -585,7 +597,6 @@ if (WN.booted) {
   function bindUI() {
     const q = getEl('q');
     if (getEl('btnSearchIcon')) getEl('btnSearchIcon').onclick = () => {
-      // 検索時、ポイント選択中ならその周辺を検索
       let lat, lng;
       if (appState.pointSearchMode && appState.searchPoint) { lat = appState.searchPoint.lat; lng = appState.searchPoint.lng; }
       else { lat = appState.currentPos.lat; lng = appState.currentPos.lng; }
@@ -665,7 +676,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v28 (PointRouteFix)...');
+    console.log('[WalkNav] Starting v29 (WeatherText)...');
     loadUserProfile(); loadSavedLocations();
     bindUI(); renderSavedLocations();
     appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
