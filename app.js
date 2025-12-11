@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v41: Safer Coords & Zoom Fix
+// WalkNav app.js - v43: Readable Format & UI Polish
 
-const ISSUE_ID = 'idx20251212_v41_final_check';
+const ISSUE_ID = 'idx20251212_v43_readable_final';
 
 // Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
@@ -14,7 +14,11 @@ const MAP_ID = '9110fb2763169e9d8f2b317e';
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
 const RETRY_DELAY = 1000;
-const LOCATION_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
+const LOCATION_OPTIONS = {
+  enableHighAccuracy: true,
+  timeout: 15000,
+  maximumAge: 0
+};
 const SAVED_LOCATIONS_KEY = 'walknav_saved_locations';
 const MAP_MODE_KEY = 'walknav_map_mode';
 const PROFILE_KEY = 'walknav_user_profile';
@@ -157,7 +161,7 @@ if (WN.booted) {
     });
   }
 
-  /* === Edit Modal Logic (Updated for Coords) === */
+  /* === Edit Modal Logic === */
   function openEditModal() {
     console.log('Opening Edit Modal...');
     const modal = getEl('editSavedModal');
@@ -170,7 +174,6 @@ if (WN.booted) {
       list.innerHTML = '<div style="text-align:center; color:#888; margin-top:20px;">保存された場所はありません</div>';
     } else {
       appState.savedLocations.forEach((loc, idx) => {
-        // ★座標を安全に数値変換して表示
         const latVal = Number(loc.lat || 0);
         const lngVal = Number(loc.lng || 0);
         const latStr = latVal.toFixed(6);
@@ -558,7 +561,7 @@ if (WN.booted) {
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v41');
+      console.log('[WalkNav] Map initialized v43');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, {
@@ -681,7 +684,12 @@ if (WN.booted) {
         lng: longitude
       });
       setUserMarker(latitude, longitude);
-      setText('locCoords', `Lat: ${latitude.toFixed(5)}`);
+
+      // 案内タブの座標表示 (Lat / Lng)
+      const latStr = latitude.toFixed(5);
+      const lngStr = longitude.toFixed(5);
+      setText('locCoords', `📍 ${latStr}, ${lngStr}`);
+
       geocode(latitude, longitude).then(d => setText('locAddress', d.results?.[0]?.formatted_address.replace(/^日本、\s*/, '') || ''));
       updateAllWeatherUI(latitude, longitude);
       fetchIncidentsAround(latitude, longitude);
@@ -851,13 +859,9 @@ if (WN.booted) {
   }
 
   function bindUI() {
-    // ----------------------------------------------------
-    // 【修正】新旧両方のIDに対応し、確実にイベントを割り当てる
-    // ----------------------------------------------------
     const btnNew = getEl('btnOpenEditModal'); // HTMLにある新ID
     const btnOld = getEl('btnEditSavedList'); // 万が一古いIDの場合
 
-    // どちらか見つかった方にイベントを設定
     if (btnNew) {
       btnNew.onclick = openEditModal;
     } else if (btnOld) {
@@ -972,7 +976,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v41 (Readable Fix)...');
+    console.log('[WalkNav] Starting v43 (Readable & Polish)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
