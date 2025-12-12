@@ -1,14 +1,17 @@
 'use strict';
 
-// WalkNav app.js - v61: Legacy Markers (No Map ID needed)
+// WalkNav app.js - v62: Restore Map ID & AdvancedMarker for Extensibility
 
-const ISSUE_ID = 'idx20251212_v61_legacy_markers';
+const ISSUE_ID = 'idx20251212_v62_mapid_advanced';
 
+// Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
+
+// Cloudflare Worker
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 
-// ★Map ID不要 (null)
-const MAP_ID = null;
+// ★Map IDを復活 (拡張性のため)
+const MAP_ID = '9110fb2763169e9d8f2b317e';
 
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
@@ -50,6 +53,7 @@ if (WN.booted) {
   const appState = {
     map: null,
     userMarker: null,
+    userMarkerElement: null,
     currentPos: null,
     pointSearchMode: false,
     searchPoint: null,
@@ -101,7 +105,6 @@ if (WN.booted) {
     fab.classList.remove('initial-hidden');
     fab.style.display = 'flex';
 
-    // パネルが開いている (collapsedがない) ならFABを隠す
     const isCollapsed = panel.classList.contains('collapsed');
     const isHidden = panel.style.display === 'none';
 
@@ -618,10 +621,11 @@ if (WN.booted) {
     const mapEl = getEl('map');
     if (!mapEl) return;
     try {
-      // ★修正: google.maps.Map を Map ID なしで初期化（標準地図）
       appState.map = new google.maps.Map(mapEl, {
         center,
         zoom: 17,
+        // ★Map IDを復活 (Advanced Marker用)
+        mapId: MAP_ID,
         gestureHandling: 'greedy',
         clickableIcons: true,
         disableDefaultUI: true
@@ -631,7 +635,7 @@ if (WN.booted) {
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v61');
+      console.log('[WalkNav] Map initialized v62 (MapID Enabled)');
     } catch (e) {
       console.warn('Map Init Failed', e);
     }
@@ -644,29 +648,45 @@ if (WN.booted) {
     };
     if (!appState.map) return;
 
-    // ★修正: Legacy Markerを使用（Map ID不要）
-    if (!appState.userMarker) {
-      appState.userMarker = new google.maps.Marker({
-        map: appState.map,
-        position: {
+    // ★Advanced Markerを復活
+    if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
+      if (!appState.userMarker) {
+        const el = document.createElement('div');
+        el.className = 'wn-user-marker';
+        appState.userMarkerElement = el;
+        appState.userMarker = new google.maps.marker.AdvancedMarkerElement({
+          map: appState.map,
+          position: {
+            lat,
+            lng
+          },
+          content: el,
+          zIndex: 1000
+        });
+      } else {
+        appState.userMarker.position = {
           lat,
           lng
-        },
-        zIndex: 1000,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 10,
-          fillColor: "#3aa0ff",
-          fillOpacity: 1,
-          strokeWeight: 2,
-          strokeColor: "white"
-        }
-      });
+        };
+      }
+      if (appState.userMarkerElement) appState.userMarkerElement.style.transform = `rotate(${appState.currentHeading}deg)`;
     } else {
-      appState.userMarker.setPosition({
-        lat,
-        lng
-      });
+      // Fallback
+      if (!appState.userMarker) {
+        appState.userMarker = new google.maps.Marker({
+          map: appState.map,
+          position: {
+            lat,
+            lng
+          },
+          zIndex: 1000
+        });
+      } else {
+        appState.userMarker.setPosition({
+          lat,
+          lng
+        });
+      }
     }
   }
 
@@ -678,19 +698,38 @@ if (WN.booted) {
     if (!appState.map) return;
 
     if (appState.searchPointMarker) {
-      appState.searchPointMarker.setMap(null);
+      // AdvancedMarkerElementの場合、setMapではなくmapプロパティにnullを代入
+      if(appState.searchPointMarker.map !== undefined) {
+         appState.searchPointMarker.map = null;
+      } else {
+         appState.searchPointMarker.setMap(null);
+      }
       appState.searchPointMarker = null;
     }
 
-    // ★修正: Legacy Markerを使用
-    appState.searchPointMarker = new google.maps.Marker({
-      map: appState.map,
-      position: {
-        lat,
-        lng
-      },
-      zIndex: 999
-    });
+    // ★Advanced Markerを復活
+    if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
+      const el = document.createElement('div');
+      el.className = 'wn-point-marker';
+      appState.searchPointMarker = new google.maps.marker.AdvancedMarkerElement({
+        map: appState.map,
+        position: {
+          lat,
+          lng
+        },
+        content: el,
+        zIndex: 999
+      });
+    } else {
+      appState.searchPointMarker = new google.maps.Marker({
+        map: appState.map,
+        position: {
+          lat,
+          lng
+        },
+        zIndex: 999
+      });
+    }
 
     setText('pointAddress', '取得中…');
     setDisplay('pointAddressBlock', 'flex');
@@ -755,7 +794,11 @@ if (WN.booted) {
   function startCompassListener() {
     window.addEventListener('deviceorientation', (e) => {
       if (appState.isNavigating) return;
-      // Legacy Markerでは回転が難しいため省略、またはアイコン変更で対応可能だが今回は位置表示優先
+      const h = e.webkitCompassHeading || (e.absolute ? e.alpha : null);
+      if (h != null && appState.userMarkerElement) {
+        appState.currentHeading = h;
+        appState.userMarkerElement.style.transform = `rotate(${h}deg)`;
+      }
     }, true);
   }
 
@@ -1031,7 +1074,12 @@ if (WN.booted) {
       if (!appState.pointSearchMode) {
         appState.searchPoint = null;
         if (appState.searchPointMarker) {
-          appState.searchPointMarker.setMap(null);
+          // AdvancedMarkerElementの場合、mapプロパティをnullにする
+          if(appState.searchPointMarker.map !== undefined) {
+             appState.searchPointMarker.map = null;
+          } else {
+             appState.searchPointMarker.setMap(null);
+          }
           appState.searchPointMarker = null;
         }
         setText('pointAddress', '');
@@ -1072,6 +1120,7 @@ if (WN.booted) {
     setDisplay('results', 'block');
     setDisplay('instructionsSection', 'none');
     appState.searchMarkers.forEach(m => {
+      if (m.map) m.map = null;
       if (m.setMap) m.setMap(null);
     });
     appState.searchMarkers = [];
@@ -1086,23 +1135,39 @@ if (WN.booted) {
         lng: p.location.longitude
       });
       div.appendChild(item);
-
-      // ★修正: Legacy Markerを使用
-      const m = new google.maps.Marker({
-        map: appState.map,
-        position: {
-          lat: p.location.latitude,
-          lng: p.location.longitude
-        },
-        label: String(i + 1),
-        title: p.displayName?.text
-      });
-      appState.searchMarkers.push(m);
+      
+      // ★Advanced Markerを復活
+      if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
+        const el = document.createElement('div');
+        el.className = 'wn-search-marker';
+        el.textContent = String(i + 1);
+        appState.searchMarkers.push(new google.maps.marker.AdvancedMarkerElement({
+          map: appState.map,
+          position: {
+            lat: p.location.latitude,
+            lng: p.location.longitude
+          },
+          content: el,
+          title: p.displayName?.text
+        }));
+      } else {
+        // Fallback
+        const m = new google.maps.Marker({
+          map: appState.map,
+          position: {
+            lat: p.location.latitude,
+            lng: p.location.longitude
+          },
+          label: String(i + 1),
+          title: p.displayName?.text
+        });
+        appState.searchMarkers.push(m);
+      }
     });
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v61 (Map Fix)...');
+    console.log('[WalkNav] Starting v62 (MapID Restored)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
