@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v50: Voice Input & Panel Controls Fix
+// WalkNav app.js - v51: Force Panel Hide, Zoom 19, & Language Fix
 
-const ISSUE_ID = 'idx20251212_v50_voice_search';
+const ISSUE_ID = 'idx20251212_v51_final_enforce';
 
 // Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
@@ -102,10 +102,18 @@ if (WN.booted) {
 
     fab.classList.remove('initial-hidden');
 
+    // パネルが開いているか、強制非表示でないならFABを出すべきだが
+    // 今回の仕様変更で「パネル表示時はボタン類非表示」なので
+    // collapsedが付いている(閉じている)時だけFABを出す
     const isCollapsed = panel.classList.contains('collapsed');
-    const isHidden = panel.style.display === 'none';
+    
+    // パネルが完全に消えている(hidden-force)場合はナビ中なのでFABも出さない？
+    // いえ、ナビ中はFABを出したいという要望があったはずですが
+    // 「パネル表示時はボタン類をすべて非表示」= パネルが開いている時だけ隠す
+    // ナビ中はパネルを消すので、FABは出して良い
+    const isForceHidden = panel.classList.contains('hidden-force') || panel.style.display === 'none';
 
-    if (isCollapsed || isHidden) {
+    if (isCollapsed || isForceHidden) {
       fab.classList.remove('fab-hidden');
     } else {
       fab.classList.add('fab-hidden');
@@ -446,7 +454,6 @@ if (WN.booted) {
     }
   }
 
-  // ★音声入力の実装
   function handleVoiceInput() {
     if (!('webkitSpeechRecognition' in window)) {
       alert('このブラウザは音声入力に対応していません');
@@ -457,7 +464,6 @@ if (WN.booted) {
     recognition.start();
 
     recognition.onstart = function() {
-      // 入力中を示すUIがあればここで変更
       getEl('q').placeholder = '聞いています...';
     };
 
@@ -470,7 +476,6 @@ if (WN.booted) {
       const q = getEl('q');
       if (q) {
         q.value = transcript;
-        // 自動で検索を実行
         getEl('btnSearchIcon').click();
       }
     };
@@ -634,7 +639,7 @@ if (WN.booted) {
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v50');
+      console.log('[WalkNav] Map initialized v51');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, {
@@ -748,14 +753,19 @@ if (WN.booted) {
         longitude
       } = pos.coords;
       getEl('loading')?.remove();
-      if (!appState.mapInitialized) initMap({
-        lat: latitude,
-        lng: longitude
-      });
-      else appState.map.setCenter({
-        lat: latitude,
-        lng: longitude
-      });
+      if (!appState.mapInitialized) {
+        initMap({
+          lat: latitude,
+          lng: longitude
+        });
+      } else {
+        // ★修正: 現在地ボタン押下時は、現在地にパンしてズームレベルを19（強め）に設定
+        appState.map.panTo({
+          lat: latitude,
+          lng: longitude
+        });
+        appState.map.setZoom(19);
+      }
       setUserMarker(latitude, longitude);
 
       const latStr = latitude.toFixed(5);
@@ -856,19 +866,16 @@ if (WN.booted) {
     appState.currentDestination = dest;
     appState.isNavigating = true;
     
-    // 【修正】ナビ開始時にパネルとFABを完全に非表示
+    // ★修正: ナビ開始時にパネルを強力に非表示
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.add('collapsed');
-      panel.style.display = 'none'; // 物理非表示
+      panel.classList.add('hidden-force'); // !important付きのクラスで隠す
     }
     
     updateFabVisibility();
 
-    // ルート案内中はFABコンテナ自体も非表示にする(もしupdateFabVisibilityで消えきらない場合の保険)
-    const fab = getEl('fabStack');
-    if (fab) fab.style.display = 'none'; 
-
+    setDisplay('fabStack', 'flex');
     setDisplay('routeControlSection', 'block');
     setDisplay('results', 'none');
     switchPanelTab('nav');
@@ -915,26 +922,21 @@ if (WN.booted) {
     appState.isNavigating = false;
     if (appState.currentPolyline) appState.currentPolyline.setMap(null);
     
-    // パネル再表示
+    // ★修正: ナビ終了時にパネルを再表示
     const panel = getEl('searchPanel');
     if (panel) {
-      panel.style.display = 'flex';
-      panel.classList.remove('collapsed');
+      panel.classList.remove('hidden-force'); // 物理非表示を解除
+      // collapsedはそのままで、必要に応じて開く
     }
     
-    // FAB再表示
-    const fab = getEl('fabStack');
-    if (fab) fab.style.display = 'flex'; // 再表示
     updateFabVisibility();
 
     setDisplay('routeControlSection', 'none');
     setDisplay('instructionsSection', 'none');
     setDisplay('routeInfoSection', 'none');
     setDisplay('btnDestination', 'none');
-    
-    // 検索ボタンなどはFAB内にあるので、ここでの個別のsetDisplayは不要かもしれないが念のため
-    // setDisplay('btnSearch', 'flex'); // FAB内にあるのでdisplay:flexは親が管理
-
+    setDisplay('fabStack', 'none');
+    setDisplay('btnSearch', 'flex');
     switchPanelTab('search');
     
     if (appState.currentPos && appState.map) {
@@ -996,7 +998,6 @@ if (WN.booted) {
       });
     }
 
-    // ★音声入力ボタンの設定
     if (getEl('btnVoiceInput')) {
       getEl('btnVoiceInput').onclick = handleVoiceInput;
     }
@@ -1031,10 +1032,8 @@ if (WN.booted) {
     
     if (getEl('btnClosePanel')) getEl('btnClosePanel').onclick = collapsePanel;
     
-    // ★虫眼鏡ボタンの挙動修正
     if (getEl('btnSearch')) getEl('btnSearch').onclick = () => {
       openPanel();
-      // 入力欄にフォーカスしてキーボードを出す
       setTimeout(() => {
         const input = getEl('q');
         if (input) input.focus();
@@ -1134,7 +1133,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v50 (Voice & Panel Fix)...');
+    console.log('[WalkNav] Starting v51 (Force Hide Panel & Zoom Fix)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
