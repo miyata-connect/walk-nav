@@ -6,8 +6,7 @@
   <title>WalkNav</title>
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  
-  <link rel="stylesheet" href="app.css?v=46" />
+  <link rel="stylesheet" href="app.css?v=49" />
 </head>
 <body id="appBody">
 <div class="app">
@@ -155,7 +154,7 @@
     </div>
   </section>
 
-  <div class="fab-container" id="fabStack">
+  <div class="fab-container initial-hidden" id="fabStack">
     <button class="fab-btn" id="btnSearch">🔍</button>
     <button class="fab-btn" id="btnLocate">📍</button>
     <button class="fab-btn destination" id="btnDestination" style="display:none">🏁</button>
@@ -182,12 +181,11 @@
 </div>
 
 <script src="RouteEvaluator.js"></script>
-<script src="app.js?v=46"></script>
+<script src="app.js?v=49"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&language=ja&region=JP&loading=async" async defer></script>
 
 <script>
 (function () {
-  // パネル内でのスクロール制御
   document.addEventListener('touchmove', function(e) {
     if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
     var scrollable = e.target.closest('.panel-tabs-body') || e.target.closest('.edit-modal-body');
@@ -200,7 +198,6 @@
     }
   }, { passive: false });
 
-  // タブ切り替え初期化
   function initPanelTabs() {
     var tabButtons = document.querySelectorAll('[data-panel-tab]');
     var paneSearch = document.getElementById('tabPaneSearch');
