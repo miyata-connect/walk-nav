@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v49: Fix Flicker, Centering, Weather Layout
+// WalkNav app.js - v50: Voice Input & Panel Controls Fix
 
-const ISSUE_ID = 'idx20251212_v49_final_polish';
+const ISSUE_ID = 'idx20251212_v50_voice_search';
 
 // Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
@@ -100,7 +100,6 @@ if (WN.booted) {
     const fab = getEl('fabStack');
     if (!panel || !fab) return;
 
-    // ★修正: 初期非表示クラスを削除して表示制御を開始
     fab.classList.remove('initial-hidden');
 
     const isCollapsed = panel.classList.contains('collapsed');
@@ -447,6 +446,36 @@ if (WN.booted) {
     }
   }
 
+  // ★音声入力の実装
+  function handleVoiceInput() {
+    if (!('webkitSpeechRecognition' in window)) {
+      alert('このブラウザは音声入力に対応していません');
+      return;
+    }
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = 'ja-JP';
+    recognition.start();
+
+    recognition.onstart = function() {
+      // 入力中を示すUIがあればここで変更
+      getEl('q').placeholder = '聞いています...';
+    };
+
+    recognition.onend = function() {
+      getEl('q').placeholder = '店舗名・電話番号・住所・座標など';
+    };
+
+    recognition.onresult = function(event) {
+      const transcript = event.results[0][0].transcript;
+      const q = getEl('q');
+      if (q) {
+        q.value = transcript;
+        // 自動で検索を実行
+        getEl('btnSearchIcon').click();
+      }
+    };
+  }
+
   function handleShareLocation() {
     let textBody, url;
     if (appState.isNavigating && appState.currentRouteData && appState.currentDestination) {
@@ -605,7 +634,7 @@ if (WN.booted) {
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v49');
+      console.log('[WalkNav] Map initialized v50');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, {
@@ -827,15 +856,19 @@ if (WN.booted) {
     appState.currentDestination = dest;
     appState.isNavigating = true;
     
+    // 【修正】ナビ開始時にパネルとFABを完全に非表示
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.add('collapsed');
-      panel.style.display = 'none';
+      panel.style.display = 'none'; // 物理非表示
     }
     
     updateFabVisibility();
 
-    setDisplay('fabStack', 'flex');
+    // ルート案内中はFABコンテナ自体も非表示にする(もしupdateFabVisibilityで消えきらない場合の保険)
+    const fab = getEl('fabStack');
+    if (fab) fab.style.display = 'none'; 
+
     setDisplay('routeControlSection', 'block');
     setDisplay('results', 'none');
     switchPanelTab('nav');
@@ -882,20 +915,26 @@ if (WN.booted) {
     appState.isNavigating = false;
     if (appState.currentPolyline) appState.currentPolyline.setMap(null);
     
+    // パネル再表示
     const panel = getEl('searchPanel');
     if (panel) {
       panel.style.display = 'flex';
       panel.classList.remove('collapsed');
     }
     
+    // FAB再表示
+    const fab = getEl('fabStack');
+    if (fab) fab.style.display = 'flex'; // 再表示
     updateFabVisibility();
 
     setDisplay('routeControlSection', 'none');
     setDisplay('instructionsSection', 'none');
     setDisplay('routeInfoSection', 'none');
     setDisplay('btnDestination', 'none');
-    setDisplay('fabStack', 'none');
-    setDisplay('btnSearch', 'flex');
+    
+    // 検索ボタンなどはFAB内にあるので、ここでの個別のsetDisplayは不要かもしれないが念のため
+    // setDisplay('btnSearch', 'flex'); // FAB内にあるのでdisplay:flexは親が管理
+
     switchPanelTab('search');
     
     if (appState.currentPos && appState.map) {
@@ -939,7 +978,6 @@ if (WN.booted) {
       ph.onclick = togglePanel;
     }
 
-    // ★座標コピー機能
     const addrBlock = getEl('pointAddressBlock');
     let pressTimer;
     if (addrBlock) {
@@ -956,6 +994,11 @@ if (WN.booted) {
       addrBlock.addEventListener('touchend', function() {
         clearTimeout(pressTimer);
       });
+    }
+
+    // ★音声入力ボタンの設定
+    if (getEl('btnVoiceInput')) {
+      getEl('btnVoiceInput').onclick = handleVoiceInput;
     }
 
     const q = getEl('q');
@@ -988,7 +1031,15 @@ if (WN.booted) {
     
     if (getEl('btnClosePanel')) getEl('btnClosePanel').onclick = collapsePanel;
     
-    if (getEl('btnSearch')) getEl('btnSearch').onclick = openPanel;
+    // ★虫眼鏡ボタンの挙動修正
+    if (getEl('btnSearch')) getEl('btnSearch').onclick = () => {
+      openPanel();
+      // 入力欄にフォーカスしてキーボードを出す
+      setTimeout(() => {
+        const input = getEl('q');
+        if (input) input.focus();
+      }, 300);
+    };
 
     if (getEl('btnStopRoute')) getEl('btnStopRoute').onclick = stopNavigation;
     [10, 20, 30].forEach(d => {
@@ -1083,7 +1134,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v49 (Centered & Polish)...');
+    console.log('[WalkNav] Starting v50 (Voice & Panel Fix)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
