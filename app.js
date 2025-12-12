@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v48: Centered UI & Copy Coords Feature
+// WalkNav app.js - v49: Fix Flicker, Centering, Weather Layout
 
-const ISSUE_ID = 'idx20251212_v48_copy_coords';
+const ISSUE_ID = 'idx20251212_v49_final_polish';
 
 // Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
@@ -99,6 +99,9 @@ if (WN.booted) {
     const panel = getEl('searchPanel');
     const fab = getEl('fabStack');
     if (!panel || !fab) return;
+
+    // ★修正: 初期非表示クラスを削除して表示制御を開始
+    fab.classList.remove('initial-hidden');
 
     const isCollapsed = panel.classList.contains('collapsed');
     const isHidden = panel.style.display === 'none';
@@ -602,7 +605,7 @@ if (WN.booted) {
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v48');
+      console.log('[WalkNav] Map initialized v49');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, {
@@ -693,11 +696,7 @@ if (WN.booted) {
     });
     setText('pointAddress', '取得中…');
     setDisplay('pointAddressBlock', 'flex');
-    
-    // ★修正: 桁数を増やして経度も表示
-    const coordsText = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
-    setText('pointCoords', coordsText);
-    
+    setText('pointCoords', `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`);
     geocode(lat, lng).then(d => setText('pointAddress', d.results?.[0]?.formatted_address.replace(/^日本、\s*/, '') || '不明'));
     fetchIncidentsAround(lat, lng);
     const actionRow = document.querySelector('#pointAddressBlock + .action-buttons-row');
@@ -940,7 +939,7 @@ if (WN.booted) {
       ph.onclick = togglePanel;
     }
 
-    // ★座標コピー機能のイベント設定（長押し）
+    // ★座標コピー機能
     const addrBlock = getEl('pointAddressBlock');
     let pressTimer;
     if (addrBlock) {
@@ -952,7 +951,7 @@ if (WN.booted) {
               alert('座標をコピーしました');
             });
           }
-        }, 800); // 800ms長押しで発火
+        }, 800);
       });
       addrBlock.addEventListener('touchend', function() {
         clearTimeout(pressTimer);
@@ -1084,7 +1083,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v48 (Centered & Copy Coords)...');
+    console.log('[WalkNav] Starting v49 (Centered & Polish)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
