@@ -1,4 +1,4 @@
-/* app.css (v53: Sync with HTML) */
+/* app.css (v54: Fix Spacing & Layout) */
 
 /* ------------------------------------------------------------------
    基本設定
@@ -69,7 +69,6 @@ body {
   transition: transform 0.3s ease-out;
 }
 
-/* 強制非表示（ナビ中） */
 .panel.hidden-force {
   display: none !important;
   pointer-events: none !important;
@@ -238,6 +237,8 @@ body {
   display: flex;
   gap: 8px;
   margin-top: 16px;
+  /* ★ボタン群の下にも余白を追加 */
+  margin-bottom: 24px;
 }
 .bottom-actions-row .btn { flex: 1; }
 
@@ -267,8 +268,8 @@ body {
 }
 
 .weather-main-icon {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
@@ -338,12 +339,12 @@ body {
   margin-top: 2px;
 }
 
-/* 検索・住所表示 */
+/* 検索・住所・座標表示 */
 .address-card,
 .location-info {
   display: block;
   flex-direction: column;
-  padding: 12px;
+  padding: 16px; /* ★パディングを増やして余裕を持たせる */
   border-radius: 12px;
   background: var(--panel-elevated);
   border: 1px solid var(--stroke-soft);
@@ -353,13 +354,14 @@ body {
 
 .address-card {
   display: none;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
   touch-action: manipulation;
 }
 
 .address-title {
   font-size: 14px;
   font-weight: 600;
+  margin-bottom: 4px;
 }
 
 .address-coords {
@@ -373,16 +375,16 @@ body {
   font-weight: 600;
   font-size: 13px;
   background: rgba(250, 204, 21, 0.15);
-  padding: 3px 8px;
+  padding: 4px 10px; /* ★余白調整 */
   border-radius: 6px;
   display: inline-block;
-  margin-bottom: 6px;
+  margin-bottom: 8px; /* ★下部余白を追加 */
 }
 
 .loc-address {
   font-size: 13px;
-  margin-top: 4px;
-  line-height: 1.4;
+  line-height: 1.5; /* ★行間を広げて見やすく */
+  color: #e5e7eb;
 }
 
 .search-box-container { margin: 8px 0 12px; }
@@ -392,7 +394,59 @@ body {
 .results-list { padding: 0; border-radius: 12px; background: var(--panel-elevated); max-height: 35vh; overflow-y: auto; }
 .result-item { padding: 12px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 14px; }
 
-/* FAB */
+/* ------------------------------------------------------------------
+   ★ 保存リスト (Saved List) - 余白・カプセル化調整
+------------------------------------------------------------------ */
+.saved-section {
+  /* ★上部ボタンとの間に大きな余白を確保 */
+  margin-top: 32px;
+  border-top: 1px solid var(--stroke-soft);
+  padding-top: 16px;
+}
+
+.saved-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  /* ★カプセル感を強めるためのパディングとマージン */
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  margin-bottom: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.saved-item:active {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.saved-info {
+  overflow: hidden;
+}
+
+.saved-name {
+  font-weight: bold;
+  font-size: 15px; /* ★少し大きく */
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.saved-address {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ナビ・FAB */
+.nav-section-title { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; }
+.route-summary-card { padding: 14px; border-radius: 16px; background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.3); margin-bottom: 12px; }
+.route-stats { font-size: 20px; font-weight: 800; color: #fff; display: flex; gap: 12px; align-items: baseline; }
+
 .fab-container {
   position: absolute;
   right: 16px;
