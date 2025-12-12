@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v45: Hide Panel on Route & Readable Format
+// WalkNav app.js - v46: Hide FAB on Panel Open & Zoom Logic
 
-const ISSUE_ID = 'idx20251212_v45_hide_panel';
+const ISSUE_ID = 'idx20251212_v46_fab_zoom_fix';
 
 // Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
@@ -92,6 +92,49 @@ if (WN.booted) {
   function setText(id, text) {
     const el = getEl(id);
     if (el) el.textContent = text;
+  }
+
+  /* === FAB Visibility Control === */
+  function updateFabVisibility() {
+    const panel = getEl('searchPanel');
+    const fab = getEl('fabStack');
+    if (!panel || !fab) return;
+
+    // パネルが閉じている(collapsed)か、非表示(display:none)ならFABを表示
+    // パネルが開いているならFABを隠す
+    const isCollapsed = panel.classList.contains('collapsed');
+    const isHidden = panel.style.display === 'none';
+
+    if (isCollapsed || isHidden) {
+      fab.classList.remove('fab-hidden');
+    } else {
+      fab.classList.add('fab-hidden');
+    }
+  }
+
+  // パネル操作時にこれを呼ぶ
+  function togglePanel() {
+    const panel = getEl('searchPanel');
+    if (panel) {
+      panel.classList.toggle('collapsed');
+      updateFabVisibility();
+    }
+  }
+
+  function collapsePanel() {
+    const panel = getEl('searchPanel');
+    if (panel) {
+      panel.classList.add('collapsed');
+      updateFabVisibility();
+    }
+  }
+
+  function openPanel() {
+    const panel = getEl('searchPanel');
+    if (panel) {
+      panel.classList.remove('collapsed');
+      updateFabVisibility();
+    }
   }
 
   /* === Save/Load Logic === */
@@ -560,7 +603,7 @@ if (WN.booted) {
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v45');
+      console.log('[WalkNav] Map initialized v46');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, {
@@ -674,16 +717,17 @@ if (WN.booted) {
         longitude
       } = pos.coords;
       getEl('loading')?.remove();
-      if (!appState.mapInitialized) initMap({
-        lat: latitude,
-        lng: longitude
-      });
-      else appState.map.setCenter({
-        lat: latitude,
-        lng: longitude
-      });
+      
+      // ★現在地取得時のズームロジック
+      if (!appState.mapInitialized) {
+        initMap({ lat: latitude, lng: longitude });
+      } else {
+        // 現在地にパンし、ズームレベルを17に設定
+        appState.map.panTo({ lat: latitude, lng: longitude });
+        appState.map.setZoom(17);
+      }
+      
       setUserMarker(latitude, longitude);
-
       const latStr = latitude.toFixed(5);
       const lngStr = longitude.toFixed(5);
       setText('locCoords', `📍 ${latStr}, ${lngStr}`);
@@ -782,17 +826,26 @@ if (WN.booted) {
     appState.currentDestination = dest;
     appState.isNavigating = true;
     
-    // 【重要】ユーザー要望：ルート開始時にパネルを完全に非表示にする（FABなどを押しやすくするため）
+    // パネル非表示
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.add('collapsed');
-      panel.style.display = 'none'; // 物理的に消す
+      panel.style.display = 'none';
     }
+    
+    // FABも隠す
+    updateFabVisibility();
 
     setDisplay('fabStack', 'flex');
     setDisplay('routeControlSection', 'block');
     setDisplay('results', 'none');
-    switchPanelTab('nav'); // 内部状態はNavにしておく
+    switchPanelTab('nav');
+
+    // ★ 目的地へ一旦ズームする演出
+    if (appState.map) {
+      appState.map.panTo({ lat: dest.lat, lng: dest.lng });
+      appState.map.setZoom(18); // 一旦拡大
+    }
 
     try {
       const resp = await fetchWithRetry(`${WORKER_ORIGIN}/directions`, {
@@ -831,12 +884,15 @@ if (WN.booted) {
     appState.isNavigating = false;
     if (appState.currentPolyline) appState.currentPolyline.setMap(null);
     
-    // パネルを再表示
+    // パネル再表示
     const panel = getEl('searchPanel');
     if (panel) {
       panel.style.display = 'flex';
-      panel.classList.remove('collapsed'); // 必要に応じて開く
+      panel.classList.remove('collapsed');
     }
+    
+    // FAB再表示判定
+    updateFabVisibility();
 
     setDisplay('routeControlSection', 'none');
     setDisplay('instructionsSection', 'none');
@@ -882,6 +938,12 @@ if (WN.booted) {
       btnOld.onclick = openEditModal;
     }
 
+    // パネル開閉時のFAB制御
+    const ph = document.querySelector('.panel-handle-area');
+    if (ph) {
+      ph.onclick = togglePanel;
+    }
+
     const q = getEl('q');
     if (getEl('btnSearchIcon')) getEl('btnSearchIcon').onclick = () => {
       let lat, lng;
@@ -897,25 +959,24 @@ if (WN.booted) {
     if (q) q.onkeypress = (e) => {
       if (e.key === 'Enter') getEl('btnSearchIcon').click();
     };
+    
+    // リセット時、パネルが開くのでFABは隠れるはずだが、操作後なので再判定
     if (getEl('btnReset')) getEl('btnReset').onclick = () => {
       q.value = '';
       setDisplay('results', 'none');
       appState.pointSearchMode = false;
       getEl('btnPointSearch').textContent = '📍 ポイント選択';
       getEl('btnPointSearch').classList.remove('active');
+      openPanel(); // パネルを開く
     };
+    
     if (getEl('btnLocate')) getEl('btnLocate').onclick = acquireLocation;
     if (getEl('btnLocatePanel')) getEl('btnLocatePanel').onclick = acquireLocation;
-    if (getEl('btnClosePanel')) getEl('btnClosePanel').onclick = () => getEl('searchPanel').classList.add('collapsed');
     
-    // 【重要】検索ボタン（FAB）を押したときはパネルを再表示する
-    if (getEl('btnSearch')) getEl('btnSearch').onclick = () => {
-      const panel = getEl('searchPanel');
-      if (panel) {
-        panel.style.display = 'flex'; // 再表示
-        panel.classList.remove('collapsed');
-      }
-    };
+    if (getEl('btnClosePanel')) getEl('btnClosePanel').onclick = collapsePanel;
+    
+    // 検索ボタン(FAB)を押すとパネル再表示
+    if (getEl('btnSearch')) getEl('btnSearch').onclick = openPanel;
 
     if (getEl('btnStopRoute')) getEl('btnStopRoute').onclick = stopNavigation;
     [10, 20, 30].forEach(d => {
@@ -952,11 +1013,12 @@ if (WN.booted) {
       sBtn.onclick = handleShareLocation;
       fab.appendChild(sBtn);
     }
-    const ph = document.querySelector('.panel-handle-area');
-    if (ph) ph.onclick = () => getEl('searchPanel').classList.toggle('collapsed');
 
     if (getEl('btnCancelEdit')) getEl('btnCancelEdit').onclick = closeEditModal;
     if (getEl('btnSaveEdits')) getEl('btnSaveEdits').onclick = saveEditModalChanges;
+    
+    // 初期状態のFAB表示更新
+    updateFabVisibility();
   }
 
   function displayResults(places) {
@@ -999,7 +1061,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v45 (Readable & Panel Hide)...');
+    console.log('[WalkNav] Starting v46 (FAB/Zoom Fix)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
