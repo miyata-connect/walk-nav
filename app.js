@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v52: Strict Panel Hide, Zoom 19, Stop Button
+// WalkNav app.js - v53: Language & Cache Busting
 
-const ISSUE_ID = 'idx20251212_v52_final_enforce';
+const ISSUE_ID = 'idx20251212_v53_lang_fix';
 
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
@@ -97,11 +97,9 @@ if (WN.booted) {
     const fab = getEl('fabStack');
     if (!panel || !fab) return;
 
-    // 初期非表示解除（チラつき防止）
+    fab.classList.remove('initial-hidden');
     fab.style.display = 'flex';
 
-    // パネルが「閉じている(collapsed)」または「物理非表示(hidden-force)」ならFABを表示
-    // パネルが「開いている」ならFABを隠す
     const isCollapsed = panel.classList.contains('collapsed');
     const isForceHidden = panel.classList.contains('hidden-force');
 
@@ -631,7 +629,7 @@ if (WN.booted) {
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v52');
+      console.log('[WalkNav] Map initialized v53');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, {
@@ -751,7 +749,7 @@ if (WN.booted) {
           lng: longitude
         });
       } else {
-        // ★修正: ズームレベルを19に設定（より詳細に）
+        // ★現在地ボタン押下時のズームレベルを19に設定（強力拡大）
         appState.map.panTo({
           lat: latitude,
           lng: longitude
@@ -858,16 +856,16 @@ if (WN.booted) {
     appState.currentDestination = dest;
     appState.isNavigating = true;
     
-    // ★修正: ナビ開始時にパネルを「強制非表示」にする
+    // ★パネル強制非表示
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.add('collapsed');
-      panel.classList.add('hidden-force'); // !important付きクラス
+      panel.classList.add('hidden-force');
     }
     
     updateFabVisibility();
 
-    // ★修正: ナビ中は「停止ボタン」だけを表示する
+    // ★FAB制御: 検索/現在地を隠し、停止ボタンのみ表示
     setDisplay('fabStack', 'flex');
     const fabSearch = getEl('btnSearch');
     const fabLocate = getEl('btnLocate');
@@ -922,16 +920,15 @@ if (WN.booted) {
     appState.isNavigating = false;
     if (appState.currentPolyline) appState.currentPolyline.setMap(null);
     
-    // ★修正: ナビ終了時にパネルを復活させる
+    // ★パネル復活
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.remove('hidden-force');
-      // collapsed状態は維持しても良いが、使い勝手のため少し開くかそのままにする
     }
     
     updateFabVisibility();
 
-    // ★修正: FABの状態を元に戻す
+    // ★FAB状態復帰
     const fabSearch = getEl('btnSearch');
     const fabLocate = getEl('btnLocate');
     const fabStop = getEl('btnStopFab');
@@ -1048,7 +1045,7 @@ if (WN.booted) {
     };
 
     if (getEl('btnStopRoute')) getEl('btnStopRoute').onclick = stopNavigation;
-    // ★新設した停止FABにもイベント割り当て
+    // ★FAB停止ボタン
     if (getEl('btnStopFab')) getEl('btnStopFab').onclick = stopNavigation;
 
     [10, 20, 30].forEach(d => {
@@ -1143,7 +1140,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v52 (Strict Hide & Stop FAB)...');
+    console.log('[WalkNav] Starting v53 (Lang/Cache Fix)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
