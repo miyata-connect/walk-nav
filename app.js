@@ -1,13 +1,10 @@
 'use strict';
 
-// WalkNav app.js - v51: Force Panel Hide, Zoom 19, & Language Fix
+// WalkNav app.js - v52: Strict Panel Hide, Zoom 19, Stop Button
 
-const ISSUE_ID = 'idx20251212_v51_final_enforce';
+const ISSUE_ID = 'idx20251212_v52_final_enforce';
 
-// Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
-
-// Cloudflare Worker
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 const MAP_ID = '9110fb2763169e9d8f2b317e';
 
@@ -100,23 +97,18 @@ if (WN.booted) {
     const fab = getEl('fabStack');
     if (!panel || !fab) return;
 
-    fab.classList.remove('initial-hidden');
+    // 初期非表示解除（チラつき防止）
+    fab.style.display = 'flex';
 
-    // パネルが開いているか、強制非表示でないならFABを出すべきだが
-    // 今回の仕様変更で「パネル表示時はボタン類非表示」なので
-    // collapsedが付いている(閉じている)時だけFABを出す
+    // パネルが「閉じている(collapsed)」または「物理非表示(hidden-force)」ならFABを表示
+    // パネルが「開いている」ならFABを隠す
     const isCollapsed = panel.classList.contains('collapsed');
-    
-    // パネルが完全に消えている(hidden-force)場合はナビ中なのでFABも出さない？
-    // いえ、ナビ中はFABを出したいという要望があったはずですが
-    // 「パネル表示時はボタン類をすべて非表示」= パネルが開いている時だけ隠す
-    // ナビ中はパネルを消すので、FABは出して良い
-    const isForceHidden = panel.classList.contains('hidden-force') || panel.style.display === 'none';
+    const isForceHidden = panel.classList.contains('hidden-force');
 
     if (isCollapsed || isForceHidden) {
-      fab.classList.remove('fab-hidden');
+      fab.classList.remove('panel-open-hide-fab');
     } else {
-      fab.classList.add('fab-hidden');
+      fab.classList.add('panel-open-hide-fab');
     }
   }
 
@@ -639,7 +631,7 @@ if (WN.booted) {
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v51');
+      console.log('[WalkNav] Map initialized v52');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, {
@@ -759,7 +751,7 @@ if (WN.booted) {
           lng: longitude
         });
       } else {
-        // ★修正: 現在地ボタン押下時は、現在地にパンしてズームレベルを19（強め）に設定
+        // ★修正: ズームレベルを19に設定（より詳細に）
         appState.map.panTo({
           lat: latitude,
           lng: longitude
@@ -866,16 +858,24 @@ if (WN.booted) {
     appState.currentDestination = dest;
     appState.isNavigating = true;
     
-    // ★修正: ナビ開始時にパネルを強力に非表示
+    // ★修正: ナビ開始時にパネルを「強制非表示」にする
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.add('collapsed');
-      panel.classList.add('hidden-force'); // !important付きのクラスで隠す
+      panel.classList.add('hidden-force'); // !important付きクラス
     }
     
     updateFabVisibility();
 
+    // ★修正: ナビ中は「停止ボタン」だけを表示する
     setDisplay('fabStack', 'flex');
+    const fabSearch = getEl('btnSearch');
+    const fabLocate = getEl('btnLocate');
+    const fabStop = getEl('btnStopFab');
+    if(fabSearch) fabSearch.style.display = 'none';
+    if(fabLocate) fabLocate.style.display = 'none';
+    if(fabStop) fabStop.style.display = 'flex';
+
     setDisplay('routeControlSection', 'block');
     setDisplay('results', 'none');
     switchPanelTab('nav');
@@ -922,21 +922,28 @@ if (WN.booted) {
     appState.isNavigating = false;
     if (appState.currentPolyline) appState.currentPolyline.setMap(null);
     
-    // ★修正: ナビ終了時にパネルを再表示
+    // ★修正: ナビ終了時にパネルを復活させる
     const panel = getEl('searchPanel');
     if (panel) {
-      panel.classList.remove('hidden-force'); // 物理非表示を解除
-      // collapsedはそのままで、必要に応じて開く
+      panel.classList.remove('hidden-force');
+      // collapsed状態は維持しても良いが、使い勝手のため少し開くかそのままにする
     }
     
     updateFabVisibility();
+
+    // ★修正: FABの状態を元に戻す
+    const fabSearch = getEl('btnSearch');
+    const fabLocate = getEl('btnLocate');
+    const fabStop = getEl('btnStopFab');
+    if(fabSearch) fabSearch.style.display = 'flex';
+    if(fabLocate) fabLocate.style.display = 'flex';
+    if(fabStop) fabStop.style.display = 'none';
 
     setDisplay('routeControlSection', 'none');
     setDisplay('instructionsSection', 'none');
     setDisplay('routeInfoSection', 'none');
     setDisplay('btnDestination', 'none');
-    setDisplay('fabStack', 'none');
-    setDisplay('btnSearch', 'flex');
+    
     switchPanelTab('search');
     
     if (appState.currentPos && appState.map) {
@@ -1041,6 +1048,9 @@ if (WN.booted) {
     };
 
     if (getEl('btnStopRoute')) getEl('btnStopRoute').onclick = stopNavigation;
+    // ★新設した停止FABにもイベント割り当て
+    if (getEl('btnStopFab')) getEl('btnStopFab').onclick = stopNavigation;
+
     [10, 20, 30].forEach(d => {
       const el = getEl(`r${d}`);
       if (el) el.onclick = () => {
@@ -1133,7 +1143,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v51 (Force Hide Panel & Zoom Fix)...');
+    console.log('[WalkNav] Starting v52 (Strict Hide & Stop FAB)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
