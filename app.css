@@ -1,4 +1,4 @@
-/* app.css (v45: Fully Expanded & Readable Format) */
+/* app.css (v46: Hide FAB on Panel Open & Zoom Logic) */
 
 /* ------------------------------------------------------------------
    基本設定 (Reset & Base)
@@ -20,7 +20,6 @@ body {
   -webkit-text-size-adjust: 100%;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: #000;
-  /* 画面全体のダブルタップ拡大を防止 */
   touch-action: manipulation;
 }
 
@@ -279,7 +278,7 @@ body {
 }
 
 /* ------------------------------------------------------------------
-   天気カード (Weather Card - Expanded UI)
+   天気カード (Weather Card)
 ------------------------------------------------------------------ */
 .weather-unified-card {
   display: grid;
@@ -545,6 +544,14 @@ body {
   flex-direction: column;
   gap: 10px;
   z-index: 1200;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* ★ パネルが開いているときはFABを隠す */
+.fab-container.fab-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .fab-btn {
