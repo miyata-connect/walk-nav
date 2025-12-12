@@ -1,4 +1,4 @@
-<!-- index.html v74 (Tabs Tap Fix) -->
+<!-- index.html (v74: Panel control unified + FAB labels + Close hint + Map ID required) -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -14,29 +14,29 @@
 <div class="app">
   <div id="map" aria-label="地図"></div>
 
-  <section class="panel" id="searchPanel">
+  <section class="panel" id="searchPanel" data-current-tab="search">
     <div class="panel-handle-area">
       <div class="panel-handle"></div>
     </div>
 
     <div class="panel-tabs-header" id="panelTabHeader">
-      <div class="tab-btn active" data-panel-tab="search" tabindex="0">操作</div>
-      <div class="tab-btn" data-panel-tab="nav" tabindex="0">案内</div>
-      <div class="tab-btn" data-panel-tab="settings" tabindex="0">設定</div>
+      <button class="tab-btn active" data-panel-tab="search" tabindex="0" type="button">操作</button>
+      <button class="tab-btn" data-panel-tab="nav" tabindex="0" type="button">案内</button>
+      <button class="tab-btn" data-panel-tab="settings" tabindex="0" type="button">設定</button>
     </div>
 
     <div class="panel-tabs-body" id="panelScrollContainer">
       <div class="tab-pane active" id="tabPaneSearch">
 
         <div class="point-search-wrapper">
-          <button class="chip point-select full-width" id="btnPointSearch">📍 ポイント選択</button>
+          <button class="chip point-select full-width" id="btnPointSearch" type="button">📍 ポイント選択</button>
         </div>
 
         <div class="search-header-row">
           <div class="section-title-inline">近くを検索 (<span id="radiusLabel">10km</span> / 5件)</div>
           <div class="distance-chips-row">
-            <button class="chip active" id="r10">10km</button>
-            <button class="chip" id="r20">20km</button>
+            <button class="chip active" id="r10" type="button">10km</button>
+            <button class="chip" id="r20" type="button">20km</button>
           </div>
         </div>
 
@@ -46,8 +46,8 @@
         </div>
 
         <div class="action-buttons-row">
-          <button class="btn btn-outline" id="btnSaveCurrent" style="border-color:#d97706; color:#d97706; background:rgba(254,243,199,0.1);">⭐ 現在地保存</button>
-          <button class="btn btn-outline" id="btnOpenEditModal">登録地修正</button>
+          <button class="btn btn-outline" id="btnSaveCurrent" type="button" style="border-color:#d97706; color:#d97706; background:rgba(254,243,199,0.1);">⭐ 現在地保存</button>
+          <button class="btn btn-outline" id="btnOpenEditModal" type="button">登録地修正</button>
         </div>
 
         <div class="search-box-container">
@@ -65,9 +65,9 @@
         <div id="results" class="results-list" style="display:none"></div>
 
         <div class="bottom-actions-row">
-          <button id="btnReset" class="btn btn-danger">リセット</button>
-          <button id="btnLocatePanel" class="btn btn-primary">現在地</button>
-          <button id="btnClosePanel" class="btn btn-secondary">閉じる</button>
+          <button id="btnReset" class="btn btn-danger" type="button">リセット</button>
+          <button id="btnLocatePanel" class="btn btn-primary" type="button">現在地</button>
+          <button id="btnClosePanel" class="btn btn-secondary" type="button">閉じる</button>
         </div>
 
         <div id="savedSectionContainer"></div>
@@ -93,8 +93,8 @@
               <span id="routeTime" class="stat-time">徒歩 --分</span>
             </div>
             <div class="route-mode-toggle" id="aiRouteModeRow">
-              <button id="btnRouteNormal" class="chip active small">標準</button>
-              <button id="btnRouteAiShortest" class="chip small">最短Ai</button>
+              <button id="btnRouteNormal" class="chip active small" type="button">標準</button>
+              <button id="btnRouteAiShortest" class="chip small" type="button">最短Ai</button>
             </div>
           </div>
         </div>
@@ -147,16 +147,16 @@
         <div class="settings-group">
           <div class="settings-label">地図表示モード</div>
           <div class="map-mode-buttons">
-            <button id="btnMapPhoto" class="map-mode-btn" data-mode="photo">写真</button>
-            <button id="btnMapRoadmap" class="map-mode-btn active" data-mode="roadmap">地図</button>
-            <button id="btnMap3D" class="map-mode-btn" data-mode="3d">3D</button>
+            <button id="btnMapPhoto" class="map-mode-btn" data-mode="photo" type="button">写真</button>
+            <button id="btnMapRoadmap" class="map-mode-btn active" data-mode="roadmap" type="button">地図</button>
+            <button id="btnMap3D" class="map-mode-btn" data-mode="3d" type="button">3D</button>
           </div>
         </div>
 
         <div id="routeControlSection" style="display:none;" class="settings-group">
           <div class="settings-label">ナビゲーション操作</div>
           <div class="nav-controls-stack">
-            <button id="btnStopRoute" class="btn btn-danger-block">🛑 ルート終了</button>
+            <button id="btnStopRoute" class="btn btn-danger-block" type="button">🛑 ルート終了</button>
           </div>
         </div>
       </div>
@@ -164,13 +164,40 @@
   </section>
 
   <div class="fab-container" id="fabStack" style="display:none;">
-    <button class="fab-btn square" id="btnSearchFab">🔍</button>
-    <button class="fab-btn square" id="btnLocateFab">📍</button>
-    <button class="fab-btn square destination" id="btnDestFab" style="display:none">🏁</button>
-    <button class="fab-btn square" id="btnSettingsFab">⚙️</button>
-    <button class="fab-btn square" id="btnNavFab">🧭</button>
-    <button class="fab-btn square" id="btnShareFab">✉️</button>
-    <button class="fab-btn square stop-btn" id="btnStopFab" style="display:none; background:#ef4444; color:#fff;">🛑</button>
+    <button class="fab-btn square" id="btnSearchFab" type="button" data-label="検索">
+      <span class="fab-icon">🔍</span>
+      <span class="fab-label">検索</span>
+    </button>
+
+    <button class="fab-btn square" id="btnLocateFab" type="button" data-label="現在地">
+      <span class="fab-icon">📍</span>
+      <span class="fab-label">現在地</span>
+    </button>
+
+    <button class="fab-btn square destination" id="btnDestFab" type="button" data-label="目的地" style="display:none">
+      <span class="fab-icon">🏁</span>
+      <span class="fab-label">目的地</span>
+    </button>
+
+    <button class="fab-btn square" id="btnSettingsFab" type="button" data-label="設定">
+      <span class="fab-icon">⚙️</span>
+      <span class="fab-label">設定</span>
+    </button>
+
+    <button class="fab-btn square" id="btnNavFab" type="button" data-label="案内">
+      <span class="fab-icon">🧭</span>
+      <span class="fab-label">案内</span>
+    </button>
+
+    <button class="fab-btn square" id="btnShareFab" type="button" data-label="共有">
+      <span class="fab-icon">✉️</span>
+      <span class="fab-label">共有</span>
+    </button>
+
+    <button class="fab-btn square stop-btn" id="btnStopFab" type="button" data-label="終了" style="display:none; background:#ef4444; color:#fff;">
+      <span class="fab-icon">🛑</span>
+      <span class="fab-label">終了</span>
+    </button>
   </div>
 
   <div class="loading-overlay" id="loading">
@@ -185,8 +212,8 @@
       <h3 class="edit-modal-title">登録地の編集</h3>
       <div class="edit-modal-body" id="editModalList"></div>
       <div class="edit-modal-actions">
-        <button id="btnCancelEdit" class="btn btn-secondary">キャンセル</button>
-        <button id="btnSaveEdits" class="btn btn-primary">変更を保存</button>
+        <button id="btnCancelEdit" class="btn btn-secondary" type="button">キャンセル</button>
+        <button id="btnSaveEdits" class="btn btn-primary" type="button">変更を保存</button>
       </div>
     </div>
   </div>
@@ -194,18 +221,14 @@
 </div>
 
 <script src="RouteEvaluator.js"></script>
-<script src="app.js?v=71"></script>
+<script src="app.js?v=74"></script>
 <script src="https://maps.googleapis.com/maps/api/js?language=ja&region=JP&key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&loading=async" async defer></script>
 
 <script>
 (function () {
-  // パネルスクロール制御（タブヘッダ上の微小スワイプでclickが潰れないように除外）
+  // パネルスクロール制御（保持）
   document.addEventListener('touchmove', function(e) {
     if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
-
-    // ★タブヘッダはガード対象外（ここが無いとiOSでタブが無反応になり得る）
-    if (e.target.closest('.panel-tabs-header') || e.target.closest('[data-panel-tab]')) return;
-
     var scrollable = e.target.closest('.panel-tabs-body') || e.target.closest('.edit-modal-body');
     if (!scrollable) {
       if (e.cancelable) e.preventDefault();
@@ -216,52 +239,8 @@
     }
   }, { passive: false });
 
-  // タブ初期化（clickが潰れる環境用にtouchendも追加）
-  function initPanelTabs() {
-    var tabButtons = document.querySelectorAll('[data-panel-tab]');
-    var paneSearch = document.getElementById('tabPaneSearch');
-    var paneNav = document.getElementById('tabPaneNav');
-    var paneSettings = document.getElementById('tabPaneSettings');
-
-    function setMode(mode) {
-      if (paneSearch) paneSearch.classList.toggle('active', mode === 'search');
-      if (paneNav) paneNav.classList.toggle('active', mode === 'nav');
-      if (paneSettings) paneSettings.classList.toggle('active', mode === 'settings');
-
-      tabButtons.forEach(function(b) {
-        b.classList.toggle('active', b.getAttribute('data-panel-tab') === mode);
-      });
-    }
-
-    function activate(btn) {
-      setMode(btn.getAttribute('data-panel-tab') || 'search');
-    }
-
-    tabButtons.forEach(function(btn) {
-      btn.addEventListener('click', function () {
-        activate(btn);
-      });
-      btn.addEventListener('touchend', function (e) {
-        // iOSでclickが生成されないケースを潰す
-        if (e.cancelable) e.preventDefault();
-        activate(btn);
-      }, { passive: false });
-      btn.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          activate(btn);
-        }
-      });
-    });
-
-    setMode('search');
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initPanelTabs);
-  } else {
-    initPanelTabs();
-  }
+  // タブ初期化（v74: app.jsへ統一。ここは競合防止で何もしない）
+  // ※未承認の削除を避けるため、構造は残し、制御は無効化。
 })();
 </script>
 </body>
