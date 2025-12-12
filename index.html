@@ -6,7 +6,7 @@
   <title>WalkNav</title>
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <link rel="stylesheet" href="app.css?v=63" />
+  <link rel="stylesheet" href="app.css?v=68" />
 </head>
 <body id="appBody">
 <div class="app">
@@ -25,13 +25,17 @@
 
     <div class="panel-tabs-body" id="panelScrollContainer">
       <div class="tab-pane active" id="tabPaneSearch">
-        <h2 class="section-title">近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
+        
+        <div class="point-search-wrapper">
+          <button class="chip point-select full-width" id="btnPointSearch">📍 ポイント選択</button>
+        </div>
 
-        <div class="filter-chips-row">
-          <button class="chip active" id="r10">10km</button>
-          <button class="chip" id="r20">20km</button>
-          <button class="chip" id="r30">30km</button>
-          <button class="chip point-select" id="btnPointSearch">📍 ポイント選択</button>
+        <div class="search-header-row">
+          <div class="section-title-inline">近くを検索 (<span id="radiusLabel">10km</span> / 5件)</div>
+          <div class="distance-chips-row">
+            <button class="chip active" id="r10">10km</button>
+            <button class="chip" id="r20">20km</button>
+          </div>
         </div>
 
         <div class="address-card" id="pointAddressBlock" style="display:none;">
@@ -157,7 +161,6 @@
     <button class="fab-btn square" id="btnSettingsFab">⚙️</button>
     <button class="fab-btn square" id="btnNavFab">🧭</button>
     <button class="fab-btn square" id="btnShareFab">✉️</button>
-    
     <button class="fab-btn square stop-btn" id="btnStopFab" style="display:none; background:#ef4444; color:#fff;">🛑</button>
   </div>
 
@@ -182,7 +185,7 @@
 </div>
 
 <script src="RouteEvaluator.js"></script>
-<script src="app.js?v=63"></script>
+<script src="app.js?v=68"></script>
 <script src="https://maps.googleapis.com/maps/api/js?language=ja&region=JP&key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&loading=async" async defer></script>
 
 <script>
