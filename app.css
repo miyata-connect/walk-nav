@@ -1,4 +1,4 @@
-/* app.css (v52: Force Controls & Formatted) */
+/* app.css (v53: Sync with HTML) */
 
 /* ------------------------------------------------------------------
    基本設定
@@ -404,8 +404,11 @@ body {
   transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
-/* パネルが開いている時にFABを隠すためのクラス */
-.fab-container.panel-open-hide-fab {
+.fab-container.initial-hidden {
+  display: none !important;
+}
+
+.fab-container.fab-hidden {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -419,7 +422,7 @@ body {
 }
 .fab-btn.destination { background: var(--accent); color: #fff; }
 .fab-btn.voice-btn { background: #333; color: #fff; }
-.fab-btn.stop-btn { background: #ef4444; color: #fff; } /* 停止ボタン用 */
+.fab-btn.stop-btn { background: #ef4444; color: #fff; }
 
 .loading-overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.7); display: none; align-items: center; justify-content: center; z-index: 2000; color: #fff; flex-direction: column; }
 .spinner { width: 32px; height: 32px; border: 3px solid rgba(255, 255, 255, 0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
