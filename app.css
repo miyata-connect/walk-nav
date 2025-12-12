@@ -1,4 +1,4 @@
-/* app.css (v46: Hide FAB on Panel Open & Zoom Logic) */
+/* app.css (v48: Centered UI & Copy Feature) */
 
 /* ------------------------------------------------------------------
    基本設定 (Reset & Base)
@@ -169,6 +169,9 @@ body {
   font-size: 16px;
   font-weight: 700;
   color: var(--text-main);
+  /* ★修正: 見出しをセンタリング */
+  text-align: center;
+  justify-content: center;
 }
 
 .filter-chips-row {
@@ -177,6 +180,8 @@ body {
   margin-bottom: 12px;
   overflow-x: auto;
   padding-bottom: 4px;
+  /* ★修正: ボタン列をセンタリング */
+  justify-content: center;
 }
 
 .filter-chips-row::-webkit-scrollbar {
@@ -282,12 +287,12 @@ body {
 ------------------------------------------------------------------ */
 .weather-unified-card {
   display: grid;
-  grid-template-columns: 1.2fr 1.8fr;
+  grid-template-columns: 1fr 2fr;
   background: linear-gradient(135deg, #1e293b, #0f172a);
   border: 1px solid rgba(56, 189, 248, 0.3);
   border-radius: 16px;
   padding: 14px 12px;
-  margin-top: 16px;
+  margin-top: 24px;
   margin-bottom: 16px;
   gap: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -351,7 +356,7 @@ body {
 }
 
 .wf-time {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: #cbd5e1;
 }
@@ -386,11 +391,16 @@ body {
   border-radius: 12px;
   background: var(--panel-elevated);
   border: 1px solid var(--stroke-soft);
+  /* コピー機能のために選択可能にする */
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .address-card {
   display: none;
   margin-bottom: 4px;
+  /* 長押し検知のため、操作しやすく */
+  touch-action: manipulation;
 }
 
 .address-title {
@@ -547,7 +557,7 @@ body {
   transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
-/* ★ パネルが開いているときはFABを隠す */
+/* パネルが開いているときはFABを隠す */
 .fab-container.fab-hidden {
   opacity: 0;
   visibility: hidden;
