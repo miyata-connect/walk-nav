@@ -1,4 +1,4 @@
-/* app.css (v50: Voice Input & Panel Logic) */
+/* app.css (v51: Force Hide Panel & Fix Zoom) */
 
 /* ------------------------------------------------------------------
    基本設定
@@ -67,6 +67,12 @@ body {
   flex-direction: column;
   z-index: 1000;
   transition: transform 0.3s ease-out;
+}
+
+/* ★強力な非表示クラス */
+.panel.hidden-force {
+  display: none !important;
+  pointer-events: none !important;
 }
 
 .panel.collapsed {
