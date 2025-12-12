@@ -1,4 +1,4 @@
-/* app.css (v55: Fix Settings Font & Spacing) */
+/* app.css (v56: Font Size, Spacing & Map Language Fix) */
 
 /* ------------------------------------------------------------------
    基本設定
@@ -338,11 +338,12 @@ body {
   margin-top: 2px;
 }
 
-/* 検索・住所・座標表示 */
+/* 検索・住所表示 */
 .address-card,
 .location-info {
   display: block;
   flex-direction: column;
+  /* ★余白調整: 窮屈さを解消 */
   padding: 16px;
   border-radius: 12px;
   background: var(--panel-elevated);
@@ -394,9 +395,10 @@ body {
 .result-item { padding: 12px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 14px; }
 
 /* ------------------------------------------------------------------
-   保存リスト (Saved List) - 余白・カプセル化調整
+   ★ 保存リスト (Saved List) - 余白・カプセル化調整
 ------------------------------------------------------------------ */
 .saved-section {
+  /* ★ボタン群との間に十分な余白 */
   margin-top: 32px;
   border-top: 1px solid var(--stroke-soft);
   padding-top: 16px;
@@ -406,6 +408,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  /* ★カプセル感を強める */
   padding: 14px 16px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
@@ -426,7 +429,7 @@ body {
 
 .saved-name {
   font-weight: bold;
-  font-size: 15px;
+  font-size: 15px; /* サイズアップ */
   color: #fff;
   margin-bottom: 4px;
 }
@@ -437,6 +440,40 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ------------------------------------------------------------------
+   ★ 設定タブ (Settings) - 文字サイズ修正
+------------------------------------------------------------------ */
+.settings-group {
+  margin-bottom: 24px;
+}
+
+.settings-label {
+  font-size: 14px; /* サイズアップ */
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+/* ユーザープロファイル内のラベル */
+.setting-sub-label {
+  font-size: 13px !important; /* サイズアップ */
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 6px !important;
+}
+
+/* プルダウンなどの入力 */
+.setting-input {
+  font-size: 15px !important; /* サイズアップ */
+  padding: 10px !important;
+  height: 44px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--stroke-soft);
+  border-radius: 8px;
+  color: #fff;
 }
 
 /* ナビ・FAB */
@@ -481,34 +518,6 @@ body {
 
 .wn-user-marker { width: 20px; height: 20px; background: #3b82f6; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); }
 .wn-point-marker { width: 24px; height: 24px; background: #ef4444; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); }
-
-/* ------------------------------------------------------------------
-   ★ 設定タブ (Settings) - 文字サイズ修正
------------------------------------------------------------------- */
-.settings-group {
-  margin-bottom: 24px;
-}
-
-.settings-label {
-  font-size: 14px; /* ★大きく */
-  color: var(--text-muted);
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-
-/* ユーザープロファイル内のラベル */
-.nav-section-title + .row label {
-  font-size: 13px !important; /* ★大きく */
-  color: var(--text-muted);
-  margin-bottom: 6px !important;
-}
-
-/* プルダウンなどの入力 */
-select.input {
-  font-size: 15px; /* ★大きく */
-  padding: 10px;
-  height: 44px;
-}
 
 .map-mode-buttons { display: flex; gap: 8px; }
 .map-mode-btn { flex: 1; border-radius: 999px; border: 1px solid rgba(148, 163, 184, 0.6); background: rgba(31, 41, 55, 0.9); color: #e5e7eb; min-height: 40px; font-size: 14px; font-weight: 600; touch-action: manipulation; }
