@@ -1,12 +1,15 @@
 'use strict';
 
-// WalkNav app.js - v70: Ensure FAB Visibility & Formatted
+// WalkNav app.js - v74: Map ID Required + Fixes (1-5)
 
-const ISSUE_ID = 'idx20251212_v70_fab_fix';
+const ISSUE_ID = 'idx20251213_v74_mapid_and_fixes';
 
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
-const MAP_ID = null; // No Map ID for reliability
+
+// Map ID 必須 (v74)
+// 取得元: HTML <meta name="walknav-map-id" content="...">
+const MAP_ID = (document.querySelector('meta[name="walknav-map-id"]')?.content || '').trim() || 'YOUR_MAP_ID_HERE';
 
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
@@ -95,7 +98,6 @@ if (WN.booted) {
   function updateFabVisibility() {
     const fab = getEl('fabStack');
     if (fab) {
-      // 確実に表示させる
       fab.classList.remove('initial-hidden');
       fab.style.display = 'flex';
       fab.style.visibility = 'visible';
@@ -128,6 +130,25 @@ if (WN.booted) {
   function openPanelTab(tabName) {
     switchPanelTab(tabName);
     openPanel();
+  }
+
+  // (Fix #2) togglePanelTab 未定義による例外対策
+  // 仕様: 同じタブでパネルが開いていたら閉じる。別タブ指定なら切替えて開く。
+  function togglePanelTab(tabName) {
+    const panel = getEl('searchPanel');
+    if (!panel) return;
+    if (panel.classList.contains('hidden-force')) {
+      panel.classList.remove('hidden-force');
+    }
+    const current = panel.getAttribute('data-current-tab') || 'search';
+    const isCollapsed = panel.classList.contains('collapsed');
+
+    if (tabName === current && !isCollapsed) {
+      collapsePanel();
+      return;
+    }
+    panel.setAttribute('data-current-tab', tabName);
+    openPanelTab(tabName);
   }
 
   /* === Save/Load Logic === */
@@ -406,14 +427,18 @@ if (WN.booted) {
       desc: current.weather[0].description,
       temp: Math.round(current.main.temp)
     } : {
-      desc: null
+      desc: null,
+      temp: null
     };
   }
 
   async function handleVoiceAnnounce() {
     if (!appState.currentPos) return alertOnce('no_pos', '現在地なし');
     if (navigator.vibrate) navigator.vibrate(50);
-    const [addr, w] = await Promise.all([fetchAddressNominatim(appState.currentPos.lat, appState.currentPos.lng), updateAllWeatherUI(appState.currentPos.lat, appState.currentPos.lng)]);
+    const [addr, w] = await Promise.all([
+      fetchAddressNominatim(appState.currentPos.lat, appState.currentPos.lng),
+      updateAllWeatherUI(appState.currentPos.lat, appState.currentPos.lng)
+    ]);
     const simple = addr.split(' ').pop().replace(/^日本、\s*/, '').replace(/、.*$/, '');
     let msg = `現在地は${simple}です。`;
     if (w.temp !== null) msg += `天気は${w.desc}、気温は${w.temp}度です。`;
@@ -451,15 +476,31 @@ if (WN.booted) {
 
   function handleShareLocation() {
     let textBody, url;
+
+    // (Fix #3) startLoc/endLoc 未定義による例外対策
     if (appState.isNavigating && appState.currentRouteData && appState.currentDestination) {
       const dest = appState.currentDestination;
-      const leg = appState.currentRouteData.routes[0].legs[0];
+
+      const idx = Number(appState.currentRouteData.selectedIndex || 0);
+      const route = appState.currentRouteData.routes?.[idx] || appState.currentRouteData.routes?.[0];
+      const leg = route?.legs?.[0];
+
+      if (!leg) {
+        alertOnce('share_err', 'ルート情報がありません');
+        return;
+      }
+
       const startAddr = leg.start_address ? leg.start_address.replace(/^日本、\s*/, '') : '指定地点';
       textBody = `🏁 ルート共有 (WalkNav)\n出発: ${startAddr}\n到着: ${dest.name}\n🚶 徒歩: ${leg.duration.text} (${leg.distance.text})`;
+
+      const startLoc = leg.start_location;
+      const endLoc = leg.end_location;
+
       const sLat = (typeof startLoc.lat === 'function') ? startLoc.lat() : startLoc.lat;
       const sLng = (typeof startLoc.lng === 'function') ? startLoc.lng() : startLoc.lng;
       const dLat = (typeof endLoc.lat === 'function') ? endLoc.lat() : endLoc.lat;
       const dLng = (typeof endLoc.lng === 'function') ? endLoc.lng() : endLoc.lng;
+
       url = `https://www.google.com/maps/dir/?api=1&origin=${sLat},${sLng}&destination=${dLat},${dLng}&travelmode=walking`;
     } else if (appState.pointSearchMode && appState.searchPoint) {
       textBody = `📍 指定地点 (WalkNav)`;
@@ -471,6 +512,7 @@ if (WN.booted) {
       alertOnce('share_err', '位置情報がありません');
       return;
     }
+
     if (navigator.share) {
       navigator.share({
         title: 'WalkNav',
@@ -597,14 +639,15 @@ if (WN.booted) {
         zoom: 17,
         gestureHandling: 'greedy',
         clickableIcons: true,
-        disableDefaultUI: true
+        disableDefaultUI: true,
+        mapId: MAP_ID // Map ID 必須 (v74)
       });
       appState.map.addListener('click', (e) => {
         if (appState.pointSearchMode && e.latLng) setSearchPoint(e.latLng.lat(), e.latLng.lng());
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v70');
+      console.log('[WalkNav] Map initialized v74 (Map ID enabled)');
     } catch (e) {
       console.warn('Map Init Failed', e);
     }
@@ -795,15 +838,13 @@ if (WN.booted) {
 
     appState.currentDestination = dest;
     appState.isNavigating = true;
-    
-    // パネル強制非表示
+
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.add('collapsed');
       panel.classList.add('hidden-force');
     }
-    
-    // FAB更新 (ボタンは常に表示されるようになったので、display:flexで制御)
+
     updateFabVisibility();
 
     const fabSearch = getEl('btnSearchFab');
@@ -817,7 +858,7 @@ if (WN.booted) {
     if (fabSearch) fabSearch.style.display = 'none';
     if (fabLocate) fabLocate.style.display = 'none';
     if (fabSettings) fabSettings.style.display = 'none';
-    if (fabNav) fabNav.style.display = 'flex'; 
+    if (fabNav) fabNav.style.display = 'flex';
     if (fabShare) fabShare.style.display = 'flex';
     if (fabDest) fabDest.style.display = 'flex';
     if (fabStop) fabStop.style.display = 'flex';
@@ -870,16 +911,14 @@ if (WN.booted) {
     if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
     appState.isNavigating = false;
     if (appState.currentPolyline) appState.currentPolyline.setMap(null);
-    
-    // パネル復活
+
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.remove('hidden-force');
     }
-    
+
     updateFabVisibility();
 
-    // FAB状態復帰
     const fabSearch = getEl('btnSearchFab');
     const fabLocate = getEl('btnLocateFab');
     const fabSettings = getEl('btnSettingsFab');
@@ -900,10 +939,10 @@ if (WN.booted) {
     setDisplay('instructionsSection', 'none');
     setDisplay('routeInfoSection', 'none');
     setDisplay('btnDestination', 'none');
-    
+
     switchPanelTab('search');
     openPanel();
-    
+
     if (appState.currentPos && appState.map) {
       appState.map.panTo(appState.currentPos);
       appState.map.setZoom(17);
@@ -1012,14 +1051,14 @@ if (WN.booted) {
     if (q) q.onkeypress = (e) => {
       if (e.key === 'Enter') getEl('btnSearchIcon').click();
     };
-    
+
     if (getEl('btnReset')) getEl('btnReset').onclick = () => {
       q.value = '';
       setDisplay('results', 'none');
       appState.pointSearchMode = false;
       getEl('btnPointSearch').textContent = '📍 ポイント選択';
       getEl('btnPointSearch').classList.remove('active');
-      
+
       if (!appState.pointSearchMode) {
         appState.searchPoint = null;
         if (appState.searchPointMarker) {
@@ -1033,27 +1072,31 @@ if (WN.booted) {
 
       openPanel();
     };
-    
+
     if (getEl('btnLocate')) getEl('btnLocate').onclick = acquireLocation;
     if (getEl('btnLocatePanel')) getEl('btnLocatePanel').onclick = acquireLocation;
     if (getEl('btnClosePanel')) getEl('btnClosePanel').onclick = collapsePanel;
     if (getEl('btnStopRoute')) getEl('btnStopRoute').onclick = stopNavigation;
 
-    [10, 20, 30].forEach(d => {
+    // (Fix #4/#5) 距離チップのactive解除範囲を距離行のみに限定。30km前提も除去。
+    [10, 20].forEach(d => {
       const el = getEl(`r${d}`);
       if (el) el.onclick = () => {
         appState.searchRadiusMeters = d * 1000;
         setText('radiusLabel', `${d}km`);
-        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+
+        const row = el.closest('.distance-chips-row');
+        if (row) row.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
         el.classList.add('active');
       };
     });
+
     if (getEl('btnPointSearch')) getEl('btnPointSearch').onclick = () => {
       appState.pointSearchMode = !appState.pointSearchMode;
       const b = getEl('btnPointSearch');
       b.textContent = appState.pointSearchMode ? '📍 選択中...' : '📍 ポイント選択';
       b.classList.toggle('active', appState.pointSearchMode);
-      
+
       if (!appState.pointSearchMode) {
         appState.searchPoint = null;
         if (appState.searchPointMarker) {
@@ -1065,12 +1108,12 @@ if (WN.booted) {
         setDisplay('pointAddressBlock', 'none');
       }
     };
+
     ['btnMapPhoto', 'btnMapRoadmap', 'btnMap3D'].forEach(id => getEl(id).onclick = () => changeMapMode(getEl(id).dataset.mode));
 
     if (getEl('btnCancelEdit')) getEl('btnCancelEdit').onclick = closeEditModal;
     if (getEl('btnSaveEdits')) getEl('btnSaveEdits').onclick = saveEditModalChanges;
-    
-    // 初期状態のFAB表示更新
+
     updateFabVisibility();
   }
 
@@ -1095,7 +1138,7 @@ if (WN.booted) {
         lng: p.location.longitude
       });
       div.appendChild(item);
-      
+
       const m = new google.maps.Marker({
         map: appState.map,
         position: {
@@ -1110,7 +1153,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v70 (FAB Always Visible)...');
+    console.log('[WalkNav] Starting v74 (Map ID + Fixes)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
