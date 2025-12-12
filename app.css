@@ -1,4 +1,4 @@
-/* app.css (v73: Vertical Slide Only) */
+/* app.css (v74: FAB labels + taller buttons + close hint state) */
 
 /* ------------------------------------------------------------------
    基本設定 (Base)
@@ -181,27 +181,46 @@ body {
   visibility: visible !important;
 }
 
+/* v74: ラベル表示のため縦長に */
 .fab-btn {
-  width: 52px;
-  height: 52px;
+  width: 56px;
+  height: 66px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(30, 30, 35, 0.95);
   backdrop-filter: blur(10px);
   color: #fff;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  font-size: 22px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   cursor: pointer;
   touch-action: manipulation;
   transition: transform 0.1s ease, background 0.2s;
+  padding: 6px 0;
 }
 
 .fab-btn:active {
   transform: scale(0.94);
   background: rgba(50, 50, 60, 1);
+}
+
+.fab-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.fab-label {
+  font-size: 11px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+}
+
+.fab-btn.is-close .fab-label {
+  color: #fca5a5;
 }
 
 .fab-btn.destination {
