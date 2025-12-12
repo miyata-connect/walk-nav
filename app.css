@@ -23,9 +23,7 @@ html, body {
 .app { position: relative; width: 100%; height: 100dvh; overflow: hidden; background: #000; }
 #map { position: absolute; inset: 0; width: 100%; height: 100dvh; }
 
-/* ------------------------------------------------------------------
-   パネル (Popup Panel)
------------------------------------------------------------------- */
+/* パネル */
 .panel {
   position: absolute;
   left: 12px;
@@ -60,9 +58,7 @@ html, body {
 .tab-pane.active { display: block; animation: fadeIn 0.2s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
-/* ------------------------------------------------------------------
-   FAB (Floating Action Buttons)
------------------------------------------------------------------- */
+/* FAB */
 .fab-container {
   position: absolute;
   right: 12px;
@@ -93,9 +89,7 @@ html, body {
 .fab-btn.voice-btn { background: #e5e7eb; color: #111; }
 .fab-btn.stop-btn { background: #ef4444; color: #fff; border: none; }
 
-/* ------------------------------------------------------------------
-   UIコンポーネント
------------------------------------------------------------------- */
+/* UIコンポーネント */
 .section-title { margin: 8px 0 8px; font-size: 15px; font-weight: 700; color: var(--text-main); text-align: center; }
 .filter-chips-row { display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 8px; overflow-x: auto; width: 100%; }
 .filter-chips-row::-webkit-scrollbar { display: none; }
@@ -160,16 +154,13 @@ html, body {
 .map-mode-btn { flex: 1; border-radius: 999px; border: 1px solid rgba(148, 163, 184, 0.6); background: rgba(31, 41, 55, 0.9); color: #e5e7eb; min-height: 38px; font-size: 13px; font-weight: 600; touch-action: manipulation; }
 .map-mode-btn.active { background: #fff; color: #000; }
 
-.route-summary-card { padding: 14px; border-radius: 16px; background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.3); margin-bottom: 12px; }
-.route-stats { font-size: 20px; font-weight: 800; color: #fff; display: flex; gap: 12px; align-items: baseline; }
-
 .loading-overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.7); display: none; align-items: center; justify-content: center; z-index: 3000; color: #fff; flex-direction: column; }
 .spinner { width: 32px; height: 32px; border: 3px solid rgba(255, 255, 255, 0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
 .wn-user-marker { width: 20px; height: 20px; background: #3b82f6; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); }
 .wn-point-marker { width: 24px; height: 24px; background: #ef4444; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); }
 
+/* モーダル */
 .edit-modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); z-index: 9999; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease-out; }
 .edit-modal-content { background: #1f2937; width: 90%; max-width: 400px; max-height: 80vh; border-radius: 16px; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
 .edit-modal-title { padding: 16px; margin: 0; font-size: 16px; color: #fff; border-bottom: 1px solid rgba(255, 255, 255, 0.1); text-align: center; }
