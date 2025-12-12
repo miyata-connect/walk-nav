@@ -6,7 +6,8 @@
   <title>WalkNav</title>
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <link rel="stylesheet" href="app.css?v=67" />
+  
+  <link rel="stylesheet" href="app.css?v=70" />
 </head>
 <body id="appBody">
 <div class="app">
@@ -25,13 +26,17 @@
 
     <div class="panel-tabs-body" id="panelScrollContainer">
       <div class="tab-pane active" id="tabPaneSearch">
-        <h2 class="section-title">近くを検索 (<span id="radiusLabel">10km</span> / 5件)</h2>
+        
+        <div class="point-search-wrapper">
+          <button class="chip point-select full-width" id="btnPointSearch">📍 ポイント選択</button>
+        </div>
 
-        <div class="filter-chips-row">
-          <button class="chip active" id="r10">10km</button>
-          <button class="chip" id="r20">20km</button>
-          <button class="chip" id="r30">30km</button>
-          <button class="chip point-select" id="btnPointSearch">📍 ポイント選択</button>
+        <div class="search-header-row">
+          <div class="section-title-inline">近くを検索 (<span id="radiusLabel">10km</span> / 5件)</div>
+          <div class="distance-chips-row">
+            <button class="chip active" id="r10">10km</button>
+            <button class="chip" id="r20">20km</button>
+          </div>
         </div>
 
         <div class="address-card" id="pointAddressBlock" style="display:none;">
@@ -157,7 +162,7 @@
     </div>
   </section>
 
-  <div class="fab-container initial-hidden" id="fabStack" style="display:none;">
+  <div class="fab-container" id="fabStack" style="display:none;">
     <button class="fab-btn square" id="btnSearchFab">🔍</button>
     <button class="fab-btn square" id="btnLocateFab">📍</button>
     <button class="fab-btn square destination" id="btnDestFab" style="display:none">🏁</button>
@@ -188,11 +193,12 @@
 </div>
 
 <script src="RouteEvaluator.js"></script>
-<script src="app.js?v=67"></script>
+<script src="app.js?v=70"></script>
 <script src="https://maps.googleapis.com/maps/api/js?language=ja&region=JP&key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&loading=async" async defer></script>
 
 <script>
 (function () {
+  // パネルスクロール制御
   document.addEventListener('touchmove', function(e) {
     if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
     var scrollable = e.target.closest('.panel-tabs-body') || e.target.closest('.edit-modal-body');
@@ -205,6 +211,7 @@
     }
   }, { passive: false });
 
+  // タブ初期化
   function initPanelTabs() {
     var tabButtons = document.querySelectorAll('[data-panel-tab]');
     var paneSearch = document.getElementById('tabPaneSearch');
