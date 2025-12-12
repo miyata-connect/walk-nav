@@ -1,178 +1,67 @@
-/* app.css (v65: Fully Formatted & Readable) */
+/* app.css (v67: FAB Always Visible & Toggle Fix) */
 
 /* ------------------------------------------------------------------
-   基本設定 (Base)
+   基本設定
 ------------------------------------------------------------------ */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  margin: 0;
-  padding: 0;
-  height: 100dvh !important;
-  width: 100% !important;
-  overflow: hidden !important;
-  overscroll-behavior: none;
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0; height: 100dvh !important; width: 100% !important;
+  overflow: hidden !important; overscroll-behavior: none;
   -webkit-text-size-adjust: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: #000;
   touch-action: manipulation;
 }
-
 :root {
-  --primary: #2563eb;
-  --secondary: #4b5563;
-  --accent: #25d07a;
-  --text-main: #f9fafb;
-  --text-muted: #9ca3af;
-  --panel-bg: rgba(20, 20, 24, 0.98);
-  --panel-elevated: rgba(35, 35, 40, 1);
+  --primary: #2563eb; --secondary: #4b5563; --accent: #25d07a;
+  --text-main: #f9fafb; --text-muted: #9ca3af;
+  --panel-bg: rgba(20, 20, 24, 0.98); --panel-elevated: rgba(35, 35, 40, 1);
   --stroke-soft: rgba(255, 255, 255, 0.15);
 }
 
-/* ------------------------------------------------------------------
-   レイアウト (Layout)
------------------------------------------------------------------- */
-.app {
-  position: relative;
-  width: 100%;
-  height: 100dvh;
-  overflow: hidden;
-  background: #000;
-}
-
-#map {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100dvh;
-}
+/* レイアウト */
+.app { position: relative; width: 100%; height: 100dvh; overflow: hidden; background: #000; }
+#map { position: absolute; inset: 0; width: 100%; height: 100dvh; }
 
 /* ------------------------------------------------------------------
-   パネル (Popup Panel) - 画面下半分・右側に余白
+   パネル (Popup Panel)
 ------------------------------------------------------------------ */
 .panel {
   position: absolute;
   left: 12px;
-  right: 80px; /* 右側のFABスペースを確保 */
+  right: 80px; /* 右側にFABのスペースを確保 */
   bottom: 20px;
-  height: 50dvh;
-  max-height: 50dvh;
+  height: 50dvh; max-height: 50dvh;
   background: linear-gradient(to bottom, rgba(20, 20, 25, 0.98), rgba(15, 15, 20, 1));
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
   border: 1px solid var(--stroke-soft);
   border-radius: 20px;
   padding: 12px 0 12px;
   color: var(--text-main);
-  display: flex;
-  flex-direction: column;
+  display: flex; flex-direction: column;
   z-index: 1000;
   transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease;
   transform: translateY(0);
   opacity: 1;
 }
+.panel.collapsed { transform: translateY(120%); opacity: 0; pointer-events: none; }
+.panel.hidden-force { display: none !important; pointer-events: none !important; }
 
-.panel.collapsed {
-  transform: translateY(120%);
-  opacity: 0;
-  pointer-events: none;
-}
+.panel-handle-area { display: flex; justify-content: center; padding: 4px 0 8px; cursor: pointer; touch-action: none; }
+.panel-handle { width: 40px; height: 4px; border-radius: 999px; background: rgba(148, 163, 184, 0.4); }
 
-.panel.hidden-force {
-  display: none !important;
-  pointer-events: none !important;
-}
-
-.panel-handle-area {
-  display: flex;
-  justify-content: center;
-  padding: 4px 0 8px;
-  cursor: pointer;
-  touch-action: none;
-}
-
-.panel-handle {
-  width: 40px;
-  height: 4px;
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.4);
-}
+/* タブ */
+.panel-tabs-header { display: flex; justify-content: center; gap: 8px; padding: 0 12px 8px; border-bottom: 1px solid var(--stroke-soft); margin-bottom: 8px; }
+.panel-tabs-body { flex: 1; padding: 0 12px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.tab-btn { flex: 1; text-align: center; padding: 8px 0; font-size: 14px; font-weight: 600; color: var(--text-muted); position: relative; background: transparent; border: none; outline: none; touch-action: manipulation; }
+.tab-btn.active { color: var(--text-main); }
+.tab-btn.active::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 24px; height: 3px; background: var(--accent); border-radius: 2px; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ------------------------------------------------------------------
-   タブ (Tabs)
------------------------------------------------------------------- */
-.panel-tabs-header {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 12px 8px;
-  border-bottom: 1px solid var(--stroke-soft);
-  margin-bottom: 8px;
-}
-
-.panel-tabs-body {
-  flex: 1;
-  padding: 0 12px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.tab-btn {
-  flex: 1;
-  text-align: center;
-  padding: 8px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-muted);
-  position: relative;
-  background: transparent;
-  border: none;
-  outline: none;
-  touch-action: manipulation;
-}
-
-.tab-btn.active {
-  color: var(--text-main);
-}
-
-.tab-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 24px;
-  height: 3px;
-  background: var(--accent);
-  border-radius: 2px;
-}
-
-.tab-pane {
-  display: none;
-}
-
-.tab-pane.active {
-  display: block;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ------------------------------------------------------------------
-   FAB (Floating Action Buttons) - 常時表示・四角形
+   FAB (Floating Action Buttons)
 ------------------------------------------------------------------ */
 .fab-container {
   position: absolute;
@@ -181,646 +70,116 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  z-index: 2000; /* パネルより前面 */
+  z-index: 2000; /* 最前面 */
   pointer-events: auto !important;
 }
 
 .fab-btn {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px; /* 四角形（角丸） */
+  width: 52px; height: 52px;
+  border-radius: 14px; /* 四角形 */
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(30, 30, 35, 0.95);
   backdrop-filter: blur(10px);
   color: #fff;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   font-size: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   touch-action: manipulation;
   transition: transform 0.1s ease, background 0.2s;
 }
-
-.fab-btn:active {
-  transform: scale(0.94);
-  background: rgba(50, 50, 60, 1);
-}
-
-.fab-btn.destination {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-}
-
-.fab-btn.voice-btn {
-  background: #e5e7eb;
-  color: #111;
-}
-
-.fab-btn.stop-btn {
-  background: #ef4444;
-  color: #fff;
-  border: none;
-}
+.fab-btn:active { transform: scale(0.94); background: rgba(50, 50, 60, 1); }
+.fab-btn.destination { background: var(--accent); color: #fff; border: none; }
+.fab-btn.voice-btn { background: #e5e7eb; color: #111; }
+.fab-btn.stop-btn { background: #ef4444; color: #fff; border: none; }
 
 /* ------------------------------------------------------------------
-   UIコンポーネント (Common UI)
+   UIコンポーネント
 ------------------------------------------------------------------ */
-.section-title {
-  margin: 8px 0 8px;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-main);
-  text-align: center;
-}
-
-.filter-chips-row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-  overflow-x: auto;
-  width: 100%;
-}
-
-.filter-chips-row::-webkit-scrollbar {
-  display: none;
-}
-
-.chip {
-  flex: 0 0 auto;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  background: rgba(30, 30, 35, 0.8);
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 500;
-  padding: 6px 12px;
-  transition: all 0.2s;
-  touch-action: manipulation;
-}
-
-.chip.active {
-  background: var(--text-main);
-  color: #000;
-  border-color: transparent;
-  font-weight: 700;
-}
-
-/* パネル内ボタン */
-.btn {
-  border-radius: 999px;
-  border: none;
-  min-height: 38px;
-  padding: 0 14px;
-  font-size: 13px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: opacity 0.2s;
-  touch-action: manipulation;
-}
-
-.btn:active {
-  opacity: 0.8;
-}
-
-.btn-primary {
-  background: var(--primary);
-  color: #fff;
-}
-
-.btn-secondary {
-  background: var(--panel-elevated);
-  color: var(--text-muted);
-  border: 1px solid var(--stroke-soft);
-}
-
-.btn-outline {
-  background: transparent;
-  color: var(--text-main);
-  border: 1px solid var(--stroke-soft);
-}
-
-.btn-danger {
-  background: rgba(239, 68, 68, 0.2);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.4);
-}
-
-.btn-danger-block {
-  width: 100%;
-  background: #ef4444;
-  color: #fff;
-}
-
-.action-buttons-row {
-  display: flex;
-  gap: 6px;
-  margin: 6px 0 10px;
-}
-
-.action-buttons-row .btn {
-  flex: 1;
-  font-size: 12px;
-}
-
-.bottom-actions-row {
-  display: flex;
-  gap: 6px;
-  margin-top: 12px;
-  margin-bottom: 4px;
-}
-
-.bottom-actions-row .btn {
-  flex: 1;
-}
-
-/* ------------------------------------------------------------------
-   天気カード (Weather Card)
------------------------------------------------------------------- */
-.weather-unified-card {
-  display: grid;
-  grid-template-columns: 0.9fr 2.1fr;
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  border-radius: 12px;
-  padding: 12px;
-  margin-top: 12px;
-  margin-bottom: 12px;
-  gap: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  align-items: stretch;
-}
-
-.weather-current-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  padding-right: 8px;
-}
-
-.weather-main-icon {
-  width: 44px;
-  height: 44px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-}
-
-.weather-main-temp {
-  font-size: 22px;
-  font-weight: 700;
-  color: #fff;
-  margin: 2px 0;
-  line-height: 1;
-}
-
-.weather-main-desc {
-  font-size: 10px;
-  color: #94a3b8;
-}
-
-.weather-pop-badge {
-  margin-top: 4px;
-  font-size: 10px;
-  background: rgba(37, 99, 235, 0.25);
-  color: #93c5fd;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 600;
-}
-
-.weather-forecast-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 4px;
-  width: 100%;
-}
-
-.weather-forecast-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 8px;
-  padding: 6px 2px;
-  justify-content: space-between;
-}
-
-.wf-time {
-  font-size: 10px;
-  font-weight: 600;
-  color: #cbd5e1;
-}
-
-.wf-icon {
-  width: 28px;
-  height: 28px;
-  margin: 2px 0;
-}
-
-.wf-temp {
-  font-size: 13px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.wf-pop {
-  font-size: 10px;
-  font-weight: 600;
-  color: #60a5fa;
-  margin-top: 2px;
-}
-
-/* ------------------------------------------------------------------
-   検索・住所・座標 (Address & Search)
------------------------------------------------------------------- */
-.address-card,
-.location-info {
-  display: block;
-  flex-direction: column;
-  padding: 12px;
-  border-radius: 10px;
-  background: var(--panel-elevated);
-  border: 1px solid var(--stroke-soft);
-  user-select: text;
-  -webkit-user-select: text;
-}
-
-.address-card {
-  display: none;
-  margin-bottom: 6px;
-}
-
-.address-title {
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.address-coords {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.loc-coords {
-  font-family: monospace;
-  color: #facc15;
-  font-weight: 600;
-  font-size: 12px;
-  background: rgba(250, 204, 21, 0.15);
-  padding: 3px 6px;
-  border-radius: 4px;
-  display: inline-block;
-  margin-bottom: 6px;
-}
-
-.loc-address {
-  font-size: 12px;
-  line-height: 1.5;
-  color: #e5e7eb;
-}
-
-.search-box-container {
-  margin: 6px 0 10px;
-}
-
-.input-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--stroke-soft);
-  height: 42px;
-}
-
-.input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  color: #fff;
-  font-size: 15px;
-  outline: none;
-}
-
-.icon svg {
-  width: 18px;
-  height: 18px;
-  fill: #e5e7eb;
-}
-
-.results-list {
-  padding: 0;
-  border-radius: 10px;
-  background: var(--panel-elevated);
-  max-height: 30vh;
-  overflow-y: auto;
-}
-
-.result-item {
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  font-size: 13px;
-}
-
-/* ------------------------------------------------------------------
-   保存リスト (Saved List)
------------------------------------------------------------------- */
-.saved-section {
-  margin-top: 24px;
-  border-top: 1px solid var(--stroke-soft);
-  padding-top: 12px;
-}
-
-.saved-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 14px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  margin-bottom: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.saved-item:active {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.saved-info {
-  overflow: hidden;
-}
-
-.saved-name {
-  font-weight: bold;
-  font-size: 14px;
-  color: #fff;
-  margin-bottom: 3px;
-}
-
-.saved-address {
-  font-size: 10px;
-  color: #9ca3af;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ------------------------------------------------------------------
-   設定 (Settings)
------------------------------------------------------------------- */
-.settings-group {
-  margin-bottom: 20px;
-}
-
-.settings-label {
-  font-size: 14px;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-
-.nav-section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-}
-
-.setting-sub-label {
-  font-size: 14px !important;
-  color: #e5e7eb !important;
-  display: block;
-  margin-bottom: 6px !important;
-  font-weight: 500;
-}
-
-.setting-input {
-  font-size: 15px !important;
-  padding: 10px !important;
-  height: 42px;
-  width: 100%;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--stroke-soft);
-  border-radius: 8px;
-  color: #fff;
-}
-
-.map-mode-buttons {
-  display: flex;
-  gap: 8px;
-}
-
-.map-mode-btn {
-  flex: 1;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.6);
-  background: rgba(31, 41, 55, 0.9);
-  color: #e5e7eb;
-  min-height: 38px;
-  font-size: 13px;
-  font-weight: 600;
-  touch-action: manipulation;
-}
-
-.map-mode-btn.active {
-  background: #fff;
-  color: #000;
-}
-
-/* ------------------------------------------------------------------
-   ナビゲーション (Navigation Info)
------------------------------------------------------------------- */
-.route-summary-card {
-  padding: 14px;
-  border-radius: 16px;
-  background: rgba(37, 99, 235, 0.1);
-  border: 1px solid rgba(37, 99, 235, 0.3);
-  margin-bottom: 12px;
-}
-
-.route-stats {
-  font-size: 20px;
-  font-weight: 800;
-  color: #fff;
-  display: flex;
-  gap: 12px;
-  align-items: baseline;
-}
-
-/* ------------------------------------------------------------------
-   ローディング & マーカー (Loading & Markers)
------------------------------------------------------------------- */
-.loading-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 3000;
-  color: #fff;
-  flex-direction: column;
-}
-
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.wn-user-marker {
-  width: 20px;
-  height: 20px;
-  background: #3b82f6;
-  border: 3px solid #fff;
-  border-radius: 50%;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-}
-
-.wn-point-marker {
-  width: 24px;
-  height: 24px;
-  background: #ef4444;
-  border: 3px solid #fff;
-  border-radius: 50%;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-}
-
-/* ------------------------------------------------------------------
-   モーダル (Modal)
------------------------------------------------------------------- */
-.edit-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: fadeIn 0.2s ease-out;
-}
-
-.edit-modal-content {
-  background: #1f2937;
-  width: 90%;
-  max-width: 400px;
-  max-height: 80vh;
-  border-radius: 16px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.edit-modal-title {
-  padding: 16px;
-  margin: 0;
-  font-size: 16px;
-  color: #fff;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  text-align: center;
-}
-
-.edit-modal-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  -webkit-overflow-scrolling: touch;
-}
-
-.edit-modal-actions {
-  padding: 12px 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  gap: 10px;
-  background: #111827;
-}
-
-.edit-modal-actions .btn {
-  flex: 1;
-}
-
-.edit-list-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-  background: rgba(0, 0, 0, 0.2);
-  padding: 8px 10px;
-  border-radius: 8px;
-}
-
-.edit-item-inputs {
-  flex: 1;
-  overflow: hidden;
-}
-
-.edit-input-name {
-  width: 100%;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid #4b5563;
-  color: #fff;
-  font-size: 15px;
-  padding: 4px 0;
-  outline: none;
-}
-
-.edit-input-name:focus {
-  border-bottom-color: var(--accent);
-}
-
-.edit-text-addr {
-  font-size: 11px;
-  color: #9ca3af;
-  margin-top: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.edit-text-coords {
-  font-size: 11px;
-  color: #facc15;
-  margin-top: 4px;
-  font-family: monospace;
-}
-
-.btn-delete-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(239, 68, 68, 0.2);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  cursor: pointer;
-  touch-action: manipulation;
-}
+.section-title { margin: 8px 0 8px; font-size: 15px; font-weight: 700; color: var(--text-main); text-align: center; }
+.filter-chips-row { display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 8px; overflow-x: auto; width: 100%; }
+.filter-chips-row::-webkit-scrollbar { display: none; }
+.chip { flex: 0 0 auto; border-radius: 999px; border: 1px solid rgba(148, 163, 184, 0.3); background: rgba(30, 30, 35, 0.8); color: var(--text-muted); font-size: 12px; font-weight: 500; padding: 6px 12px; transition: all 0.2s; touch-action: manipulation; }
+.chip.active { background: var(--text-main); color: #000; border-color: transparent; font-weight: 700; }
+
+.btn { border-radius: 999px; border: none; min-height: 38px; padding: 0 14px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: opacity 0.2s; touch-action: manipulation; }
+.btn:active { opacity: 0.8; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-secondary { background: var(--panel-elevated); color: var(--text-muted); border: 1px solid var(--stroke-soft); }
+.btn-outline { background: transparent; color: var(--text-main); border: 1px solid var(--stroke-soft); }
+.btn-danger { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
+.btn-danger-block { width: 100%; background: #ef4444; color: #fff; }
+.action-buttons-row { display: flex; gap: 6px; margin: 6px 0 10px; }
+.action-buttons-row .btn { flex: 1; font-size: 12px; }
+.bottom-actions-row { display: flex; gap: 6px; margin-top: 12px; margin-bottom: 4px; }
+.bottom-actions-row .btn { flex: 1; }
+
+.address-card, .location-info { display: block; flex-direction: column; padding: 16px; border-radius: 10px; background: var(--panel-elevated); border: 1px solid var(--stroke-soft); user-select: text; -webkit-user-select: text; }
+.address-card { display: none; margin-bottom: 6px; }
+.address-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.address-coords { font-size: 11px; color: var(--text-muted); }
+.loc-coords { font-family: monospace; color: #facc15; font-weight: 600; font-size: 12px; background: rgba(250, 204, 21, 0.15); padding: 3px 6px; border-radius: 4px; display: inline-block; margin-bottom: 6px; }
+.loc-address { font-size: 12px; line-height: 1.5; color: #e5e7eb; }
+
+.search-box-container { margin: 6px 0 10px; }
+.input-wrapper { display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 10px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--stroke-soft); height: 42px; }
+.input { flex: 1; border: none; background: transparent; color: #fff; font-size: 15px; outline: none; }
+.icon svg { width: 18px; height: 18px; fill: #e5e7eb; }
+.results-list { padding: 0; border-radius: 10px; background: var(--panel-elevated); max-height: 30vh; overflow-y: auto; }
+.result-item { padding: 10px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 13px; }
+
+/* 保存リスト */
+.saved-section { margin-top: 24px; border-top: 1px solid var(--stroke-soft); padding-top: 12px; }
+.saved-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 10px; background: rgba(255, 255, 255, 0.05); margin-bottom: 8px; border: 1px solid rgba(255, 255, 255, 0.05); cursor: pointer; touch-action: manipulation; }
+.saved-item:active { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.1); }
+.saved-info { overflow: hidden; }
+.saved-name { font-weight: bold; font-size: 14px; color: #fff; margin-bottom: 3px; }
+.saved-address { font-size: 10px; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 天気カード */
+.weather-unified-card { display: grid; grid-template-columns: 0.8fr 2.2fr; background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 12px; margin-top: 12px; margin-bottom: 12px; gap: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); align-items: stretch; }
+.weather-current-section { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-right: 1px solid rgba(255, 255, 255, 0.1); padding-right: 8px; }
+.weather-main-icon { width: 44px; height: 44px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)); }
+.weather-main-temp { font-size: 22px; font-weight: 700; color: #fff; margin: 2px 0; line-height: 1; }
+.weather-main-desc { font-size: 10px; color: #94a3b8; }
+.weather-pop-badge { margin-top: 4px; font-size: 10px; background: rgba(37, 99, 235, 0.25); color: #93c5fd; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+.weather-forecast-row { display: flex; justify-content: space-between; gap: 4px; width: 100%; }
+.weather-forecast-item { flex: 1; display: flex; flex-direction: column; align-items: center; background: rgba(255, 255, 255, 0.04); border-radius: 8px; padding: 6px 2px; justify-content: space-between; }
+.wf-time { font-size: 10px; font-weight: 600; color: #cbd5e1; }
+.wf-icon { width: 28px; height: 28px; margin: 2px 0; }
+.wf-temp { font-size: 13px; font-weight: 700; color: #fff; }
+.wf-pop { font-size: 10px; font-weight: 600; color: #60a5fa; margin-top: 2px; }
+
+/* 設定 */
+.settings-group { margin-bottom: 20px; }
+.settings-label { font-size: 15px; color: var(--text-muted); margin-bottom: 10px; font-weight: 600; }
+.nav-section-title { font-size: 15px; font-weight: 600; color: var(--text-muted); margin-bottom: 10px; }
+.setting-sub-label { font-size: 15px !important; color: #e5e7eb !important; display: block; margin-bottom: 8px !important; font-weight: 500; }
+.setting-input { font-size: 16px !important; padding: 12px !important; height: 48px; width: 100%; background: rgba(255, 255, 255, 0.1); border: 1px solid var(--stroke-soft); border-radius: 8px; color: #fff; }
+.map-mode-buttons { display: flex; gap: 8px; }
+.map-mode-btn { flex: 1; border-radius: 999px; border: 1px solid rgba(148, 163, 184, 0.6); background: rgba(31, 41, 55, 0.9); color: #e5e7eb; min-height: 38px; font-size: 13px; font-weight: 600; touch-action: manipulation; }
+.map-mode-btn.active { background: #fff; color: #000; }
+
+.route-summary-card { padding: 14px; border-radius: 16px; background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.3); margin-bottom: 12px; }
+.route-stats { font-size: 20px; font-weight: 800; color: #fff; display: flex; gap: 12px; align-items: baseline; }
+
+.loading-overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.7); display: none; align-items: center; justify-content: center; z-index: 3000; color: #fff; flex-direction: column; }
+.spinner { width: 32px; height: 32px; border: 3px solid rgba(255, 255, 255, 0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.wn-user-marker { width: 20px; height: 20px; background: #3b82f6; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); }
+.wn-point-marker { width: 24px; height: 24px; background: #ef4444; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); }
+
+.edit-modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); z-index: 9999; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease-out; }
+.edit-modal-content { background: #1f2937; width: 90%; max-width: 400px; max-height: 80vh; border-radius: 16px; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
+.edit-modal-title { padding: 16px; margin: 0; font-size: 16px; color: #fff; border-bottom: 1px solid rgba(255, 255, 255, 0.1); text-align: center; }
+.edit-modal-body { flex: 1; overflow-y: auto; padding: 16px; -webkit-overflow-scrolling: touch; }
+.edit-modal-actions { padding: 12px 16px; border-top: 1px solid rgba(255, 255, 255, 0.1); display: flex; gap: 10px; background: #111827; }
+.edit-modal-actions .btn { flex: 1; }
+.edit-list-item { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; background: rgba(0, 0, 0, 0.2); padding: 8px 10px; border-radius: 8px; }
+.edit-item-inputs { flex: 1; overflow: hidden; }
+.edit-input-name { width: 100%; background: transparent; border: none; border-bottom: 1px solid #4b5563; color: #fff; font-size: 15px; padding: 4px 0; outline: none; }
+.edit-input-name:focus { border-bottom-color: var(--accent); }
+.edit-text-addr { font-size: 11px; color: #9ca3af; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.edit-text-coords { font-size: 11px; color: #facc15; margin-top: 4px; font-family: monospace; }
+.btn-delete-icon { width: 36px; height: 36px; border-radius: 50%; background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; touch-action: manipulation; }
