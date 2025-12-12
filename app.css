@@ -1,4 +1,4 @@
-/* app.css (v49: Fix Center, Weather Layout & Flicker) */
+/* app.css (v50: Voice Input & Panel Logic) */
 
 /* ------------------------------------------------------------------
    基本設定
@@ -149,7 +149,7 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* UIコンポーネント (センタリング強化) */
+/* UIコンポーネント */
 .section-title {
   margin: 12px 0 10px;
   font-size: 16px;
@@ -161,16 +161,15 @@ body {
   align-items: center;
 }
 
-/* ★センタリングの要 */
 .filter-chips-row {
   display: flex;
-  justify-content: center; /* 中央揃え */
+  justify-content: center;
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
   overflow-x: auto;
   padding-bottom: 4px;
-  width: 100%; /* 幅を確保 */
+  width: 100%;
 }
 
 .filter-chips-row::-webkit-scrollbar {
@@ -236,12 +235,9 @@ body {
 }
 .bottom-actions-row .btn { flex: 1; }
 
-/* ------------------------------------------------------------------
-   天気カード (Weather Card - 改善版)
------------------------------------------------------------------- */
+/* 天気カード */
 .weather-unified-card {
   display: grid;
-  /* ★修正: 左をさらに狭く、右をさらに広く */
   grid-template-columns: 0.8fr 2.2fr;
   background: linear-gradient(135deg, #1e293b, #0f172a);
   border: 1px solid rgba(56, 189, 248, 0.3);
@@ -261,7 +257,7 @@ body {
   justify-content: center;
   text-align: center;
   border-right: 1px solid rgba(255, 255, 255, 0.1);
-  padding-right: 8px; /* 右パディング削減 */
+  padding-right: 8px;
 }
 
 .weather-main-icon {
@@ -271,7 +267,7 @@ body {
 }
 
 .weather-main-temp {
-  font-size: 24px; /* 少し小さく */
+  font-size: 24px;
   font-weight: 700;
   color: #fff;
   margin: 2px 0;
@@ -414,7 +410,6 @@ body {
   transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
-/* ★チラつき防止用の初期クラス */
 .fab-container.initial-hidden {
   display: none !important;
 }
