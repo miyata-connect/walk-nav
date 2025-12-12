@@ -1,12 +1,12 @@
 'use strict';
 
-// WalkNav app.js - v63: New Square FABs & Logic
+// WalkNav app.js - v65: Formatted & Functional Fix
 
-const ISSUE_ID = 'idx20251212_v63_square_fabs';
+const ISSUE_ID = 'idx20251212_v65_formatted';
 
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
-const MAP_ID = null;
+const MAP_ID = null; // No Map ID for reliability
 
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
@@ -48,6 +48,7 @@ if (WN.booted) {
   const appState = {
     map: null,
     userMarker: null,
+    userMarkerElement: null,
     currentPos: null,
     pointSearchMode: false,
     searchPoint: null,
@@ -90,31 +91,11 @@ if (WN.booted) {
     if (el) el.textContent = text;
   }
 
-  /* === FAB Visibility Control === */
-  function updateFabVisibility() {
-    const panel = getEl('searchPanel');
-    const fab = getEl('fabStack');
-    if (!panel || !fab) return;
-
-    fab.classList.remove('initial-hidden');
-    fab.style.display = 'flex';
-
-    // パネルが開いている (collapsedがない) ならFABを隠す
-    const isCollapsed = panel.classList.contains('collapsed');
-    const isHidden = panel.style.display === 'none';
-
-    if (isCollapsed || isHidden) {
-      fab.classList.remove('panel-open-hide-fab');
-    } else {
-      fab.classList.add('panel-open-hide-fab');
-    }
-  }
-
+  /* === Panel Logic === */
   function togglePanel() {
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.toggle('collapsed');
-      updateFabVisibility();
     }
   }
 
@@ -122,7 +103,6 @@ if (WN.booted) {
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.add('collapsed');
-      updateFabVisibility();
     }
   }
 
@@ -130,11 +110,9 @@ if (WN.booted) {
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.remove('collapsed');
-      updateFabVisibility();
     }
   }
 
-  // ★新しいタブ切り替え＆パネルオープン関数
   function openPanelTab(tabName) {
     switchPanelTab(tabName);
     openPanel();
@@ -171,21 +149,16 @@ if (WN.booted) {
   function renderSavedLocations() {
     let listContainer = getEl('savedSectionContainer');
     if (!listContainer) return;
-
     listContainer.innerHTML = '';
-
     const section = document.createElement('div');
     section.className = 'saved-section';
     section.innerHTML = `<div class="nav-section-title">📂 保存した場所</div><div id="savedLocationsList"></div>`;
     listContainer.appendChild(section);
-
     const listEl = section.querySelector('#savedLocationsList');
-
     if (appState.savedLocations.length === 0) {
       listEl.innerHTML = '<div style="font-size:12px; color:#888; text-align:center;">保存された場所はありません</div>';
       return;
     }
-
     appState.savedLocations.forEach((loc) => {
       const item = document.createElement('div');
       item.className = 'saved-item';
@@ -212,9 +185,7 @@ if (WN.booted) {
     const modal = getEl('editSavedModal');
     const list = getEl('editModalList');
     if (!modal || !list) return;
-
     list.innerHTML = '';
-
     if (appState.savedLocations.length === 0) {
       list.innerHTML = '<div style="text-align:center; color:#888; margin-top:20px;">保存された場所はありません</div>';
     } else {
@@ -223,7 +194,6 @@ if (WN.booted) {
         const lngVal = Number(loc.lng || 0);
         const latStr = latVal.toFixed(6);
         const lngStr = lngVal.toFixed(6);
-
         const item = document.createElement('div');
         item.className = 'edit-list-item';
         item.innerHTML = `
@@ -236,7 +206,6 @@ if (WN.booted) {
         `;
         list.appendChild(item);
       });
-
       list.querySelectorAll('.btn-delete-icon').forEach(btn => {
         btn.onclick = (e) => {
           e.target.closest('.edit-list-item').remove();
@@ -254,15 +223,12 @@ if (WN.booted) {
   function saveEditModalChanges() {
     const list = getEl('editModalList');
     if (!list) return;
-
     const newLocations = [];
     const items = list.querySelectorAll('.edit-list-item');
-
     items.forEach(item => {
       const input = item.querySelector('.edit-input-name');
       const idx = parseInt(input.dataset.idx);
       const newName = input.value.trim();
-
       if (newName) {
         const original = appState.savedLocations[idx];
         if (original) {
@@ -275,7 +241,6 @@ if (WN.booted) {
         }
       }
     });
-
     appState.savedLocations = newLocations;
     saveLocations();
     closeEditModal();
@@ -358,7 +323,7 @@ if (WN.booted) {
       for (let i = 1; i <= 3; i++) {
         const item = forecast.list[i];
         if (item) {
-          const fTime = `${i*3}時間後`;
+          const fTime = `${i * 3}時間後`;
           const fIcon = `https://openweathermap.org/img/wn/${item.weather[0].icon}.png`;
           const fTemp = Math.round(item.main.temp);
           const fPop = Math.round(item.pop * 100);
@@ -395,7 +360,6 @@ if (WN.booted) {
       forecast
     };
     const html = buildWeatherHtml(current, forecast);
-
     const searchPane = getEl('tabPaneSearch');
     if (searchPane) {
       let wEl = getEl('weatherDisplaySearch');
@@ -412,7 +376,6 @@ if (WN.booted) {
       wEl.innerHTML = html;
       wEl.style.display = 'block';
     }
-
     const navPane = getEl('tabPaneNav');
     if (navPane) {
       let wEl = getEl('weatherDisplayNav');
@@ -458,15 +421,12 @@ if (WN.booted) {
     const recognition = new webkitSpeechRecognition();
     recognition.lang = 'ja-JP';
     recognition.start();
-
     recognition.onstart = function() {
       getEl('q').placeholder = '聞いています...';
     };
-
     recognition.onend = function() {
       getEl('q').placeholder = '店舗名・電話番号・住所・座標など';
     };
-
     recognition.onresult = function(event) {
       const transcript = event.results[0][0].transcript;
       const q = getEl('q');
@@ -622,7 +582,7 @@ if (WN.booted) {
     const mapEl = getEl('map');
     if (!mapEl) return;
     try {
-      // ★Legacy Marker用の初期化（Map IDなし）
+      // Map ID なしで初期化（標準地図）
       appState.map = new google.maps.Map(mapEl, {
         center,
         zoom: 17,
@@ -635,9 +595,9 @@ if (WN.booted) {
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v63 (Legacy)');
+      console.log('[WalkNav] Map initialized v65');
     } catch (e) {
-      console.warn('Map ID Init Failed, Fallback', e);
+      console.warn('Map Init Failed', e);
     }
   }
 
@@ -648,7 +608,6 @@ if (WN.booted) {
     };
     if (!appState.map) return;
 
-    // ★Legacy Markerを使用
     if (!appState.userMarker) {
       appState.userMarker = new google.maps.Marker({
         map: appState.map,
@@ -686,7 +645,6 @@ if (WN.booted) {
       appState.searchPointMarker = null;
     }
 
-    // ★Legacy Markerを使用
     appState.searchPointMarker = new google.maps.Marker({
       map: appState.map,
       position: {
@@ -701,6 +659,7 @@ if (WN.booted) {
     setText('pointCoords', `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`);
     geocode(lat, lng).then(d => setText('pointAddress', d.results?.[0]?.formatted_address.replace(/^日本、\s*/, '') || '不明'));
     fetchIncidentsAround(lat, lng);
+
     const actionRow = document.querySelector('#pointAddressBlock + .action-buttons-row');
     if (actionRow && !getEl('btnSavePoint')) {
       const btn = document.createElement('button');
@@ -727,7 +686,6 @@ if (WN.booted) {
           lng: longitude
         });
       } else {
-        // 現在地にパンし、ズームレベルを19に設定
         appState.map.panTo({
           lat: latitude,
           lng: longitude
@@ -758,8 +716,7 @@ if (WN.booted) {
 
   function startCompassListener() {
     window.addEventListener('deviceorientation', (e) => {
-      if (appState.isNavigating) return;
-      // Legacy Markerは回転非対応のためスキップ
+      // Compass logic for legacy marker skipped
     }, true);
   }
 
@@ -829,40 +786,40 @@ if (WN.booted) {
 
     appState.currentDestination = dest;
     appState.isNavigating = true;
-    
+
+    // パネル強制非表示
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.add('collapsed');
       panel.classList.add('hidden-force');
     }
-    
-    updateFabVisibility();
 
-    // ★FAB制御: 停止ボタンのみ表示
-    setDisplay('fabStack', 'flex');
+    // FAB制御: 停止・目的地ボタンのみ表示
     const fabSearch = getEl('btnSearchFab');
     const fabLocate = getEl('btnLocateFab');
     const fabSettings = getEl('btnSettingsFab');
     const fabNav = getEl('btnNavFab');
     const fabShare = getEl('btnShareFab');
-    const fabDest = getEl('btnDestFab'); // ★目的地ボタン
+    const fabDest = getEl('btnDestFab');
     const fabStop = getEl('btnStopFab');
-    
-    // ナビ中は他のボタンを隠し、停止と目的地ボタンを表示
-    if(fabSearch) fabSearch.style.display = 'none';
-    if(fabLocate) fabLocate.style.display = 'none';
-    if(fabSettings) fabSettings.style.display = 'none';
-    if(fabNav) fabNav.style.display = 'flex'; // 案内パネルは出しておく
-    if(fabShare) fabShare.style.display = 'flex'; // 共有も出す
-    if(fabDest) fabDest.style.display = 'flex'; // 目的地へズーム
-    if(fabStop) fabStop.style.display = 'flex';
+
+    if (fabSearch) fabSearch.style.display = 'none';
+    if (fabLocate) fabLocate.style.display = 'none';
+    if (fabSettings) fabSettings.style.display = 'none';
+    if (fabNav) fabNav.style.display = 'flex'; // 案内ボタンは出す
+    if (fabShare) fabShare.style.display = 'flex';
+    if (fabDest) fabDest.style.display = 'flex';
+    if (fabStop) fabStop.style.display = 'flex';
 
     setDisplay('routeControlSection', 'block');
     setDisplay('results', 'none');
     switchPanelTab('nav');
 
     if (appState.map) {
-      appState.map.panTo({ lat: dest.lat, lng: dest.lng });
+      appState.map.panTo({
+        lat: dest.lat,
+        lng: dest.lng
+      });
       appState.map.setZoom(18);
     }
 
@@ -902,15 +859,11 @@ if (WN.booted) {
     if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
     appState.isNavigating = false;
     if (appState.currentPolyline) appState.currentPolyline.setMap(null);
-    
+
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.remove('hidden-force');
-      // パネルを少し開く状態にするなら collapsed を外す
-      // panel.classList.remove('collapsed'); 
     }
-    
-    updateFabVisibility();
 
     // FAB状態復帰
     const fabSearch = getEl('btnSearchFab');
@@ -920,21 +873,22 @@ if (WN.booted) {
     const fabShare = getEl('btnShareFab');
     const fabDest = getEl('btnDestFab');
     const fabStop = getEl('btnStopFab');
-    
-    if(fabSearch) fabSearch.style.display = 'flex';
-    if(fabLocate) fabLocate.style.display = 'flex';
-    if(fabSettings) fabSettings.style.display = 'flex';
-    if(fabNav) fabNav.style.display = 'flex';
-    if(fabShare) fabShare.style.display = 'flex';
-    if(fabDest) fabDest.style.display = 'none'; // 目的地ボタンは隠す
-    if(fabStop) fabStop.style.display = 'none';
+
+    if (fabSearch) fabSearch.style.display = 'flex';
+    if (fabLocate) fabLocate.style.display = 'flex';
+    if (fabSettings) fabSettings.style.display = 'flex';
+    if (fabNav) fabNav.style.display = 'flex';
+    if (fabShare) fabShare.style.display = 'flex';
+    if (fabDest) fabDest.style.display = 'none';
+    if (fabStop) fabStop.style.display = 'none';
 
     setDisplay('routeControlSection', 'none');
     setDisplay('instructionsSection', 'none');
     setDisplay('routeInfoSection', 'none');
-    
+
     switchPanelTab('search');
-    
+    openPanel();
+
     if (appState.currentPos && appState.map) {
       appState.map.panTo(appState.currentPos);
       appState.map.setZoom(17);
@@ -962,17 +916,13 @@ if (WN.booted) {
   }
 
   function bindUI() {
-    // ----------------------------------------------------
-    // ★新しいボタンIDへのイベント割り当て
-    // ----------------------------------------------------
     const btnSearchFab = getEl('btnSearchFab');
     const btnLocateFab = getEl('btnLocateFab');
     const btnDestFab = getEl('btnDestFab');
     const btnSettingsFab = getEl('btnSettingsFab');
     const btnNavFab = getEl('btnNavFab');
     const btnShareFab = getEl('btnShareFab');
-    
-    // 検索ボタン: 検索タブを開く
+
     if (btnSearchFab) {
       btnSearchFab.onclick = () => {
         openPanelTab('search');
@@ -982,51 +932,28 @@ if (WN.booted) {
         }, 300);
       };
     }
-
-    // 現在地ボタン: 現在地へ移動
-    if (btnLocateFab) {
-      btnLocateFab.onclick = acquireLocation;
-    }
-    
-    // 目的地ボタン: 目的地へズーム (ナビ中のみ)
+    if (btnLocateFab) btnLocateFab.onclick = acquireLocation;
     if (btnDestFab) {
       btnDestFab.onclick = () => {
         if (appState.currentDestination && appState.map) {
-          appState.map.panTo({ lat: appState.currentDestination.lat, lng: appState.currentDestination.lng });
+          appState.map.panTo({
+            lat: appState.currentDestination.lat,
+            lng: appState.currentDestination.lng
+          });
           appState.map.setZoom(19);
         }
       };
     }
-    
-    // 設定ボタン: 設定タブを開く
-    if (btnSettingsFab) {
-      btnSettingsFab.onclick = () => openPanelTab('settings');
-    }
-    
-    // 案内ボタン: 案内タブを開く
-    if (btnNavFab) {
-      btnNavFab.onclick = () => openPanelTab('nav');
-    }
-    
-    // 共有ボタン: シェア機能
-    if (btnShareFab) {
-      btnShareFab.onclick = handleShareLocation;
-    }
-    
-    // 停止ボタン
-    if (getEl('btnStopFab')) {
-      getEl('btnStopFab').onclick = stopNavigation;
-    }
+    if (btnSettingsFab) btnSettingsFab.onclick = () => openPanelTab('settings');
+    if (btnNavFab) btnNavFab.onclick = () => openPanelTab('nav');
+    if (btnShareFab) btnShareFab.onclick = handleShareLocation;
+    if (getEl('btnStopFab')) getEl('btnStopFab').onclick = stopNavigation;
 
     const btnNew = getEl('btnOpenEditModal');
-    const btnOld = getEl('btnEditSavedList');
     if (btnNew) btnNew.onclick = openEditModal;
-    else if (btnOld) btnOld.onclick = openEditModal;
 
     const ph = document.querySelector('.panel-handle-area');
-    if (ph) {
-      ph.onclick = togglePanel;
-    }
+    if (ph) ph.onclick = togglePanel;
 
     const addrBlock = getEl('pointAddressBlock');
     let pressTimer;
@@ -1046,9 +973,7 @@ if (WN.booted) {
       });
     }
 
-    if (getEl('btnVoiceInput')) {
-      getEl('btnVoiceInput').onclick = handleVoiceInput;
-    }
+    if (getEl('btnVoiceInput')) getEl('btnVoiceInput').onclick = handleVoiceInput;
 
     const q = getEl('q');
     if (getEl('btnSearchIcon')) getEl('btnSearchIcon').onclick = () => {
@@ -1065,7 +990,7 @@ if (WN.booted) {
     if (q) q.onkeypress = (e) => {
       if (e.key === 'Enter') getEl('btnSearchIcon').click();
     };
-    
+
     if (getEl('btnReset')) getEl('btnReset').onclick = () => {
       q.value = '';
       setDisplay('results', 'none');
@@ -1074,12 +999,10 @@ if (WN.booted) {
       getEl('btnPointSearch').classList.remove('active');
       openPanel();
     };
-    
+
     if (getEl('btnLocate')) getEl('btnLocate').onclick = acquireLocation;
     if (getEl('btnLocatePanel')) getEl('btnLocatePanel').onclick = acquireLocation;
-    
     if (getEl('btnClosePanel')) getEl('btnClosePanel').onclick = collapsePanel;
-    
     if (getEl('btnStopRoute')) getEl('btnStopRoute').onclick = stopNavigation;
 
     [10, 20, 30].forEach(d => {
@@ -1096,7 +1019,7 @@ if (WN.booted) {
       const b = getEl('btnPointSearch');
       b.textContent = appState.pointSearchMode ? '📍 選択中...' : '📍 ポイント選択';
       b.classList.toggle('active', appState.pointSearchMode);
-      
+
       if (!appState.pointSearchMode) {
         appState.searchPoint = null;
         if (appState.searchPointMarker) {
@@ -1112,8 +1035,6 @@ if (WN.booted) {
 
     if (getEl('btnCancelEdit')) getEl('btnCancelEdit').onclick = closeEditModal;
     if (getEl('btnSaveEdits')) getEl('btnSaveEdits').onclick = saveEditModalChanges;
-    
-    updateFabVisibility();
   }
 
   function displayResults(places) {
@@ -1137,8 +1058,7 @@ if (WN.booted) {
         lng: p.location.longitude
       });
       div.appendChild(item);
-      
-      // Legacy Marker
+
       const m = new google.maps.Marker({
         map: appState.map,
         position: {
@@ -1153,7 +1073,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v63 (New UI)...');
+    console.log('[WalkNav] Starting v65 (Formatted)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
