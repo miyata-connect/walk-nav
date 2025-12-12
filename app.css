@@ -1,390 +1,98 @@
-/* app.css (v58: Fix All Font Sizes & Consistency) */
+/* app.css (v60: Final Polish) */
 
 /* ------------------------------------------------------------------
    基本設定
 ------------------------------------------------------------------ */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  margin: 0;
-  padding: 0;
-  height: 100dvh !important;
-  width: 100% !important;
-  overflow: hidden !important;
-  overscroll-behavior: none;
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0; height: 100dvh !important; width: 100% !important;
+  overflow: hidden !important; overscroll-behavior: none;
   -webkit-text-size-adjust: 100%;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: #000;
   touch-action: manipulation;
 }
-
 :root {
-  --primary: #2563eb;
-  --secondary: #4b5563;
-  --accent: #25d07a;
-  --text-main: #f9fafb;
-  --text-muted: #9ca3af;
-  --panel-bg: rgba(20, 20, 24, 0.98);
-  --panel-elevated: rgba(35, 35, 40, 1);
+  --primary: #2563eb; --secondary: #4b5563; --accent: #25d07a;
+  --text-main: #f9fafb; --text-muted: #9ca3af;
+  --panel-bg: rgba(20, 20, 24, 0.98); --panel-elevated: rgba(35, 35, 40, 1);
   --stroke-soft: rgba(255, 255, 255, 0.15);
 }
 
 /* レイアウト */
-.app {
-  position: relative;
-  width: 100%;
-  height: 100dvh;
-  overflow: hidden;
-  background: #000;
-}
-
-#map {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100dvh;
-}
+.app { position: relative; width: 100%; height: 100dvh; overflow: hidden; background: #000; }
+#map { position: absolute; inset: 0; width: 100%; height: 100dvh; }
 
 /* パネル */
 .panel {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 55vh;
-  max-height: 65vh;
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 55vh; max-height: 65vh;
   background: linear-gradient(to bottom, rgba(15, 15, 18, 0.98), rgba(10, 10, 12, 1));
   box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.8);
   padding: 8px 0 calc(12px + env(safe-area-inset-bottom, 0px));
   border-radius: 20px 20px 0 0;
   color: var(--text-main);
-  display: flex;
-  flex-direction: column;
+  display: flex; flex-direction: column;
   z-index: 1000;
   transition: transform 0.3s ease-out;
 }
+.panel.hidden-force { display: none !important; pointer-events: none !important; }
+.panel.collapsed { transform: translateY(calc(100% - 40px)); }
 
-.panel.hidden-force {
-  display: none !important;
-  pointer-events: none !important;
-}
-
-.panel.collapsed {
-  transform: translateY(calc(100% - 40px));
-}
-
-.panel-handle-area {
-  display: flex;
-  justify-content: center;
-  padding: 6px 0 8px;
-  cursor: pointer;
-  touch-action: none;
-}
-
-.panel-handle {
-  width: 48px;
-  height: 5px;
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.5);
-}
+.panel-handle-area { display: flex; justify-content: center; padding: 6px 0 8px; cursor: pointer; touch-action: none; }
+.panel-handle { width: 48px; height: 5px; border-radius: 999px; background: rgba(148, 163, 184, 0.5); }
 
 /* タブ */
-.panel-tabs-header {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  padding: 0 16px 8px;
-  border-bottom: 1px solid var(--stroke-soft);
-  margin-bottom: 8px;
-}
-
-.panel-tabs-body {
-  flex: 1;
-  padding: 0 16px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.tab-btn {
-  flex: 1;
-  text-align: center;
-  padding: 8px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-muted);
-  position: relative;
-  background: transparent;
-  border: none;
-  outline: none;
-  touch-action: manipulation;
-}
-
-.tab-btn.active {
-  color: var(--text-main);
-}
-
-.tab-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: -9px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 24px;
-  height: 3px;
-  background: var(--accent);
-  border-radius: 2px;
-}
-
-.tab-pane {
-  display: none;
-}
-
-.tab-pane.active {
-  display: block;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+.panel-tabs-header { display: flex; justify-content: center; gap: 12px; padding: 0 16px 8px; border-bottom: 1px solid var(--stroke-soft); margin-bottom: 8px; }
+.panel-tabs-body { flex: 1; padding: 0 16px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.tab-btn { flex: 1; text-align: center; padding: 8px 0; font-size: 14px; font-weight: 600; color: var(--text-muted); position: relative; background: transparent; border: none; outline: none; touch-action: manipulation; }
+.tab-btn.active { color: var(--text-main); }
+.tab-btn.active::after { content: ''; position: absolute; bottom: -9px; left: 50%; transform: translateX(-50%); width: 24px; height: 3px; background: var(--accent); border-radius: 2px; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
 /* UIコンポーネント */
-.section-title {
-  margin: 12px 0 10px;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-main);
-  text-align: center;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.filter-chips-row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  width: 100%;
-}
-
-.filter-chips-row::-webkit-scrollbar {
-  display: none;
-}
-
-.chip {
-  flex: 0 0 auto;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  background: rgba(30, 30, 35, 0.8);
-  color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 500;
-  padding: 8px 14px;
-  transition: all 0.2s;
-  touch-action: manipulation;
-}
-
-.chip.active {
-  background: var(--text-main);
-  color: #000;
-  border-color: transparent;
-  font-weight: 700;
-}
+.section-title { margin: 12px 0 10px; font-size: 16px; font-weight: 700; color: var(--text-main); text-align: center; display: flex; justify-content: center; align-items: center; }
+.filter-chips-row { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; width: 100%; }
+.filter-chips-row::-webkit-scrollbar { display: none; }
+.chip { flex: 0 0 auto; border-radius: 999px; border: 1px solid rgba(148, 163, 184, 0.3); background: rgba(30, 30, 35, 0.8); color: var(--text-muted); font-size: 13px; font-weight: 500; padding: 8px 14px; transition: all 0.2s; touch-action: manipulation; }
+.chip.active { background: var(--text-main); color: #000; border-color: transparent; font-weight: 700; }
 
 /* ボタン */
-.btn {
-  border-radius: 999px;
-  border: none;
-  min-height: 40px;
-  padding: 0 16px;
-  font-size: 14px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: opacity 0.2s;
-  touch-action: manipulation;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
+.btn { border-radius: 999px; border: none; min-height: 40px; padding: 0 16px; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: opacity 0.2s; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
 .btn:active { opacity: 0.8; }
 .btn-primary { background: var(--primary); color: #fff; }
 .btn-secondary { background: var(--panel-elevated); color: var(--text-muted); border: 1px solid var(--stroke-soft); }
 .btn-outline { background: transparent; color: var(--text-main); border: 1px solid var(--stroke-soft); }
 .btn-danger { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
 .btn-danger-block { width: 100%; background: #ef4444; color: #fff; }
-
-.action-buttons-row {
-  display: flex;
-  gap: 8px;
-  margin: 8px 0 12px;
-}
+.action-buttons-row { display: flex; gap: 8px; margin: 8px 0 12px; }
 .action-buttons-row .btn { flex: 1; font-size: 13px; }
-
-.bottom-actions-row {
-  display: flex;
-  gap: 8px;
-  margin-top: 16px;
-  margin-bottom: 24px;
-}
+.bottom-actions-row { display: flex; gap: 8px; margin-top: 16px; margin-bottom: 24px; }
 .bottom-actions-row .btn { flex: 1; }
 
 /* 天気カード */
-.weather-unified-card {
-  display: grid;
-  grid-template-columns: 0.8fr 2.2fr;
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  border-radius: 16px;
-  padding: 14px 12px;
-  margin-top: 24px;
-  margin-bottom: 16px;
-  gap: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  align-items: stretch;
-}
-
-.weather-current-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  padding-right: 8px;
-}
-
-.weather-main-icon {
-  width: 52px;
-  height: 52px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-}
-
-.weather-main-temp {
-  font-size: 24px;
-  font-weight: 700;
-  color: #fff;
-  margin: 2px 0;
-  line-height: 1;
-}
-
-.weather-main-desc {
-  font-size: 10px;
-  color: #94a3b8;
-}
-
-.weather-pop-badge {
-  margin-top: 4px;
-  font-size: 10px;
-  background: rgba(37, 99, 235, 0.25);
-  color: #93c5fd;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 600;
-}
-
-.weather-forecast-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 6px;
-  width: 100%;
-}
-
-.weather-forecast-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 10px;
-  padding: 8px 4px;
-  justify-content: space-between;
-}
-
-.wf-time {
-  font-size: 10px;
-  font-weight: 600;
-  color: #cbd5e1;
-}
-
-.wf-icon {
-  width: 32px;
-  height: 32px;
-  margin: 2px 0;
-}
-
-.wf-temp {
-  font-size: 14px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.wf-pop {
-  font-size: 10px;
-  font-weight: 600;
-  color: #60a5fa;
-  margin-top: 2px;
-}
+.weather-unified-card { display: grid; grid-template-columns: 0.8fr 2.2fr; background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 16px; padding: 14px 12px; margin-top: 24px; margin-bottom: 16px; gap: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); align-items: stretch; }
+.weather-current-section { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-right: 1px solid rgba(255, 255, 255, 0.1); padding-right: 8px; }
+.weather-main-icon { width: 52px; height: 52px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)); }
+.weather-main-temp { font-size: 24px; font-weight: 700; color: #fff; margin: 2px 0; line-height: 1; }
+.weather-main-desc { font-size: 10px; color: #94a3b8; }
+.weather-pop-badge { margin-top: 4px; font-size: 10px; background: rgba(37, 99, 235, 0.25); color: #93c5fd; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+.weather-forecast-row { display: flex; justify-content: space-between; gap: 6px; width: 100%; }
+.weather-forecast-item { flex: 1; display: flex; flex-direction: column; align-items: center; background: rgba(255, 255, 255, 0.04); border-radius: 10px; padding: 8px 4px; justify-content: space-between; }
+.wf-time { font-size: 10px; font-weight: 600; color: #cbd5e1; }
+.wf-icon { width: 32px; height: 32px; margin: 2px 0; }
+.wf-temp { font-size: 14px; font-weight: 700; color: #fff; }
+.wf-pop { font-size: 10px; font-weight: 600; color: #60a5fa; margin-top: 2px; }
 
 /* 検索・住所表示 */
-.address-card,
-.location-info {
-  display: block;
-  flex-direction: column;
-  padding: 16px;
-  border-radius: 12px;
-  background: var(--panel-elevated);
-  border: 1px solid var(--stroke-soft);
-  user-select: text;
-  -webkit-user-select: text;
-}
-
-.address-card {
-  display: none;
-  margin-bottom: 8px;
-  touch-action: manipulation;
-}
-
-.address-title {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.address-coords {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.loc-coords {
-  font-family: monospace;
-  color: #facc15;
-  font-weight: 600;
-  font-size: 13px;
-  background: rgba(250, 204, 21, 0.15);
-  padding: 4px 10px;
-  border-radius: 6px;
-  display: inline-block;
-  margin-bottom: 8px;
-}
-
-.loc-address {
-  font-size: 13px;
-  line-height: 1.6;
-  color: #e5e7eb;
-}
+.address-card, .location-info { display: block; flex-direction: column; padding: 16px; border-radius: 12px; background: var(--panel-elevated); border: 1px solid var(--stroke-soft); user-select: text; -webkit-user-select: text; }
+.address-card { display: none; margin-bottom: 8px; touch-action: manipulation; }
+.address-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.address-coords { font-size: 11px; color: var(--text-muted); }
+.loc-coords { font-family: monospace; color: #facc15; font-weight: 600; font-size: 13px; background: rgba(250, 204, 21, 0.15); padding: 4px 10px; border-radius: 6px; display: inline-block; margin-bottom: 8px; }
+.loc-address { font-size: 13px; line-height: 1.6; color: #e5e7eb; }
 
 .search-box-container { margin: 8px 0 12px; }
 .input-wrapper { display: flex; align-items: center; gap: 8px; padding: 0 14px; border-radius: 12px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--stroke-soft); height: 48px; }
@@ -394,128 +102,27 @@ body {
 .result-item { padding: 12px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 14px; }
 
 /* 保存リスト */
-.saved-section {
-  margin-top: 32px;
-  border-top: 1px solid var(--stroke-soft);
-  padding-top: 16px;
-}
+.saved-section { margin-top: 32px; border-top: 1px solid var(--stroke-soft); padding-top: 16px; }
+.saved-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); margin-bottom: 10px; border: 1px solid rgba(255, 255, 255, 0.05); cursor: pointer; touch-action: manipulation; }
+.saved-item:active { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.1); }
+.saved-info { overflow: hidden; }
+.saved-name { font-weight: bold; font-size: 15px; color: #fff; margin-bottom: 4px; }
+.saved-address { font-size: 11px; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.saved-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  margin-bottom: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.saved-item:active {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.saved-info {
-  overflow: hidden;
-}
-
-.saved-name {
-  font-weight: bold;
-  font-size: 15px;
-  color: #fff;
-  margin-bottom: 4px;
-}
-
-.saved-address {
-  font-size: 11px;
-  color: #9ca3af;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ------------------------------------------------------------------
-   ★ 設定タブ (Settings) - 全フォントサイズ修正
------------------------------------------------------------------- */
-.settings-group {
-  margin-bottom: 24px;
-}
-
-/* 「地図表示モード」などの大見出し */
-.settings-label {
-  /* ★修正: 14px -> 15px */
-  font-size: 15px;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-  font-weight: 600;
-}
-
-/* 「ユーザープロファイル」などのセクション見出し */
-.nav-section-title {
-  /* ★修正: 13px -> 15px */
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-}
-
-/* 「手荷物」「体調」「同行者」の小見出し */
-.setting-sub-label {
-  /* ★修正: 13px -> 15px */
-  font-size: 15px !important;
-  color: #e5e7eb !important;
-  display: block;
-  margin-bottom: 8px !important;
-  font-weight: 500;
-}
-
-/* プルダウン内の文字 */
-.setting-input {
-  /* ★修正: 16px */
-  font-size: 16px !important;
-  padding: 12px !important;
-  height: 48px;
-  width: 100%;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--stroke-soft);
-  border-radius: 8px;
-  color: #fff;
-}
+/* 設定タブ */
+.settings-group { margin-bottom: 24px; }
+.settings-label { font-size: 15px; color: var(--text-muted); margin-bottom: 10px; font-weight: 600; }
+.nav-section-title { font-size: 15px; font-weight: 600; color: var(--text-muted); margin-bottom: 10px; }
+.setting-sub-label { font-size: 15px !important; color: #e5e7eb !important; display: block; margin-bottom: 8px !important; font-weight: 500; }
+.setting-input { font-size: 16px !important; padding: 12px !important; height: 48px; width: 100%; background: rgba(255, 255, 255, 0.1); border: 1px solid var(--stroke-soft); border-radius: 8px; color: #fff; }
 
 /* ナビ・FAB */
 .route-summary-card { padding: 14px; border-radius: 16px; background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.3); margin-bottom: 12px; }
 .route-stats { font-size: 20px; font-weight: 800; color: #fff; display: flex; gap: 12px; align-items: baseline; }
-
-.fab-container {
-  position: absolute;
-  right: 16px;
-  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  z-index: 1200;
-  transition: opacity 0.2s ease, visibility 0.2s ease;
-}
-
-.fab-container.initial-hidden {
-  display: none !important;
-}
-
-.fab-container.fab-hidden {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.fab-btn {
-  width: 50px; height: 50px; border-radius: 25px; border: none; background: #ffffff; color: #000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); font-size: 20px;
-  display: flex; align-items: center; justify-content: center;
-  touch-action: manipulation;
-}
+.fab-container { position: absolute; right: 16px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 10px; z-index: 1200; transition: opacity 0.2s ease, visibility 0.2s ease; }
+.fab-container.initial-hidden { display: none !important; }
+.fab-container.fab-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+.fab-btn { width: 50px; height: 50px; border-radius: 25px; border: none; background: #ffffff; color: #000; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); font-size: 20px; display: flex; align-items: center; justify-content: center; touch-action: manipulation; }
 .fab-btn.destination { background: var(--accent); color: #fff; }
 .fab-btn.voice-btn { background: #333; color: #fff; }
 .fab-btn.stop-btn { background: #ef4444; color: #fff; }
@@ -523,10 +130,8 @@ body {
 .loading-overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.7); display: none; align-items: center; justify-content: center; z-index: 2000; color: #fff; flex-direction: column; }
 .spinner { width: 32px; height: 32px; border: 3px solid rgba(255, 255, 255, 0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
 .wn-user-marker { width: 20px; height: 20px; background: #3b82f6; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); }
 .wn-point-marker { width: 24px; height: 24px; background: #ef4444; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); }
-
 .map-mode-buttons { display: flex; gap: 8px; }
 .map-mode-btn { flex: 1; border-radius: 999px; border: 1px solid rgba(148, 163, 184, 0.6); background: rgba(31, 41, 55, 0.9); color: #e5e7eb; min-height: 40px; font-size: 14px; font-weight: 600; touch-action: manipulation; }
 .map-mode-btn.active { background: #fff; color: #000; }
