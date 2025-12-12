@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v46: Hide FAB on Panel Open & Zoom Logic
+// WalkNav app.js - v47: Weather Bottom & Reset Logic & Formatted
 
-const ISSUE_ID = 'idx20251212_v46_fab_zoom_fix';
+const ISSUE_ID = 'idx20251212_v47_weather_bottom';
 
 // Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
@@ -100,8 +100,6 @@ if (WN.booted) {
     const fab = getEl('fabStack');
     if (!panel || !fab) return;
 
-    // パネルが閉じている(collapsed)か、非表示(display:none)ならFABを表示
-    // パネルが開いているならFABを隠す
     const isCollapsed = panel.classList.contains('collapsed');
     const isHidden = panel.style.display === 'none';
 
@@ -112,7 +110,6 @@ if (WN.booted) {
     }
   }
 
-  // パネル操作時にこれを呼ぶ
   function togglePanel() {
     const panel = getEl('searchPanel');
     if (panel) {
@@ -355,7 +352,8 @@ if (WN.booted) {
       for (let i = 1; i <= 3; i++) {
         const item = forecast.list[i];
         if (item) {
-          const fTime = `${i*3}h`;
+          // ★修正: 時間表記を変更
+          const fTime = `${i*3}時間後`;
           const fIcon = `https://openweathermap.org/img/wn/${item.weather[0].icon}.png`;
           const fTemp = Math.round(item.main.temp);
           const fPop = Math.round(item.pop * 100);
@@ -399,9 +397,12 @@ if (WN.booted) {
       if (!wEl) {
         wEl = document.createElement('div');
         wEl.id = 'weatherDisplaySearch';
-        const addrCard = document.querySelector('.address-card');
-        if (addrCard && addrCard.parentNode === searchPane) {
-          searchPane.insertBefore(wEl, addrCard.nextSibling);
+        // ★修正: 保存リストの下、つまりパネル最下部に配置
+        const savedContainer = getEl('savedSectionContainer');
+        if (savedContainer && savedContainer.parentNode === searchPane) {
+          searchPane.insertBefore(wEl, savedContainer.nextSibling);
+        } else {
+          searchPane.appendChild(wEl);
         }
       }
       wEl.innerHTML = html;
@@ -603,7 +604,7 @@ if (WN.booted) {
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v46');
+      console.log('[WalkNav] Map initialized v47');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, {
@@ -717,17 +718,16 @@ if (WN.booted) {
         longitude
       } = pos.coords;
       getEl('loading')?.remove();
-      
-      // ★現在地取得時のズームロジック
-      if (!appState.mapInitialized) {
-        initMap({ lat: latitude, lng: longitude });
-      } else {
-        // 現在地にパンし、ズームレベルを17に設定
-        appState.map.panTo({ lat: latitude, lng: longitude });
-        appState.map.setZoom(17);
-      }
-      
+      if (!appState.mapInitialized) initMap({
+        lat: latitude,
+        lng: longitude
+      });
+      else appState.map.setCenter({
+        lat: latitude,
+        lng: longitude
+      });
       setUserMarker(latitude, longitude);
+
       const latStr = latitude.toFixed(5);
       const lngStr = longitude.toFixed(5);
       setText('locCoords', `📍 ${latStr}, ${lngStr}`);
@@ -826,14 +826,12 @@ if (WN.booted) {
     appState.currentDestination = dest;
     appState.isNavigating = true;
     
-    // パネル非表示
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.add('collapsed');
       panel.style.display = 'none';
     }
     
-    // FABも隠す
     updateFabVisibility();
 
     setDisplay('fabStack', 'flex');
@@ -841,10 +839,9 @@ if (WN.booted) {
     setDisplay('results', 'none');
     switchPanelTab('nav');
 
-    // ★ 目的地へ一旦ズームする演出
     if (appState.map) {
       appState.map.panTo({ lat: dest.lat, lng: dest.lng });
-      appState.map.setZoom(18); // 一旦拡大
+      appState.map.setZoom(18);
     }
 
     try {
@@ -884,14 +881,12 @@ if (WN.booted) {
     appState.isNavigating = false;
     if (appState.currentPolyline) appState.currentPolyline.setMap(null);
     
-    // パネル再表示
     const panel = getEl('searchPanel');
     if (panel) {
       panel.style.display = 'flex';
       panel.classList.remove('collapsed');
     }
     
-    // FAB再表示判定
     updateFabVisibility();
 
     setDisplay('routeControlSection', 'none');
@@ -938,7 +933,6 @@ if (WN.booted) {
       btnOld.onclick = openEditModal;
     }
 
-    // パネル開閉時のFAB制御
     const ph = document.querySelector('.panel-handle-area');
     if (ph) {
       ph.onclick = togglePanel;
@@ -960,14 +954,13 @@ if (WN.booted) {
       if (e.key === 'Enter') getEl('btnSearchIcon').click();
     };
     
-    // リセット時、パネルが開くのでFABは隠れるはずだが、操作後なので再判定
     if (getEl('btnReset')) getEl('btnReset').onclick = () => {
       q.value = '';
       setDisplay('results', 'none');
       appState.pointSearchMode = false;
       getEl('btnPointSearch').textContent = '📍 ポイント選択';
       getEl('btnPointSearch').classList.remove('active');
-      openPanel(); // パネルを開く
+      openPanel();
     };
     
     if (getEl('btnLocate')) getEl('btnLocate').onclick = acquireLocation;
@@ -975,7 +968,6 @@ if (WN.booted) {
     
     if (getEl('btnClosePanel')) getEl('btnClosePanel').onclick = collapsePanel;
     
-    // 検索ボタン(FAB)を押すとパネル再表示
     if (getEl('btnSearch')) getEl('btnSearch').onclick = openPanel;
 
     if (getEl('btnStopRoute')) getEl('btnStopRoute').onclick = stopNavigation;
@@ -993,6 +985,18 @@ if (WN.booted) {
       const b = getEl('btnPointSearch');
       b.textContent = appState.pointSearchMode ? '📍 選択中...' : '📍 ポイント選択';
       b.classList.toggle('active', appState.pointSearchMode);
+      
+      // ★修正: ポイント選択解除時はアドレス表示をクリアして非表示にする
+      if (!appState.pointSearchMode) {
+        appState.searchPoint = null;
+        if (appState.searchPointMarker) {
+          appState.searchPointMarker.map = null;
+          appState.searchPointMarker = null;
+        }
+        setText('pointAddress', '');
+        setText('pointCoords', '');
+        setDisplay('pointAddressBlock', 'none');
+      }
     };
     ['btnMapPhoto', 'btnMapRoadmap', 'btnMap3D'].forEach(id => getEl(id).onclick = () => changeMapMode(getEl(id).dataset.mode));
 
@@ -1017,7 +1021,6 @@ if (WN.booted) {
     if (getEl('btnCancelEdit')) getEl('btnCancelEdit').onclick = closeEditModal;
     if (getEl('btnSaveEdits')) getEl('btnSaveEdits').onclick = saveEditModalChanges;
     
-    // 初期状態のFAB表示更新
     updateFabVisibility();
   }
 
@@ -1061,7 +1064,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v46 (FAB/Zoom Fix)...');
+    console.log('[WalkNav] Starting v47 (Weather Polish & Reset)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
