@@ -6,7 +6,8 @@
   <title>WalkNav</title>
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <link rel="stylesheet" href="app.css?v=52" />
+  
+  <link rel="stylesheet" href="app.css?v=53" />
 </head>
 <body id="appBody">
 <div class="app">
@@ -146,11 +147,18 @@
             <button id="btnMap3D" class="map-mode-btn" data-mode="3d">3D</button>
           </div>
         </div>
+
+        <div id="routeControlSection" style="display:none;" class="settings-group">
+          <div class="settings-label" style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">ナビゲーション操作</div>
+          <div class="nav-controls-stack">
+            <button id="btnStopRoute" class="btn btn-danger-block">🛑 ルート終了</button>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
-  <div class="fab-container" id="fabStack" style="display:none;">
+  <div class="fab-container initial-hidden" id="fabStack" style="display:none;">
     <button class="fab-btn" id="btnSearch">🔍</button>
     <button class="fab-btn" id="btnLocate">📍</button>
     <button class="fab-btn destination" id="btnDestination" style="display:none">🏁</button>
@@ -178,7 +186,7 @@
 </div>
 
 <script src="RouteEvaluator.js"></script>
-<script src="app.js?v=52"></script>
+<script src="app.js?v=53"></script>
 <script src="https://maps.googleapis.com/maps/api/js?language=ja&region=JP&key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&loading=async" async defer></script>
 
 <script>
