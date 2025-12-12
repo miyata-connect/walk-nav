@@ -6,7 +6,8 @@
   <title>WalkNav</title>
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <link rel="stylesheet" href="app.css?v=41" />
+  
+  <link rel="stylesheet" href="app.css?v=46" />
 </head>
 <body id="appBody">
 <div class="app">
@@ -72,7 +73,9 @@
             <div id="locAddress" class="loc-address"></div>
           </div>
         </div>
+        
         <div id="weatherDisplayNav"></div>
+
         <div class="nav-section" id="routeInfoSection" style="display:none;">
           <div class="nav-section-title">🚶 ルート詳細</div>
           <div class="route-summary-card">
@@ -87,10 +90,12 @@
             </div>
           </div>
         </div>
+
         <div class="nav-section" id="incidentSection" style="display:none;">
           <div class="nav-section-title">⚠️ 交通情報・インシデント</div>
           <div id="incidentText" class="incident-alert"></div>
         </div>
+
         <div class="nav-section" id="instructionsSection" style="display:none;">
           <div class="nav-section-title">🧭 ステップバイステップ</div>
           <div id="navPanelInstructions" class="instructions-list"></div>
@@ -130,6 +135,7 @@
             </div>
           </div>
         </div>
+
         <div class="settings-group">
           <div class="settings-label" style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">地図表示モード</div>
           <div class="map-mode-buttons">
@@ -138,6 +144,7 @@
             <button id="btnMap3D" class="map-mode-btn" data-mode="3d">3D</button>
           </div>
         </div>
+
         <div id="routeControlSection" style="display:none;" class="settings-group">
           <div class="settings-label" style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">ナビゲーション操作</div>
           <div class="nav-controls-stack">
@@ -175,40 +182,55 @@
 </div>
 
 <script src="RouteEvaluator.js"></script>
-<script src="app.js?v=41"></script>
+<script src="app.js?v=46"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&language=ja&region=JP&loading=async" async defer></script>
 
 <script>
 (function () {
+  // パネル内でのスクロール制御
   document.addEventListener('touchmove', function(e) {
     if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
-    var scrollable = e.target.closest('.panel-tabs-body');
-    if (!scrollable) { if (e.cancelable) e.preventDefault(); return; }
+    var scrollable = e.target.closest('.panel-tabs-body') || e.target.closest('.edit-modal-body');
+    if (!scrollable) {
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
     if (scrollable.scrollHeight <= scrollable.clientHeight && e.target.tagName !== 'INPUT') {
       if (e.cancelable) e.preventDefault();
     }
   }, { passive: false });
 
+  // タブ切り替え初期化
   function initPanelTabs() {
     var tabButtons = document.querySelectorAll('[data-panel-tab]');
     var paneSearch = document.getElementById('tabPaneSearch');
     var paneNav = document.getElementById('tabPaneNav');
     var paneSettings = document.getElementById('tabPaneSettings');
+
     function setMode(mode) {
       if (paneSearch) paneSearch.classList.toggle('active', mode === 'search');
       if (paneNav) paneNav.classList.toggle('active', mode === 'nav');
       if (paneSettings) paneSettings.classList.toggle('active', mode === 'settings');
+      
       tabButtons.forEach(function(b) {
         b.classList.toggle('active', b.getAttribute('data-panel-tab') === mode);
       });
     }
+
     tabButtons.forEach(function(btn) {
-      btn.addEventListener('click', function () { setMode(btn.getAttribute('data-panel-tab') || 'search'); });
+      btn.addEventListener('click', function () {
+        setMode(btn.getAttribute('data-panel-tab') || 'search');
+      });
     });
+
     setMode('search');
   }
-  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initPanelTabs); }
-  else { initPanelTabs(); }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPanelTabs);
+  } else {
+    initPanelTabs();
+  }
 })();
 </script>
 </body>
