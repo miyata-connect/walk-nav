@@ -7,7 +7,7 @@
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   
-  <link rel="stylesheet" href="app.css?v=53" />
+  <link rel="stylesheet" href="app.css?v=56" />
 </head>
 <body id="appBody">
 <div class="app">
@@ -111,16 +111,16 @@
           <div class="nav-section-title">👤 ユーザープロファイル</div>
           <div class="row" style="display:flex; gap:8px; margin-bottom:8px;">
             <div style="flex:1;">
-              <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">手荷物</label>
-              <select id="userLuggage" class="input" style="background:rgba(255,255,255,0.1);border:1px solid var(--stroke-soft);border-radius:8px;padding:6px;width:100%;">
+              <label class="setting-sub-label">手荷物</label>
+              <select id="userLuggage" class="input setting-input">
                 <option value="None">なし</option>
                 <option value="Light_Pack">軽量</option>
                 <option value="Suitcase">スーツケース</option>
               </select>
             </div>
             <div style="flex:1;">
-              <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">体調</label>
-              <select id="userCondition" class="input" style="background:rgba(255,255,255,0.1);border:1px solid var(--stroke-soft);border-radius:8px;padding:6px;width:100%;">
+              <label class="setting-sub-label">体調</label>
+              <select id="userCondition" class="input setting-input">
                 <option value="Excellent">良好</option>
                 <option value="Normal" selected>普通</option>
                 <option value="Poor">不調</option>
@@ -129,8 +129,8 @@
           </div>
           <div class="row" style="display:flex;">
             <div style="flex:1;">
-              <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">同行者</label>
-              <select id="userCompanion" class="input" style="background:rgba(255,255,255,0.1);border:1px solid var(--stroke-soft);border-radius:8px;padding:6px;width:100%;">
+              <label class="setting-sub-label">同行者</label>
+              <select id="userCompanion" class="input setting-input">
                 <option value="None">なし</option>
                 <option value="Child">子供</option>
                 <option value="Elderly">高齢者</option>
@@ -140,18 +140,11 @@
         </div>
 
         <div class="settings-group">
-          <div class="settings-label" style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">地図表示モード</div>
+          <div class="settings-label">地図表示モード</div>
           <div class="map-mode-buttons">
             <button id="btnMapPhoto" class="map-mode-btn" data-mode="photo">写真</button>
             <button id="btnMapRoadmap" class="map-mode-btn active" data-mode="roadmap">地図</button>
             <button id="btnMap3D" class="map-mode-btn" data-mode="3d">3D</button>
-          </div>
-        </div>
-
-        <div id="routeControlSection" style="display:none;" class="settings-group">
-          <div class="settings-label" style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">ナビゲーション操作</div>
-          <div class="nav-controls-stack">
-            <button id="btnStopRoute" class="btn btn-danger-block">🛑 ルート終了</button>
           </div>
         </div>
       </div>
@@ -186,7 +179,7 @@
 </div>
 
 <script src="RouteEvaluator.js"></script>
-<script src="app.js?v=53"></script>
+<script src="app.js?v=56"></script>
 <script src="https://maps.googleapis.com/maps/api/js?language=ja&region=JP&key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&loading=async" async defer></script>
 
 <script>
