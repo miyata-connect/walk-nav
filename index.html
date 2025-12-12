@@ -1,3 +1,4 @@
+<!-- WalkNav index.html (v74) -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -5,9 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>WalkNav</title>
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
+
+  <!-- Map ID (v74) 必須: Google Cloud Console の Map ID を設定 -->
+  <meta name="walknav-map-id" content="YOUR_MAP_ID_HERE" />
+
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  
-  <link rel="stylesheet" href="app.css?v=70" />
+  <link rel="stylesheet" href="app.css?v=74" />
 </head>
 <body id="appBody">
 <div class="app">
@@ -26,7 +30,7 @@
 
     <div class="panel-tabs-body" id="panelScrollContainer">
       <div class="tab-pane active" id="tabPaneSearch">
-        
+
         <div class="point-search-wrapper">
           <button class="chip point-select full-width" id="btnPointSearch">📍 ポイント選択</button>
         </div>
@@ -43,7 +47,7 @@
           <div class="address-title" id="pointAddress">ポイント：取得中...</div>
           <div class="address-coords" id="pointCoords"></div>
         </div>
-        
+
         <div class="action-buttons-row">
           <button class="btn btn-outline" id="btnSaveCurrent" style="border-color:#d97706; color:#d97706; background:rgba(254,243,199,0.1);">⭐ 現在地保存</button>
           <button class="btn btn-outline" id="btnOpenEditModal">登録地修正</button>
@@ -68,7 +72,7 @@
           <button id="btnLocatePanel" class="btn btn-primary">現在地</button>
           <button id="btnClosePanel" class="btn btn-secondary">閉じる</button>
         </div>
-        
+
         <div id="savedSectionContainer"></div>
       </div>
 
@@ -80,7 +84,7 @@
             <div id="locAddress" class="loc-address"></div>
           </div>
         </div>
-        
+
         <div id="weatherDisplayNav"></div>
 
         <div class="nav-section" id="routeInfoSection" style="display:none;">
@@ -193,7 +197,7 @@
 </div>
 
 <script src="RouteEvaluator.js"></script>
-<script src="app.js?v=70"></script>
+<script src="app.js?v=74"></script>
 <script src="https://maps.googleapis.com/maps/api/js?language=ja&region=JP&key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&loading=async" async defer></script>
 
 <script>
@@ -222,7 +226,7 @@
       if (paneSearch) paneSearch.classList.toggle('active', mode === 'search');
       if (paneNav) paneNav.classList.toggle('active', mode === 'nav');
       if (paneSettings) paneSettings.classList.toggle('active', mode === 'settings');
-      
+
       tabButtons.forEach(function(b) {
         b.classList.toggle('active', b.getAttribute('data-panel-tab') === mode);
       });
