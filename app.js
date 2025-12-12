@@ -1,18 +1,14 @@
 'use strict';
 
-// WalkNav app.js - v59: Remove Map ID to Force Japanese & Fix All UI
+// WalkNav app.js - v60: Remove Map ID to Force Japanese & All Fixes
 
-const ISSUE_ID = 'idx20251212_v59_remove_mapid';
+const ISSUE_ID = 'idx20251212_v60_mapid_removed';
 
-// Google Maps APIキー
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
-
-// Cloudflare Worker
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 
-// ★修正: Map ID を使用しない（標準地図にして言語設定を強制適用させる）
-// const MAP_ID = '9110fb2763169e9d8f2b317e'; 
-const MAP_ID = null; 
+// ★Map IDを無効化
+const MAP_ID = null;
 
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
@@ -625,8 +621,7 @@ if (WN.booted) {
       appState.map = new google.maps.Map(mapEl, {
         center,
         zoom: 17,
-        // ★修正: mapId を削除し、オプションからも除外
-        // mapId: MAP_ID, 
+        // ★Map IDを削除して標準地図へ戻す
         gestureHandling: 'greedy',
         clickableIcons: true,
         disableDefaultUI: true
@@ -636,7 +631,7 @@ if (WN.booted) {
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v59');
+      console.log('[WalkNav] Map initialized v60');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, {
@@ -1141,7 +1136,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v59 (Japanese Fix)...');
+    console.log('[WalkNav] Starting v60 (MapID Removed)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
