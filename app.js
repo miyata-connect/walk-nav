@@ -1,12 +1,12 @@
 'use strict';
 
-// WalkNav app.js - v68: 30km removed & UI updated
+// WalkNav app.js - v70: Ensure FAB Visibility & Formatted
 
-const ISSUE_ID = 'idx20251212_v68_30km_removed';
+const ISSUE_ID = 'idx20251212_v70_fab_fix';
 
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
-const MAP_ID = null;
+const MAP_ID = null; // No Map ID for reliability
 
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
@@ -91,30 +91,23 @@ if (WN.booted) {
     if (el) el.textContent = text;
   }
 
-  /* === FAB Visibility Control === */
+  /* === FAB Visibility Control (Always Show) === */
   function updateFabVisibility() {
-    const panel = getEl('searchPanel');
     const fab = getEl('fabStack');
-    if (!panel || !fab) return;
-
-    fab.classList.remove('initial-hidden');
-    fab.style.display = 'flex';
-
-    const isCollapsed = panel.classList.contains('collapsed');
-    const isHidden = panel.style.display === 'none';
-
-    if (isCollapsed || isHidden) {
-      fab.classList.remove('panel-open-hide-fab');
-    } else {
-      fab.classList.add('panel-open-hide-fab');
+    if (fab) {
+      // 確実に表示させる
+      fab.classList.remove('initial-hidden');
+      fab.style.display = 'flex';
+      fab.style.visibility = 'visible';
+      fab.style.opacity = '1';
     }
   }
 
+  /* === Panel Logic === */
   function togglePanel() {
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.toggle('collapsed');
-      updateFabVisibility();
     }
   }
 
@@ -122,7 +115,6 @@ if (WN.booted) {
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.add('collapsed');
-      updateFabVisibility();
     }
   }
 
@@ -130,7 +122,6 @@ if (WN.booted) {
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.remove('collapsed');
-      updateFabVisibility();
     }
   }
 
@@ -613,7 +604,7 @@ if (WN.booted) {
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v68');
+      console.log('[WalkNav] Map initialized v70');
     } catch (e) {
       console.warn('Map Init Failed', e);
     }
@@ -804,18 +795,17 @@ if (WN.booted) {
 
     appState.currentDestination = dest;
     appState.isNavigating = true;
-
+    
     // パネル強制非表示
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.add('collapsed');
       panel.classList.add('hidden-force');
     }
-
+    
+    // FAB更新 (ボタンは常に表示されるようになったので、display:flexで制御)
     updateFabVisibility();
 
-    // FAB制御: 停止ボタンのみ表示
-    setDisplay('fabStack', 'flex');
     const fabSearch = getEl('btnSearchFab');
     const fabLocate = getEl('btnLocateFab');
     const fabSettings = getEl('btnSettingsFab');
@@ -880,12 +870,13 @@ if (WN.booted) {
     if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
     appState.isNavigating = false;
     if (appState.currentPolyline) appState.currentPolyline.setMap(null);
-
+    
+    // パネル復活
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.remove('hidden-force');
     }
-
+    
     updateFabVisibility();
 
     // FAB状態復帰
@@ -909,10 +900,10 @@ if (WN.booted) {
     setDisplay('instructionsSection', 'none');
     setDisplay('routeInfoSection', 'none');
     setDisplay('btnDestination', 'none');
-
+    
     switchPanelTab('search');
     openPanel();
-
+    
     if (appState.currentPos && appState.map) {
       appState.map.panTo(appState.currentPos);
       appState.map.setZoom(17);
@@ -940,19 +931,51 @@ if (WN.booted) {
   }
 
   function bindUI() {
-    const btnNew = getEl('btnOpenEditModal');
-    const btnOld = getEl('btnEditSavedList');
+    const btnSearchFab = getEl('btnSearchFab');
+    const btnLocateFab = getEl('btnLocateFab');
+    const btnDestFab = getEl('btnDestFab');
+    const btnSettingsFab = getEl('btnSettingsFab');
+    const btnNavFab = getEl('btnNavFab');
+    const btnShareFab = getEl('btnShareFab');
 
-    if (btnNew) {
-      btnNew.onclick = openEditModal;
-    } else if (btnOld) {
-      btnOld.onclick = openEditModal;
+    if (btnSearchFab) {
+      btnSearchFab.onclick = () => {
+        togglePanelTab('search');
+        setTimeout(() => {
+          const panel = getEl('searchPanel');
+          if (panel && !panel.classList.contains('collapsed')) {
+            const input = getEl('q');
+            if (input) input.focus();
+          }
+        }, 300);
+      };
     }
+    if (btnLocateFab) btnLocateFab.onclick = acquireLocation;
+    if (btnDestFab) {
+      btnDestFab.onclick = () => {
+        if (appState.currentDestination && appState.map) {
+          appState.map.panTo({
+            lat: appState.currentDestination.lat,
+            lng: appState.currentDestination.lng
+          });
+          appState.map.setZoom(19);
+        }
+      };
+    }
+    if (btnSettingsFab) {
+      btnSettingsFab.onclick = () => togglePanelTab('settings');
+    }
+    if (btnNavFab) {
+      btnNavFab.onclick = () => togglePanelTab('nav');
+    }
+    if (btnShareFab) btnShareFab.onclick = handleShareLocation;
+    if (getEl('btnStopFab')) getEl('btnStopFab').onclick = stopNavigation;
+
+    const btnNew = getEl('btnOpenEditModal');
+    if (btnNew) btnNew.onclick = openEditModal;
 
     const ph = document.querySelector('.panel-handle-area');
-    if (ph) {
-      ph.onclick = togglePanel;
-    }
+    if (ph) ph.onclick = togglePanel;
 
     const addrBlock = getEl('pointAddressBlock');
     let pressTimer;
@@ -972,9 +995,7 @@ if (WN.booted) {
       });
     }
 
-    if (getEl('btnVoiceInput')) {
-      getEl('btnVoiceInput').onclick = handleVoiceInput;
-    }
+    if (getEl('btnVoiceInput')) getEl('btnVoiceInput').onclick = handleVoiceInput;
 
     const q = getEl('q');
     if (getEl('btnSearchIcon')) getEl('btnSearchIcon').onclick = () => {
@@ -1018,7 +1039,7 @@ if (WN.booted) {
     if (getEl('btnClosePanel')) getEl('btnClosePanel').onclick = collapsePanel;
     if (getEl('btnStopRoute')) getEl('btnStopRoute').onclick = stopNavigation;
 
-    [10, 20].forEach(d => {
+    [10, 20, 30].forEach(d => {
       const el = getEl(`r${d}`);
       if (el) el.onclick = () => {
         appState.searchRadiusMeters = d * 1000;
@@ -1048,7 +1069,7 @@ if (WN.booted) {
 
     if (getEl('btnCancelEdit')) getEl('btnCancelEdit').onclick = closeEditModal;
     if (getEl('btnSaveEdits')) getEl('btnSaveEdits').onclick = saveEditModalChanges;
-
+    
     // 初期状態のFAB表示更新
     updateFabVisibility();
   }
@@ -1075,7 +1096,6 @@ if (WN.booted) {
       });
       div.appendChild(item);
       
-      // Legacy Marker
       const m = new google.maps.Marker({
         map: appState.map,
         position: {
@@ -1090,7 +1110,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v68 (Final Polish)...');
+    console.log('[WalkNav] Starting v70 (FAB Always Visible)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
