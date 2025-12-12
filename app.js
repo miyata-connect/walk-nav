@@ -1,8 +1,8 @@
 'use strict';
 
-// WalkNav app.js - v53: Language & Cache Busting
+// WalkNav app.js - v56: Language Fix & Settings UI Fix
 
-const ISSUE_ID = 'idx20251212_v53_lang_fix';
+const ISSUE_ID = 'idx20251212_v56_lang_fix';
 
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
@@ -629,7 +629,7 @@ if (WN.booted) {
       });
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      console.log('[WalkNav] Map initialized v53');
+      console.log('[WalkNav] Map initialized v56');
     } catch (e) {
       console.warn('Map ID Init Failed, Fallback', e);
       appState.map = new google.maps.Map(mapEl, {
@@ -749,7 +749,7 @@ if (WN.booted) {
           lng: longitude
         });
       } else {
-        // ★現在地ボタン押下時のズームレベルを19に設定（強力拡大）
+        // 現在地ボタン押下時のズームレベルを19に設定
         appState.map.panTo({
           lat: latitude,
           lng: longitude
@@ -856,7 +856,7 @@ if (WN.booted) {
     appState.currentDestination = dest;
     appState.isNavigating = true;
     
-    // ★パネル強制非表示
+    // パネル強制非表示
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.add('collapsed');
@@ -865,7 +865,7 @@ if (WN.booted) {
     
     updateFabVisibility();
 
-    // ★FAB制御: 検索/現在地を隠し、停止ボタンのみ表示
+    // FAB制御: 停止ボタンのみ表示
     setDisplay('fabStack', 'flex');
     const fabSearch = getEl('btnSearch');
     const fabLocate = getEl('btnLocate');
@@ -920,7 +920,7 @@ if (WN.booted) {
     appState.isNavigating = false;
     if (appState.currentPolyline) appState.currentPolyline.setMap(null);
     
-    // ★パネル復活
+    // パネル復活
     const panel = getEl('searchPanel');
     if (panel) {
       panel.classList.remove('hidden-force');
@@ -928,7 +928,7 @@ if (WN.booted) {
     
     updateFabVisibility();
 
-    // ★FAB状態復帰
+    // FAB状態復帰
     const fabSearch = getEl('btnSearch');
     const fabLocate = getEl('btnLocate');
     const fabStop = getEl('btnStopFab');
@@ -1045,7 +1045,6 @@ if (WN.booted) {
     };
 
     if (getEl('btnStopRoute')) getEl('btnStopRoute').onclick = stopNavigation;
-    // ★FAB停止ボタン
     if (getEl('btnStopFab')) getEl('btnStopFab').onclick = stopNavigation;
 
     [10, 20, 30].forEach(d => {
@@ -1140,7 +1139,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v53 (Lang/Cache Fix)...');
+    console.log('[WalkNav] Starting v56 (Lang & UI Fix)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
