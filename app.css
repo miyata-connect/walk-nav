@@ -1,4 +1,4 @@
-/* app.css (v74: FAB labels + taller buttons + close hint state) */
+/* app.css (v75: Photo Memo + Quick Actions + Incident Skeleton) */
 
 /* ------------------------------------------------------------------
    基本設定 (Base)
@@ -49,6 +49,9 @@ body {
   height: 100dvh;
 }
 
+/* ------------------------------------------------------------------
+   パネル (Panel)
+------------------------------------------------------------------ */
 .panel {
   position: absolute;
   left: 12px;
@@ -97,6 +100,9 @@ body {
   background: rgba(148, 163, 184, 0.5);
 }
 
+/* ------------------------------------------------------------------
+   タブ (Tabs)
+------------------------------------------------------------------ */
 .panel-tabs-header {
   display: flex;
   justify-content: center;
@@ -167,6 +173,9 @@ body {
   }
 }
 
+/* ------------------------------------------------------------------
+   FAB (Floating Action Button)
+------------------------------------------------------------------ */
 .fab-container {
   position: absolute;
   right: 12px;
@@ -181,7 +190,6 @@ body {
   visibility: visible !important;
 }
 
-/* v74: ラベル表示のため縦長に */
 .fab-btn {
   width: 56px;
   height: 66px;
@@ -240,6 +248,9 @@ body {
   border: none;
 }
 
+/* ------------------------------------------------------------------
+   検索ヘッダー・UIコンポーネント
+------------------------------------------------------------------ */
 .section-title {
   margin: 12px 0 16px;
   font-size: 16px;
@@ -299,6 +310,9 @@ body {
   display: none;
 }
 
+/* ------------------------------------------------------------------
+   チップ (Chips)
+------------------------------------------------------------------ */
 .chip {
   flex: 0 0 auto;
   border-radius: 999px;
@@ -319,6 +333,42 @@ body {
   font-weight: 700;
 }
 
+/* ------------------------------------------------------------------
+   クイックアクション (v75 New)
+------------------------------------------------------------------ */
+.quick-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 4px; /* スクロールバーとの干渉避け */
+  -webkit-overflow-scrolling: touch;
+}
+
+.quick-actions-row::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-chip {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e5e7eb;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.quick-chip:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ------------------------------------------------------------------
+   ボタン (Buttons)
+------------------------------------------------------------------ */
 .btn {
   border-radius: 999px;
   border: none;
@@ -395,6 +445,9 @@ body {
   min-width: 0;
 }
 
+/* ------------------------------------------------------------------
+   天気情報カード (Weather)
+------------------------------------------------------------------ */
 .weather-unified-card {
   display: grid;
   grid-template-columns: 0.8fr 2.2fr;
@@ -493,6 +546,9 @@ body {
   margin-top: 2px;
 }
 
+/* ------------------------------------------------------------------
+   住所カード・位置情報 (Address / Location)
+------------------------------------------------------------------ */
 .address-card,
 .location-info {
   display: block;
@@ -545,6 +601,9 @@ body {
   word-wrap: break-word;
 }
 
+/* ------------------------------------------------------------------
+   検索ボックス (Input)
+------------------------------------------------------------------ */
 .search-box-container {
   margin: 12px 0 16px;
   width: 100%;
@@ -579,6 +638,9 @@ body {
   fill: #e5e7eb;
 }
 
+/* ------------------------------------------------------------------
+   検索結果リスト (Results)
+------------------------------------------------------------------ */
 .results-list {
   padding: 0;
   border-radius: 12px;
@@ -597,6 +659,9 @@ body {
   word-wrap: break-word;
 }
 
+/* ------------------------------------------------------------------
+   保存リスト (Saved)
+------------------------------------------------------------------ */
 .saved-section {
   margin-top: 36px;
   border-top: 1px solid var(--stroke-soft);
@@ -645,6 +710,9 @@ body {
   text-overflow: ellipsis;
 }
 
+/* ------------------------------------------------------------------
+   設定・ルート情報 (Settings / Route)
+------------------------------------------------------------------ */
 .settings-group {
   margin-bottom: 24px;
   max-width: 100%;
@@ -728,6 +796,9 @@ body {
   flex-wrap: wrap;
 }
 
+/* ------------------------------------------------------------------
+   ローディング (Loading)
+------------------------------------------------------------------ */
 .loading-overlay {
   position: absolute;
   inset: 0;
@@ -755,6 +826,9 @@ body {
   }
 }
 
+/* ------------------------------------------------------------------
+   マーカー (Markers)
+------------------------------------------------------------------ */
 .wn-user-marker {
   width: 20px;
   height: 20px;
@@ -773,6 +847,9 @@ body {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
+/* ------------------------------------------------------------------
+   編集モーダル (Edit Modal)
+------------------------------------------------------------------ */
 .edit-modal-overlay {
   position: fixed;
   inset: 0;
@@ -889,4 +966,18 @@ body {
   cursor: pointer;
   touch-action: manipulation;
   flex-shrink: 0;
+}
+
+/* ------------------------------------------------------------------
+   InfoWindow (v75: 写真表示用)
+------------------------------------------------------------------ */
+.info-window-content {
+  color: #333;
+  font-family: -apple-system, sans-serif;
+  padding: 4px;
+}
+
+.info-window-content img {
+  object-fit: cover;
+  width: 100%;
 }
