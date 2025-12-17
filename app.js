@@ -7,14 +7,13 @@ const CUSTOM_MAP_ID = '9110fb2763169e9d8f2b317e';
 // ===============================================================================
 
 
-// WalkNav app.js - v84.6
-// Share Fix, Incidents Restore, D-Pad added
+// WalkNav app.js - v84.7
+// FAB Position Adjustment
 
-const ISSUE_ID = 'idx20251213_v84_6_updates';
+const ISSUE_ID = 'idx20251213_v84_7_fab_pos';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 
-// Use the ID defined at the top
 const MAP_ID = CUSTOM_MAP_ID;
 
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
@@ -28,6 +27,7 @@ const LOCATION_OPTIONS = {
 const SAVED_LOCATIONS_KEY = 'walknav_saved_locations';
 const MAP_MODE_KEY = 'walknav_map_mode';
 const PROFILE_KEY = 'walknav_user_profile';
+const FAB_POS_KEY = 'walknav_fab_pos';
 
 const WN = (window.__WN_GLOBAL__ = window.__WN_GLOBAL__ || {
   booted: false,
@@ -85,7 +85,8 @@ if (WN.booted) {
     aiMode: 'normal',
     incidentData: null,
     cachedWeatherData: null,
-    lastFabSourceId: null
+    lastFabSourceId: null,
+    fabPosition: { right: 12, bottom: 20 } // Default FAB pos
   };
 
   function getEl(id) { return document.getElementById(id); }
@@ -154,6 +155,45 @@ if (WN.booted) {
     }
   }
 
+  /* --- FAB Position Logic --- */
+  function loadSavedFabPosition() {
+    try {
+      const raw = localStorage.getItem(FAB_POS_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (typeof p.right === 'number' && typeof p.bottom === 'number') {
+          appState.fabPosition = p;
+        }
+      }
+    } catch (_) {}
+    applyFabPosition();
+  }
+
+  function saveFabPosition() {
+    localStorage.setItem(FAB_POS_KEY, JSON.stringify(appState.fabPosition));
+    applyFabPosition();
+  }
+
+  function applyFabPosition() {
+    const fab = getEl('fabStack');
+    if (fab) {
+      fab.style.right = appState.fabPosition.right + 'px';
+      fab.style.bottom = appState.fabPosition.bottom + 'px';
+    }
+  }
+
+  function adjustFabPosition(dx, dy) {
+    // dx: right adjustment (positive = move left), dy: bottom adjustment
+    appState.fabPosition.right += dx;
+    appState.fabPosition.bottom += dy;
+    
+    // Bounds check (minimal)
+    if (appState.fabPosition.right < 0) appState.fabPosition.right = 0;
+    if (appState.fabPosition.bottom < 0) appState.fabPosition.bottom = 0;
+    
+    saveFabPosition();
+  }
+
   function togglePanel() {
     const panel = getEl('searchPanel');
     if (!panel) return;
@@ -205,20 +245,16 @@ if (WN.booted) {
     showCloseHintOn(sourceBtnId);
   }
 
-  /* === Share Logic === */
   async function shareLocation() {
-    // 目的地があれば目的地、なければ現在地
     const target = appState.currentDestination || appState.currentPos;
     if (!target) return alert('場所が特定されていません');
     
-    // 座標の抽出
     let lat, lng, name;
     if (target.lat && target.lng) {
       lat = target.lat; lng = target.lng; name = target.name || '選択地点';
     } else if (target.location) {
       lat = target.location.latitude; lng = target.location.longitude; name = target.displayName?.text || '地点';
     } else {
-      // fallback
       lat = appState.currentPos.lat; lng = appState.currentPos.lng; name = '現在地';
     }
 
@@ -749,7 +785,6 @@ if (WN.booted) {
       appState.map.setZoom(18);
     }
 
-    // Incidentsの取得をここに追加
     fetchIncidentsAround(dest.lat, dest.lng);
 
     try {
@@ -916,14 +951,14 @@ if (WN.booted) {
     const btnNavFab = getEl('btnNavFab');
     const btnSettingsFab = getEl('btnSettingsFab');
     const btnStopFab = getEl('btnStopFab');
-    const btnShareFab = getEl('btnShareFab'); // 共有ボタン
+    const btnShareFab = getEl('btnShareFab');
 
     if (btnSearchFab) btnSearchFab.onclick = () => togglePanelFromFab('search', 'btnSearchFab');
     if (btnSettingsFab) btnSettingsFab.onclick = () => togglePanelFromFab('settings', 'btnSettingsFab');
     if (btnNavFab) btnNavFab.onclick = () => togglePanelFromFab('nav', 'btnNavFab');
     if (btnLocateFab) btnLocateFab.onclick = acquireLocation;
     if (btnStopFab) btnStopFab.onclick = stopNavigation;
-    if (btnShareFab) btnShareFab.onclick = shareLocation; // バインド追加
+    if (btnShareFab) btnShareFab.onclick = shareLocation;
 
     const btnCamera = getEl('btnCamera');
     const cameraInput = getEl('cameraInput');
@@ -959,17 +994,19 @@ if (WN.booted) {
     if (getEl('btnSaveEdits')) getEl('btnSaveEdits').onclick = saveEditModalChanges;
     if (getEl('btnCancelEdit')) getEl('btnCancelEdit').onclick = closeEditModal;
 
-    // D-Pad Bindings
-    const btnPanUp = getEl('btnPanUp');
-    const btnPanDown = getEl('btnPanDown');
-    const btnPanLeft = getEl('btnPanLeft');
-    const btnPanRight = getEl('btnPanRight');
-    const PAN_AMOUNT = 80;
+    // FAB Position Control Bindings
+    const btnFabUp = getEl('btnFabUp');
+    const btnFabDown = getEl('btnFabDown');
+    const btnFabLeft = getEl('btnFabLeft');
+    const btnFabRight = getEl('btnFabRight');
+    const MOVE_STEP = 20;
 
-    if (btnPanUp) btnPanUp.onclick = () => { if(appState.map) appState.map.panBy(0, -PAN_AMOUNT); };
-    if (btnPanDown) btnPanDown.onclick = () => { if(appState.map) appState.map.panBy(0, PAN_AMOUNT); };
-    if (btnPanLeft) btnPanLeft.onclick = () => { if(appState.map) appState.map.panBy(-PAN_AMOUNT, 0); };
-    if (btnPanRight) btnPanRight.onclick = () => { if(appState.map) appState.map.panBy(PAN_AMOUNT, 0); };
+    // Up increases bottom, Down decreases bottom
+    if (btnFabUp) btnFabUp.onclick = () => adjustFabPosition(0, MOVE_STEP);
+    if (btnFabDown) btnFabDown.onclick = () => adjustFabPosition(0, -MOVE_STEP);
+    // Left increases right (moves away from right edge), Right decreases right (moves towards right edge)
+    if (btnFabLeft) btnFabLeft.onclick = () => adjustFabPosition(MOVE_STEP, 0);
+    if (btnFabRight) btnFabRight.onclick = () => adjustFabPosition(-MOVE_STEP, 0);
     
     bindPanelHeaderTabs();
     updateFabVisibility();
@@ -1046,9 +1083,10 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v84.6 (Share/Incident/DPad)...');
+    console.log('[WalkNav] Starting v84.7 (FAB Positioner)...');
     loadUserProfile();
     loadSavedLocations();
+    loadSavedFabPosition(); // Load saved position
     bindUI();
     renderSavedLocations();
     appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
