@@ -1,9 +1,9 @@
 'use strict';
 
-// WalkNav app.js - v80: Critical Logic Fix for Marker Clicks
-// InfoWindowボタンのID重複バグを修正し、DOM要素直接生成で確実に場所を特定
+// WalkNav app.js - v81: Workflow Fix (No Alert, Auto Scroll, Instant Route)
+// 検索フローを刷新：アラートなし→自動スクロール→タップで即ルート案内＆ズーム
 
-const ISSUE_ID = 'idx20251213_v80_fix_marker_click_logic';
+const ISSUE_ID = 'idx20251213_v81_workflow_fix_auto_scroll_route';
 
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
@@ -56,7 +56,7 @@ if (WN.booted) {
     searchPointMarker: null,
     mapInitialized: false,
     searchMarkers: [],
-    searchInfoWindows: [], // 重要なウィンドウ管理用
+    searchInfoWindows: [],
     savedLocationMarkers: [],
     currentDestination: null,
     currentPolyline: null,
@@ -254,56 +254,26 @@ if (WN.booted) {
         title: loc.name
       });
 
-      // 既存のInfoWindowロジックも修正: DOM要素でボタンを作る
-      const infoDiv = document.createElement('div');
-      infoDiv.className = 'info-window-content';
-      
-      const titleDiv = document.createElement('div');
-      titleDiv.style.fontWeight = 'bold';
-      titleDiv.style.marginBottom = '4px';
-      titleDiv.textContent = loc.name;
-      infoDiv.appendChild(titleDiv);
-
-      const addrDiv = document.createElement('div');
-      addrDiv.style.fontSize = '11px';
-      addrDiv.style.color = '#666';
-      addrDiv.style.marginBottom = '4px';
-      addrDiv.textContent = loc.address || '';
-      infoDiv.appendChild(addrDiv);
-
+      const infoContent = document.createElement('div');
+      infoContent.className = 'info-window-content';
+      let html = `<div style="font-weight:bold; margin-bottom:4px;">${loc.name}</div>`;
+      html += `<div style="font-size:11px; color:#666; margin-bottom:4px;">${loc.address || ''}</div>`;
       if (loc.image) {
-        const img = document.createElement('img');
-        img.src = loc.image;
-        img.style.maxWidth = '200px';
-        img.style.maxHeight = '200px';
-        img.style.display = 'block';
-        img.style.borderRadius = '4px';
-        img.style.marginTop = '4px';
-        infoDiv.appendChild(img);
+        html += `<img src="${loc.image}" style="max-width:200px; max-height:200px; display:block; border-radius:4px; margin-top:4px;">`;
       }
-
-      const navBtn = document.createElement('button');
-      navBtn.textContent = 'ここへ行く';
-      navBtn.style.marginTop = '8px';
-      navBtn.style.padding = '4px 10px';
-      navBtn.style.background = '#2563eb';
-      navBtn.style.color = 'white';
-      navBtn.style.border = 'none';
-      navBtn.style.borderRadius = '4px';
+      html += `<button id="btnInfoNav" style="margin-top:8px; padding:4px 10px; background:#2563eb; color:white; border:none; border-radius:4px;">ここへ行く</button>`;
       
-      // 直接イベントバインド (IDを使わない)
-      navBtn.onclick = () => startNavigation(loc);
-      infoDiv.appendChild(navBtn);
-      
-      const infoWindow = new google.maps.InfoWindow({ content: infoDiv });
+      infoContent.innerHTML = html;
+      const infoWindow = new google.maps.InfoWindow({ content: infoContent });
       
       marker.addListener('click', () => {
-        // 既存のウィンドウを閉じる
-        appState.searchInfoWindows.forEach(w => w.close());
         infoWindow.open(appState.map, marker);
+        setTimeout(() => {
+           const btn = document.querySelector('#btnInfoNav');
+           if(btn) btn.onclick = () => startNavigation(loc);
+        }, 200);
       });
 
-      // ここでは保存マーカー用リストに追加
       appState.savedLocationMarkers.push(marker);
     });
   }
@@ -383,8 +353,8 @@ if (WN.booted) {
     reader.readAsDataURL(file);
   }
 
-  /* === Quick Search === */
-  function quickSearch(keyword, alertMsg) {
+  /* === Quick Search (v81: Alert Removed) === */
+  function quickSearch(keyword) {
     if (!appState.currentPos) return alert('現在地を取得してください');
     const q = getEl('q');
     if (q) {
@@ -392,7 +362,7 @@ if (WN.booted) {
       placesTextSearch(keyword, appState.currentPos.lat, appState.currentPos.lng)
         .then(d => {
           displayResults(d.places || []);
-          if(alertMsg) alertOnce('quick_search_done', alertMsg);
+          // アラート削除
         });
     }
   }
@@ -556,7 +526,7 @@ if (WN.booted) {
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
       refreshSavedMarkers();
-      console.log('[WalkNav] Map initialized v80');
+      console.log('[WalkNav] Map initialized v81');
     } catch (e) {
       console.warn('Map Init Failed', e);
     }
@@ -684,6 +654,10 @@ if (WN.booted) {
 
   async function startNavigation(dest) {
     if (!appState.currentPos) return;
+    
+    // v81 Fix: 目的地名を確実にセット
+    const finalDestName = dest.name || '選択した場所';
+    
     let originLat, originLng;
     if (appState.pointSearchMode && appState.searchPoint) {
       originLat = appState.searchPoint.lat;
@@ -724,7 +698,9 @@ if (WN.booted) {
       let chosen = { route: json.routes[0], index: 0 };
       if (window.RouteEvaluator?.pickBestRoute) chosen = window.RouteEvaluator.pickBestRoute(json.routes, appState.userProfile, appState.aiMode);
       appState.currentRouteData = { routes: json.routes, selectedIndex: chosen.index };
-      renderRoute(chosen.route, dest.name);
+      
+      // v81: 修正された名前を渡す
+      renderRoute(chosen.route, finalDestName);
       startLocationWatcher();
     } catch (e) {
       alertOnce('route_err', 'ルート取得失敗');
@@ -877,12 +853,12 @@ if (WN.booted) {
       cameraInput.onchange = handleCameraInput;
     }
 
-    if(getEl('btnSearchStation')) getEl('btnSearchStation').onclick = () => quickSearch('駅', '周辺の駅を表示しました');
-    if(getEl('btnSearchBus')) getEl('btnSearchBus').onclick = () => quickSearch('バス停', '周辺のバス停を表示しました');
-    if(getEl('btnSearchTaxi')) getEl('btnSearchTaxi').onclick = () => quickSearch('タクシー乗り場', '周辺のタクシー乗り場を表示しました');
-    if(getEl('btnSearchToilet')) getEl('btnSearchToilet').onclick = () => quickSearch('公衆トイレ コンビニ', '周辺のトイレを表示しました');
-    if(getEl('btnSearchConv')) getEl('btnSearchConv').onclick = () => quickSearch('コンビニ', '周辺のコンビニを表示しました');
-    if(getEl('btnSearchWifi')) getEl('btnSearchWifi').onclick = () => quickSearch('Free Wi-Fi', '周辺のWi-Fiを表示しました');
+    if(getEl('btnSearchStation')) getEl('btnSearchStation').onclick = () => quickSearch('駅');
+    if(getEl('btnSearchBus')) getEl('btnSearchBus').onclick = () => quickSearch('バス停');
+    if(getEl('btnSearchTaxi')) getEl('btnSearchTaxi').onclick = () => quickSearch('タクシー乗り場');
+    if(getEl('btnSearchToilet')) getEl('btnSearchToilet').onclick = () => quickSearch('公衆トイレ コンビニ');
+    if(getEl('btnSearchConv')) getEl('btnSearchConv').onclick = () => quickSearch('コンビニ');
+    if(getEl('btnSearchWifi')) getEl('btnSearchWifi').onclick = () => quickSearch('Free Wi-Fi');
 
     if (getEl('btnOpenEditModal')) getEl('btnOpenEditModal').onclick = openEditModal;
     const ph = document.querySelector('.panel-handle-area');
@@ -913,31 +889,35 @@ if (WN.booted) {
     addSavedLocation(name, appState.currentPos.lat, appState.currentPos.lng, addr);
   }
 
-  /* === v80: Display Results using AdvancedMarkerElement with DOM-based InfoWindow === */
+  /* === v81: Auto Scroll + Instant Nav Logic === */
   async function displayResults(places) {
     const div = getEl('results');
     if (!div) return;
     div.innerHTML = '';
     setDisplay('results', 'block');
     
-    // Clear old markers
     appState.searchMarkers.forEach(m => m.map = null);
     appState.searchMarkers = [];
-    // Clear old windows
     appState.searchInfoWindows.forEach(w => w.close());
     appState.searchInfoWindows = [];
 
     const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
 
     places.slice(0, 5).forEach((p, i) => {
-      // 1. List Item
       const item = document.createElement('div');
       item.className = 'result-item';
       item.innerHTML = `<div>${i + 1}. ${p.displayName?.text}</div><div style="font-size:0.8em;opacity:0.7">${p.formattedAddress || ''}</div>`;
-      item.onclick = () => startNavigation({ name: p.displayName?.text, lat: p.location.latitude, lng: p.location.longitude });
+      
+      // v81 Fix: タップしたら即座にルート案内開始
+      item.onclick = () => {
+        startNavigation({ 
+          name: p.displayName?.text || '名称不明', 
+          lat: p.location.latitude, 
+          lng: p.location.longitude 
+        });
+      };
       div.appendChild(item);
 
-      // 2. Custom Marker Content
       const markerContent = document.createElement('div');
       markerContent.className = 'marker-container';
       markerContent.innerHTML = `
@@ -952,55 +932,31 @@ if (WN.booted) {
         title: p.displayName?.text
       });
 
-      // 3. InfoWindow (DOM Creation Method - バグ修正箇所)
-      // 文字列HTMLを使わず、要素を作ってonclickを直接バインドする
-      const infoDiv = document.createElement('div');
-      infoDiv.style.color = '#333';
-      infoDiv.style.padding = '5px';
-      
-      const titleDiv = document.createElement('b');
-      titleDiv.textContent = p.displayName?.text;
-      infoDiv.appendChild(titleDiv);
-      
-      infoDiv.appendChild(document.createElement('br'));
-      
-      const addrSpan = document.createElement('span');
-      addrSpan.style.fontSize = '12px';
-      addrSpan.textContent = p.formattedAddress || '';
-      infoDiv.appendChild(addrSpan);
-      
-      infoDiv.appendChild(document.createElement('br'));
-      
-      const navBtn = document.createElement('button');
-      navBtn.textContent = 'ここへ行く';
-      navBtn.style.background = '#2563eb';
-      navBtn.style.color = 'white';
-      navBtn.style.border = 'none';
-      navBtn.style.padding = '4px 8px';
-      navBtn.style.borderRadius = '4px';
-      navBtn.style.marginTop = '4px';
-      navBtn.style.cursor = 'pointer';
-      
-      // ここで確実にこの場所のデータを渡す
-      navBtn.onclick = () => startNavigation({ name: p.displayName?.text, lat: p.location.latitude, lng: p.location.longitude });
-      
-      infoDiv.appendChild(navBtn);
-
-      const infoWindow = new google.maps.InfoWindow({ content: infoDiv });
-
+      // マーカータップ時も同様
       m.addListener('click', () => {
-        // 他のウィンドウを閉じる
-        appState.searchInfoWindows.forEach(w => w.close());
-        infoWindow.open(appState.map, m);
+        startNavigation({ 
+          name: p.displayName?.text || '名称不明', 
+          lat: p.location.latitude, 
+          lng: p.location.longitude 
+        });
       });
 
       appState.searchMarkers.push(m);
-      appState.searchInfoWindows.push(infoWindow); // 配列に追加して管理
     });
+
+    // v81: 自動スクロール (パネル内の検索結果へスライド)
+    const panelBody = getEl('panelScrollContainer');
+    if(panelBody && div) {
+      // 少し遅らせてレンダリング完了を待つ
+      setTimeout(() => {
+        openPanel(); // パネルを開く
+        div.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v80 (DOM InfoWindows)...');
+    console.log('[WalkNav] Starting v81 (Flow Fix)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
