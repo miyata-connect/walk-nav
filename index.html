@@ -5,18 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>WalkNav</title>
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
-  <link rel="stylesheet" href="app.css?v=77" />
+  <link rel="stylesheet" href="app.css?v=80" />
 </head>
 <body id="appBody">
 <div class="app">
   <div id="map" aria-label="地図"></div>
-
   <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;" />
 
   <section class="panel" id="searchPanel" data-current-tab="search">
-    <div class="panel-handle-area">
-      <div class="panel-handle"></div>
-    </div>
+    <div class="panel-handle-area"><div class="panel-handle"></div></div>
 
     <div class="panel-tabs-header" id="panelTabHeader">
       <button class="tab-btn active" data-panel-tab="search" tabindex="0" type="button">操作</button>
@@ -26,19 +23,16 @@
 
     <div class="panel-tabs-body" id="panelScrollContainer">
       <div class="tab-pane active" id="tabPaneSearch">
-
         <div class="point-search-wrapper">
           <button class="chip point-select full-width" id="btnPointSearch" type="button">📍 ポイント選択</button>
         </div>
-
         <div class="search-header-row">
-          <div class="section-title-inline">近くを検索 (<span id="radiusLabel">10km</span>/5件)</div>
+          <div class="section-title-inline">近くを検索 (5件)</div>
           <div class="distance-chips-row">
             <button class="chip active" id="r10" type="button">10km</button>
             <button class="chip" id="r20" type="button">20km</button>
           </div>
         </div>
-
         <div class="quick-actions-row">
           <button class="chip quick-chip" id="btnSearchStation">🚉 駅</button>
           <button class="chip quick-chip" id="btnSearchBus">🚏 バス停</button>
@@ -47,18 +41,15 @@
           <button class="chip quick-chip" id="btnSearchConv">🏪 コンビニ</button>
           <button class="chip quick-chip" id="btnSearchWifi">📶 Wi-Fi</button>
         </div>
-
         <div class="address-card" id="pointAddressBlock" style="display:none;">
           <div class="address-title" id="pointAddress">ポイント：取得中...</div>
           <div class="address-coords" id="pointCoords"></div>
         </div>
-
         <div class="action-buttons-row">
           <button class="btn btn-outline" id="btnCamera" type="button" style="border-color:#25d07a; color:#25d07a; background:rgba(37, 208, 122, 0.1);">📸 写真メモ</button>
           <button class="btn btn-outline" id="btnSaveCurrent" type="button" style="border-color:#d97706; color:#d97706; background:rgba(254,243,199,0.1);">⭐ 場所保存</button>
           <button class="btn btn-outline" id="btnOpenEditModal" type="button">編集</button>
         </div>
-
         <div class="search-box-container">
           <div class="input-wrapper">
             <input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" autocomplete="off" />
@@ -70,15 +61,12 @@
             </span>
           </div>
         </div>
-
         <div id="results" class="results-list" style="display:none"></div>
-
         <div class="bottom-actions-row">
           <button id="btnReset" class="btn btn-danger" type="button">リセット</button>
           <button id="btnLocatePanel" class="btn btn-primary" type="button">現在地</button>
           <button id="btnClosePanel" class="btn btn-secondary" type="button">閉じる</button>
         </div>
-
         <div id="savedSectionContainer"></div>
       </div>
 
@@ -90,9 +78,7 @@
             <div id="locAddress" class="loc-address"></div>
           </div>
         </div>
-
         <div id="weatherDisplayNav"></div>
-
         <div class="nav-section" id="routeInfoSection" style="display:none;">
           <div class="nav-section-title">🚶 ルート詳細</div>
           <div class="route-summary-card">
@@ -107,12 +93,10 @@
             </div>
           </div>
         </div>
-
         <div class="nav-section" id="incidentSection" style="display:none;">
           <div class="nav-section-title">⚠️ 交通情報・インシデント</div>
           <div id="incidentText" class="incident-alert"></div>
         </div>
-
         <div class="nav-section" id="instructionsSection" style="display:none;">
           <div class="nav-section-title">🧭 ステップバイステップ</div>
           <div id="navPanelInstructions" class="instructions-list"></div>
@@ -152,7 +136,6 @@
             </div>
           </div>
         </div>
-
         <div class="settings-group">
           <div class="settings-label">地図表示モード</div>
           <div class="map-mode-buttons">
@@ -161,7 +144,6 @@
             <button id="btnMap3D" class="map-mode-btn" data-mode="3d" type="button">3D</button>
           </div>
         </div>
-
         <div id="routeControlSection" style="display:none;" class="settings-group">
           <div class="settings-label">ナビゲーション操作</div>
           <div class="nav-controls-stack">
@@ -177,32 +159,26 @@
       <span class="fab-icon">🔍</span>
       <span class="fab-label">検索</span>
     </button>
-
     <button class="fab-btn square" id="btnLocateFab" type="button" data-label="現在地">
       <span class="fab-icon">📍</span>
       <span class="fab-label">現在地</span>
     </button>
-
     <button class="fab-btn square destination" id="btnDestFab" type="button" data-label="目的地" style="display:none">
       <span class="fab-icon">🏁</span>
       <span class="fab-label">目的地</span>
     </button>
-
     <button class="fab-btn square" id="btnSettingsFab" type="button" data-label="設定">
       <span class="fab-icon">⚙️</span>
       <span class="fab-label">設定</span>
     </button>
-
     <button class="fab-btn square" id="btnNavFab" type="button" data-label="案内">
       <span class="fab-icon">🧭</span>
       <span class="fab-label">案内</span>
     </button>
-
     <button class="fab-btn square" id="btnShareFab" type="button" data-label="共有">
       <span class="fab-icon">✉️</span>
       <span class="fab-label">共有</span>
     </button>
-
     <button class="fab-btn square stop-btn" id="btnStopFab" type="button" data-label="終了" style="display:none; background:#ef4444; color:#fff;">
       <span class="fab-icon">🛑</span>
       <span class="fab-label">終了</span>
@@ -226,13 +202,11 @@
       </div>
     </div>
   </div>
-
 </div>
 
 <script src="RouteEvaluator.js"></script>
-<script src="app.js?v=77"></script>
+<script src="app.js?v=80"></script>
 <script src="https://maps.googleapis.com/maps/api/js?language=ja&region=JP&key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&loading=async" async defer></script>
-
 <script>
 (function () {
   document.addEventListener('touchmove', function(e) {
