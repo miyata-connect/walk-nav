@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>WalkNav</title>
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
-  <link rel="stylesheet" href="app.css?v=80" />
+  <link rel="stylesheet" href="app.css?v=81" />
 </head>
 <body id="appBody">
 <div class="app">
@@ -26,6 +26,7 @@
         <div class="point-search-wrapper">
           <button class="chip point-select full-width" id="btnPointSearch" type="button">📍 ポイント選択</button>
         </div>
+        
         <div class="search-header-row">
           <div class="section-title-inline">近くを検索 (5件)</div>
           <div class="distance-chips-row">
@@ -33,6 +34,7 @@
             <button class="chip" id="r20" type="button">20km</button>
           </div>
         </div>
+
         <div class="quick-actions-row">
           <button class="chip quick-chip" id="btnSearchStation">🚉 駅</button>
           <button class="chip quick-chip" id="btnSearchBus">🚏 バス停</button>
@@ -41,15 +43,18 @@
           <button class="chip quick-chip" id="btnSearchConv">🏪 コンビニ</button>
           <button class="chip quick-chip" id="btnSearchWifi">📶 Wi-Fi</button>
         </div>
+
         <div class="address-card" id="pointAddressBlock" style="display:none;">
           <div class="address-title" id="pointAddress">ポイント：取得中...</div>
           <div class="address-coords" id="pointCoords"></div>
         </div>
+
         <div class="action-buttons-row">
           <button class="btn btn-outline" id="btnCamera" type="button" style="border-color:#25d07a; color:#25d07a; background:rgba(37, 208, 122, 0.1);">📸 写真メモ</button>
           <button class="btn btn-outline" id="btnSaveCurrent" type="button" style="border-color:#d97706; color:#d97706; background:rgba(254,243,199,0.1);">⭐ 場所保存</button>
           <button class="btn btn-outline" id="btnOpenEditModal" type="button">編集</button>
         </div>
+
         <div class="search-box-container">
           <div class="input-wrapper">
             <input id="q" class="input" placeholder="店舗名・電話番号・住所・座標など" autocomplete="off" />
@@ -61,12 +66,15 @@
             </span>
           </div>
         </div>
+
         <div id="results" class="results-list" style="display:none"></div>
+
         <div class="bottom-actions-row">
           <button id="btnReset" class="btn btn-danger" type="button">リセット</button>
           <button id="btnLocatePanel" class="btn btn-primary" type="button">現在地</button>
           <button id="btnClosePanel" class="btn btn-secondary" type="button">閉じる</button>
         </div>
+
         <div id="savedSectionContainer"></div>
       </div>
 
@@ -205,7 +213,7 @@
 </div>
 
 <script src="RouteEvaluator.js"></script>
-<script src="app.js?v=80"></script>
+<script src="app.js?v=81"></script>
 <script src="https://maps.googleapis.com/maps/api/js?language=ja&region=JP&key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&loading=async" async defer></script>
 <script>
 (function () {
