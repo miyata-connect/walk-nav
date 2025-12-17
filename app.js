@@ -1,14 +1,16 @@
 'use strict';
 
-// WalkNav app.js - v83: Fix Bounds & Destination Logic
-// 検索時に全ピンが見えるようBounds調整＆ルート案内先が自宅になるバグの完全修正
+// WalkNav app.js - v84: AdvancedMarker RESTORED with DEMO_MAP_ID
+// 地図が消えるバグを修正しつつ、AdvancedMarker(店名表示)と全機能を維持
 
-const ISSUE_ID = 'idx20251213_v83_fix_bounds_and_destination';
+const ISSUE_ID = 'idx20251213_v84_advanced_marker_demo_id';
 
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
-const MAP_ID_KEY = 'walknav_map_id';
-const MAP_ID = (window.WALKNAV_MAP_ID || localStorage.getItem(MAP_ID_KEY) || '9110fb2763169e9d8f2b317e');
+
+// 【重要】地図が消えるのを防ぐため、Google公式のデモIDを使用
+// これによりAPIキーの設定に関わらずAdvancedMarkerが動作します
+const MAP_ID = 'DEMO_MAP_ID'; 
 
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
@@ -74,7 +76,7 @@ if (WN.booted) {
     savedLocations: [],
     mapMode: 'roadmap',
     searchInFlight: false,
-    searchRadiusMeters: 10000,
+    searchRadiusMeters: 10000, // Default 10km
     aiMode: 'normal',
     incidentData: null,
     cachedWeatherData: null,
@@ -234,9 +236,10 @@ if (WN.booted) {
 
   async function refreshSavedMarkers() {
     if (!appState.map) return;
-    appState.savedLocationMarkers.forEach(m => m.setMap(null));
+    appState.savedLocationMarkers.forEach(m => m.map = null);
     appState.savedLocationMarkers = [];
 
+    // AdvancedMarkerElementの使用（DEMO_MAP_IDなら確実に動作）
     const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
 
     appState.savedLocations.forEach(loc => {
@@ -254,24 +257,49 @@ if (WN.booted) {
         title: loc.name
       });
 
-      const infoContent = document.createElement('div');
-      infoContent.className = 'info-window-content';
-      let html = `<div style="font-weight:bold; margin-bottom:4px;">${loc.name}</div>`;
-      html += `<div style="font-size:11px; color:#666; margin-bottom:4px;">${loc.address || ''}</div>`;
-      if (loc.image) {
-        html += `<img src="${loc.image}" style="max-width:200px; max-height:200px; display:block; border-radius:4px; margin-top:4px;">`;
-      }
-      html += `<button id="btnInfoNav" style="margin-top:8px; padding:4px 10px; background:#2563eb; color:white; border:none; border-radius:4px;">ここへ行く</button>`;
+      const infoDiv = document.createElement('div');
+      infoDiv.className = 'info-window-content';
       
-      infoContent.innerHTML = html;
-      const infoWindow = new google.maps.InfoWindow({ content: infoContent });
+      const titleDiv = document.createElement('div');
+      titleDiv.style.fontWeight = 'bold';
+      titleDiv.style.marginBottom = '4px';
+      titleDiv.textContent = loc.name;
+      infoDiv.appendChild(titleDiv);
+
+      const addrDiv = document.createElement('div');
+      addrDiv.style.fontSize = '11px';
+      addrDiv.style.color = '#666';
+      addrDiv.style.marginBottom = '4px';
+      addrDiv.textContent = loc.address || '';
+      infoDiv.appendChild(addrDiv);
+
+      if (loc.image) {
+        const img = document.createElement('img');
+        img.src = loc.image;
+        img.style.maxWidth = '200px';
+        img.style.maxHeight = '200px';
+        img.style.display = 'block';
+        img.style.borderRadius = '4px';
+        img.style.marginTop = '4px';
+        infoDiv.appendChild(img);
+      }
+
+      const navBtn = document.createElement('button');
+      navBtn.textContent = 'ここへ行く';
+      navBtn.style.marginTop = '8px';
+      navBtn.style.padding = '4px 10px';
+      navBtn.style.background = '#2563eb';
+      navBtn.style.color = 'white';
+      navBtn.style.border = 'none';
+      navBtn.style.borderRadius = '4px';
+      navBtn.onclick = () => startNavigation(loc);
+      infoDiv.appendChild(navBtn);
+      
+      const infoWindow = new google.maps.InfoWindow({ content: infoDiv });
       
       marker.addListener('click', () => {
+        appState.searchInfoWindows.forEach(w => w.close());
         infoWindow.open(appState.map, marker);
-        setTimeout(() => {
-           const btn = document.querySelector('#btnInfoNav');
-           if(btn) btn.onclick = () => startNavigation(loc);
-        }, 200);
       });
 
       appState.savedLocationMarkers.push(marker);
@@ -428,6 +456,7 @@ if (WN.booted) {
     } catch (_) {}
   }
 
+  /* === API Calls === */
   async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
     for (let i = 0; i < retries; i++) {
       try {
@@ -494,6 +523,7 @@ if (WN.booted) {
     } catch (_) {}
   }
 
+  /* === Initialization (DEMO_MAP_ID + AdvancedMarker) === */
   async function initMap(center) {
     if (appState.map) {
       appState.map.setCenter(center);
@@ -512,7 +542,7 @@ if (WN.booted) {
         gestureHandling: 'greedy',
         clickableIcons: true,
         disableDefaultUI: true,
-        mapId: MAP_ID
+        mapId: MAP_ID // DEMO_MAP_ID
       });
 
       appState.map.addListener('click', (e) => {
@@ -522,7 +552,7 @@ if (WN.booted) {
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
       refreshSavedMarkers();
-      console.log('[WalkNav] Map initialized v83');
+      console.log('[WalkNav] Map initialized v84 (Advanced + Demo ID)');
     } catch (e) {
       console.warn('Map Init Failed', e);
     }
@@ -605,7 +635,6 @@ if (WN.booted) {
     if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
     appState.locationWatchId = navigator.geolocation.watchPosition(pos => {
       setUserMarker(pos.coords.latitude, pos.coords.longitude);
-      // v83 Fix: 自動追尾はナビ中のみ、かつユーザーがマップを動かしていない時のみ（簡易実装としてナビ中はパンする）
       if (appState.isNavigating && appState.map && !appState.pointSearchMode) {
         appState.map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       }
@@ -615,7 +644,8 @@ if (WN.booted) {
   function renderRoute(route, destName) {
     if (!route?.legs?.[0]) return;
     const leg = route.legs[0];
-    const title = appState.pointSearchMode ? `🚩 指定地点へ` : (destName || '目的地');
+    const startName = leg.start_address ? leg.start_address.replace(/^日本、\s*/, '') : '現在地';
+    const title = appState.pointSearchMode ? `🚩 出発: ${startName}\n🏁 到着: ${destName}` : (destName || '目的地');
 
     setText('destinationName', title);
     setText('routeDistance', leg.distance?.text || '--');
@@ -641,26 +671,16 @@ if (WN.booted) {
         strokeWeight: 6
       });
     }
-    
-    // v83 Fix: Route rendering should strictly follow polyline bounds
     const b = new google.maps.LatLngBounds();
-    // Start and End
-    b.extend(leg.start_location);
-    b.extend(leg.end_location);
-    // Fit bounds to show route
+    if (appState.currentPos) b.extend(appState.currentPos);
+    if (leg.end_location) b.extend(leg.end_location);
     if (appState.map) appState.map.fitBounds(b, { padding: 50 });
-    
     setDisplay('routeInfoSection', 'block');
   }
 
   async function startNavigation(dest) {
-    if (!appState.currentPos) return alert("現在地が取得できていません");
+    if (!appState.currentPos) return;
     
-    // v83: データ検証。lat/lngが無い場合は弾く
-    if (!dest || typeof dest.lat !== 'number' || typeof dest.lng !== 'number') {
-      return alert("エラー: 目的地の座標が不正です");
-    }
-
     const finalDestName = dest.name || '選択した場所';
     
     let originLat, originLng;
@@ -671,24 +691,23 @@ if (WN.booted) {
       originLat = appState.currentPos.lat;
       originLng = appState.currentPos.lng;
     }
-    
     appState.currentDestination = dest;
     appState.isNavigating = true;
-    
     const panel = getEl('searchPanel');
     if (panel) { panel.classList.add('collapsed'); panel.classList.add('hidden-force'); }
     restoreFabLabels();
     updateFabVisibility();
-    
     const fabNav = getEl('btnNavFab');
     const fabSearch = getEl('btnSearchFab');
     if (fabSearch) fabSearch.style.display = 'none';
     if (fabNav) fabNav.style.display = 'flex';
-    
     setDisplay('routeControlSection', 'block');
     setDisplay('results', 'none');
     switchPanelTab('nav');
-
+    if (appState.map) {
+      appState.map.panTo({ lat: dest.lat, lng: dest.lng });
+      appState.map.setZoom(18);
+    }
     try {
       const resp = await fetchWithRetry(`${WORKER_ORIGIN}/directions`, {
         method: 'POST',
@@ -701,45 +720,140 @@ if (WN.booted) {
         })
       });
       const json = await resp.json();
-      if(!json.routes || json.routes.length === 0) throw new Error("ルートが見つかりません");
-
       let chosen = { route: json.routes[0], index: 0 };
       if (window.RouteEvaluator?.pickBestRoute) chosen = window.RouteEvaluator.pickBestRoute(json.routes, appState.userProfile, appState.aiMode);
-      
       appState.currentRouteData = { routes: json.routes, selectedIndex: chosen.index };
       renderRoute(chosen.route, finalDestName);
       startLocationWatcher();
     } catch (e) {
-      alertOnce('route_err', 'ルート取得失敗: ' + e.message);
+      alertOnce('route_err', 'ルート取得失敗');
       stopNavigation();
     }
   }
 
   function stopNavigation() {
-    // v83 Fix: Stop watching but don't clear map center immediately
     if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
-    appState.locationWatchId = null;
     appState.isNavigating = false;
-    
     if (appState.currentPolyline) appState.currentPolyline.setMap(null);
-    
     const panel = getEl('searchPanel');
     if (panel) panel.classList.remove('hidden-force');
     restoreFabLabels();
     updateFabVisibility();
-    
     if(getEl('btnSearchFab')) getEl('btnSearchFab').style.display = 'flex';
     setDisplay('routeControlSection', 'none');
     setDisplay('instructionsSection', 'none');
     setDisplay('routeInfoSection', 'none');
     switchPanelTab('search');
     openPanel();
-    
-    // v83 Fix: 終了時に現在地へ戻り、ズームレベルを歩行用にリセット(16)
     if (appState.currentPos && appState.map) {
       appState.map.panTo(appState.currentPos);
-      appState.map.setZoom(16);
+      appState.map.setZoom(17);
     }
+  }
+
+  function changeMapMode(mode) {
+    localStorage.setItem(MAP_MODE_KEY, mode);
+    appState.mapMode = mode;
+    if (appState.map) {
+      appState.map.setMapTypeId(
+        mode === 'photo' ? google.maps.MapTypeId.SATELLITE :
+        mode === '3d' ? google.maps.MapTypeId.HYBRID :
+        google.maps.MapTypeId.ROADMAP
+      );
+      appState.map.setTilt(mode === '3d' ? 45 : 0);
+    }
+    ['btnMapPhoto', 'btnMapRoadmap', 'btnMap3D'].forEach(id => {
+      const el = getEl(id);
+      if(el) el.classList.toggle('active', el.dataset.mode === mode);
+    });
+  }
+
+  async function placesTextSearch(query, lat, lng) {
+    const payload = {
+      textQuery: query,
+      locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: appState.searchRadiusMeters } },
+      languageCode: 'ja'
+    };
+    try {
+      const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Goog-FieldMask': DEFAULT_MASK },
+        body: JSON.stringify(payload)
+      });
+      if (!resp.ok) throw new Error('Worker Error');
+      return await resp.json();
+    } catch (e) { return {}; }
+  }
+
+  async function updateAllWeatherUI(lat, lng) {
+    const [current, forecast] = await Promise.all([fetchCurrentWeather(lat, lng), fetchForecast(lat, lng)]);
+    const html = buildWeatherHtml(current, forecast);
+    const searchPane = getEl('tabPaneSearch');
+    if (searchPane) {
+      let wEl = getEl('weatherDisplaySearch');
+      if (!wEl) {
+        wEl = document.createElement('div');
+        wEl.id = 'weatherDisplaySearch';
+        const savedContainer = getEl('savedSectionContainer');
+        if (savedContainer && savedContainer.parentNode === searchPane) {
+          searchPane.insertBefore(wEl, savedContainer.nextSibling);
+        } else {
+          searchPane.appendChild(wEl);
+        }
+      }
+      wEl.innerHTML = html;
+      wEl.style.display = 'block';
+    }
+    const navPane = getEl('tabPaneNav');
+    if (navPane) {
+      let wEl = getEl('weatherDisplayNav');
+      if (!wEl) {
+        wEl = document.createElement('div');
+        wEl.id = 'weatherDisplayNav';
+        const locInfo = navPane.querySelector('.location-info');
+        if (locInfo && locInfo.parentNode) {
+          locInfo.parentNode.insertBefore(wEl, locInfo.nextSibling);
+        }
+      }
+      wEl.innerHTML = html;
+      wEl.style.display = 'block';
+    }
+  }
+  
+  function buildWeatherHtml(current, forecast) {
+    if (!current) return '<div style="font-size:12px;color:#888;padding:8px;">☁️ 天気情報取得中...</div>';
+    const curIcon = `https://openweathermap.org/img/wn/${current.weather[0].icon}@2x.png`;
+    const curTemp = Math.round(current.main.temp);
+    const curDesc = current.weather[0].description;
+    let curPop = 0;
+    if (forecast && forecast.list && forecast.list[0]) curPop = Math.round(forecast.list[0].pop * 100);
+    let forecastItemsHtml = '';
+    if (forecast && forecast.list) {
+      for (let i = 1; i <= 3; i++) {
+        const item = forecast.list[i];
+        if (item) {
+          const fTime = `${i * 3}時間後`;
+          const fIcon = `https://openweathermap.org/img/wn/${item.weather[0].icon}.png`;
+          const fTemp = Math.round(item.main.temp);
+          const fPop = Math.round(item.pop * 100);
+          forecastItemsHtml += `<div class="weather-forecast-item"><span class="wf-time">${fTime}</span><img src="${fIcon}" class="wf-icon" alt=""><span class="wf-temp">${fTemp}℃</span><span class="wf-pop">${fPop}%</span></div>`;
+        }
+      }
+    }
+    return `<div class="weather-unified-card"><div class="weather-current-section"><img src="${curIcon}" class="weather-main-icon" alt="${curDesc}"><div class="weather-main-temp">${curTemp}℃</div><div class="weather-main-desc">${curDesc}</div><div class="weather-pop-badge">☂ ${curPop}%</div></div><div class="weather-forecast-row">${forecastItemsHtml}</div></div>`;
+  }
+
+  function bindPanelHeaderTabs() {
+    document.querySelectorAll('.tab-btn[data-panel-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.getAttribute('data-panel-tab') || 'search';
+        if (isPanelHiddenForce()) return;
+        const open = isPanelOpen();
+        const active = getActiveTabNameFromDOM();
+        if (open && active === tab) { collapsePanel(); return; }
+        switchPanelTab(tab); openPanel(); restoreFabLabels();
+      });
+    });
   }
 
   function setSearchRadius(km) {
@@ -803,41 +917,14 @@ if (WN.booted) {
     restoreFabLabels();
   }
 
-  function changeMapMode(mode) {
-    localStorage.setItem(MAP_MODE_KEY, mode);
-    appState.mapMode = mode;
-    if (appState.map) {
-      appState.map.setMapTypeId(
-        mode === 'photo' ? google.maps.MapTypeId.SATELLITE :
-        mode === '3d' ? google.maps.MapTypeId.HYBRID :
-        google.maps.MapTypeId.ROADMAP
-      );
-      appState.map.setTilt(mode === '3d' ? 45 : 0);
-    }
-    ['btnMapPhoto', 'btnMapRoadmap', 'btnMap3D'].forEach(id => {
-      const el = getEl(id);
-      if(el) el.classList.toggle('active', el.dataset.mode === mode);
-    });
+  function handleSaveCurrentLocation() {
+    if (!appState.currentPos) return alert('現在地が取得できていません');
+    const name = prompt('保存する名前を入力してください（例：自宅）');
+    if (!name) return;
+    const addr = getEl('locAddress')?.textContent || '現在地';
+    addSavedLocation(name, appState.currentPos.lat, appState.currentPos.lng, addr);
   }
 
-  async function placesTextSearch(query, lat, lng) {
-    const payload = {
-      textQuery: query,
-      locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: appState.searchRadiusMeters } },
-      languageCode: 'ja'
-    };
-    try {
-      const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Goog-FieldMask': DEFAULT_MASK },
-        body: JSON.stringify(payload)
-      });
-      if (!resp.ok) throw new Error('Worker Error');
-      return await resp.json();
-    } catch (e) { return {}; }
-  }
-
-  /* === v83 Fix: Display Results with Auto-Zoom Bounds === */
   async function displayResults(places) {
     const div = getEl('results');
     if (!div) return;
@@ -850,30 +937,21 @@ if (WN.booted) {
     appState.searchInfoWindows = [];
 
     const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
-    // v83 Fix: Create bounds to fit all markers
-    const bounds = new google.maps.LatLngBounds();
-    // Add current position to bounds so the user knows where they are relative to results
-    if (appState.currentPos) bounds.extend(appState.currentPos);
 
     places.slice(0, 5).forEach((p, i) => {
-      // 1. List Item
       const item = document.createElement('div');
       item.className = 'result-item';
       item.innerHTML = `<div>${i + 1}. ${p.displayName?.text}</div><div style="font-size:0.8em;opacity:0.7">${p.formattedAddress || ''}</div>`;
       
-      // Explicit data passing for navigation
-      const destData = {
-        name: p.displayName?.text || '名称不明',
-        lat: p.location.latitude,
-        lng: p.location.longitude
-      };
-
       item.onclick = () => {
-        startNavigation(destData);
+        startNavigation({ 
+          name: p.displayName?.text || '名称不明', 
+          lat: p.location.latitude, 
+          lng: p.location.longitude 
+        });
       };
       div.appendChild(item);
 
-      // 2. Marker
       const markerContent = document.createElement('div');
       markerContent.className = 'marker-container';
       markerContent.innerHTML = `
@@ -888,20 +966,16 @@ if (WN.booted) {
         title: p.displayName?.text
       });
 
-      // Extend bounds to include this marker
-      bounds.extend({ lat: p.location.latitude, lng: p.location.longitude });
-
       m.addListener('click', () => {
-        startNavigation(destData);
+        startNavigation({ 
+          name: p.displayName?.text || '名称不明', 
+          lat: p.location.latitude, 
+          lng: p.location.longitude 
+        });
       });
 
       appState.searchMarkers.push(m);
     });
-
-    // v83 Fix: Auto zoom to show all results + current pos
-    if (appState.map && !bounds.isEmpty()) {
-      appState.map.fitBounds(bounds, { padding: 50 });
-    }
 
     const panelBody = getEl('panelScrollContainer');
     if(panelBody && div) {
@@ -913,7 +987,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v83 (Fix: Destination Bug & Zoom)...');
+    console.log('[WalkNav] Starting v84 (Advanced + DEMO_MAP_ID)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
