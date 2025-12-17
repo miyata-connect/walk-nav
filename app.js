@@ -1,15 +1,14 @@
 'use strict';
 
-// WalkNav app.js - v77: AdvancedMarkerElement (Name on Map) + Layout Fix
-// AdvancedMarkerElementを使用して、マップ上のピンの横に「店舗名」を常時表示させる修正
+// WalkNav app.js - v80: Critical Logic Fix for Marker Clicks
+// InfoWindowボタンのID重複バグを修正し、DOM要素直接生成で確実に場所を特定
 
-const ISSUE_ID = 'idx20251213_v77_advanced_markers_name_display';
+const ISSUE_ID = 'idx20251213_v80_fix_marker_click_logic';
 
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
-// AdvancedMarkerにはMap IDが必須
 const MAP_ID_KEY = 'walknav_map_id';
-const MAP_ID = (window.WALKNAV_MAP_ID || localStorage.getItem(MAP_ID_KEY) || '9110fb2763169e9d8f2b317e'); // デフォルトIDを指定
+const MAP_ID = (window.WALKNAV_MAP_ID || localStorage.getItem(MAP_ID_KEY) || '9110fb2763169e9d8f2b317e');
 
 const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
 const MAX_RETRY = 3;
@@ -57,7 +56,7 @@ if (WN.booted) {
     searchPointMarker: null,
     mapInitialized: false,
     searchMarkers: [],
-    searchInfoWindows: [],
+    searchInfoWindows: [], // 重要なウィンドウ管理用
     savedLocationMarkers: [],
     currentDestination: null,
     currentPolyline: null,
@@ -235,17 +234,13 @@ if (WN.booted) {
 
   async function refreshSavedMarkers() {
     if (!appState.map) return;
-    // 古いマーカーを削除
     appState.savedLocationMarkers.forEach(m => m.setMap(null));
     appState.savedLocationMarkers = [];
 
-    // AdvancedMarkerElementの使用準備
     const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
 
     appState.savedLocations.forEach(loc => {
       const isPhoto = (loc.type === 'photo');
-      
-      // カスタムピンの作成（写真なら緑、場所なら黄色）
       const pin = new PinElement({
         glyph: isPhoto ? '📷' : '★',
         background: isPhoto ? '#25d07a' : '#f59e0b',
@@ -259,27 +254,56 @@ if (WN.booted) {
         title: loc.name
       });
 
-      // クリックイベント（Legacyと同じInfoWindowを使用）
-      const infoContent = document.createElement('div');
-      infoContent.className = 'info-window-content';
-      let html = `<div style="font-weight:bold; margin-bottom:4px;">${loc.name}</div>`;
-      html += `<div style="font-size:11px; color:#666; margin-bottom:4px;">${loc.address || ''}</div>`;
-      if (loc.image) {
-        html += `<img src="${loc.image}" style="max-width:200px; max-height:200px; display:block; border-radius:4px; margin-top:4px;">`;
-      }
-      html += `<button id="btnInfoNav" style="margin-top:8px; padding:4px 10px; background:#2563eb; color:white; border:none; border-radius:4px;">ここへ行く</button>`;
+      // 既存のInfoWindowロジックも修正: DOM要素でボタンを作る
+      const infoDiv = document.createElement('div');
+      infoDiv.className = 'info-window-content';
       
-      infoContent.innerHTML = html;
-      const infoWindow = new google.maps.InfoWindow({ content: infoContent });
+      const titleDiv = document.createElement('div');
+      titleDiv.style.fontWeight = 'bold';
+      titleDiv.style.marginBottom = '4px';
+      titleDiv.textContent = loc.name;
+      infoDiv.appendChild(titleDiv);
+
+      const addrDiv = document.createElement('div');
+      addrDiv.style.fontSize = '11px';
+      addrDiv.style.color = '#666';
+      addrDiv.style.marginBottom = '4px';
+      addrDiv.textContent = loc.address || '';
+      infoDiv.appendChild(addrDiv);
+
+      if (loc.image) {
+        const img = document.createElement('img');
+        img.src = loc.image;
+        img.style.maxWidth = '200px';
+        img.style.maxHeight = '200px';
+        img.style.display = 'block';
+        img.style.borderRadius = '4px';
+        img.style.marginTop = '4px';
+        infoDiv.appendChild(img);
+      }
+
+      const navBtn = document.createElement('button');
+      navBtn.textContent = 'ここへ行く';
+      navBtn.style.marginTop = '8px';
+      navBtn.style.padding = '4px 10px';
+      navBtn.style.background = '#2563eb';
+      navBtn.style.color = 'white';
+      navBtn.style.border = 'none';
+      navBtn.style.borderRadius = '4px';
+      
+      // 直接イベントバインド (IDを使わない)
+      navBtn.onclick = () => startNavigation(loc);
+      infoDiv.appendChild(navBtn);
+      
+      const infoWindow = new google.maps.InfoWindow({ content: infoDiv });
       
       marker.addListener('click', () => {
+        // 既存のウィンドウを閉じる
+        appState.searchInfoWindows.forEach(w => w.close());
         infoWindow.open(appState.map, marker);
-        setTimeout(() => {
-           const btn = document.querySelector('#btnInfoNav');
-           if(btn) btn.onclick = () => startNavigation(loc);
-        }, 200);
       });
 
+      // ここでは保存マーカー用リストに追加
       appState.savedLocationMarkers.push(marker);
     });
   }
@@ -503,7 +527,7 @@ if (WN.booted) {
     } catch (_) {}
   }
 
-  /* === Initialization with AdvancedMarkerElement === */
+  /* === Initialization === */
   async function initMap(center) {
     if (appState.map) {
       appState.map.setCenter(center);
@@ -513,7 +537,6 @@ if (WN.booted) {
     if (!mapEl) return;
 
     try {
-      // Import needed libraries
       const { Map } = await google.maps.importLibrary("maps");
       const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
 
@@ -523,7 +546,7 @@ if (WN.booted) {
         gestureHandling: 'greedy',
         clickableIcons: true,
         disableDefaultUI: true,
-        mapId: MAP_ID // 必須
+        mapId: MAP_ID
       });
 
       appState.map.addListener('click', (e) => {
@@ -533,7 +556,7 @@ if (WN.booted) {
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
       refreshSavedMarkers();
-      console.log('[WalkNav] Map initialized v77 (Advanced Markers)');
+      console.log('[WalkNav] Map initialized v80');
     } catch (e) {
       console.warn('Map Init Failed', e);
     }
@@ -548,7 +571,6 @@ if (WN.booted) {
     if (appState.userMarker) {
       appState.userMarker.position = { lat, lng };
     } else {
-      // 青い丸ピンを作成
       const pin = new PinElement({
         glyph: '',
         background: '#3aa0ff',
@@ -623,9 +645,7 @@ if (WN.booted) {
     }, null, LOCATION_OPTIONS);
   }
 
-  // ルート描画やナビゲーション周りは既存維持（マーカーは変更しない場合もあるが、統一感を出すならここもAdvanced推奨だが、まずは検索結果を優先）
   function renderRoute(route, destName) {
-    // ... (既存ロジック。PolylineはMarkerではないのでそのまま動作します)
     if (!route?.legs?.[0]) return;
     const leg = route.legs[0];
     const startName = leg.start_address ? leg.start_address.replace(/^日本、\s*/, '') : '現在地';
@@ -664,7 +684,6 @@ if (WN.booted) {
 
   async function startNavigation(dest) {
     if (!appState.currentPos) return;
-    // ... (ナビ開始ロジック変更なし)
     let originLat, originLng;
     if (appState.pointSearchMode && appState.searchPoint) {
       originLat = appState.searchPoint.lat;
@@ -751,7 +770,6 @@ if (WN.booted) {
   }
 
   async function placesTextSearch(query, lat, lng) {
-    // ... (変更なし)
     const payload = {
       textQuery: query,
       locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: appState.searchRadiusMeters } },
@@ -771,7 +789,6 @@ if (WN.booted) {
   async function updateAllWeatherUI(lat, lng) {
     const [current, forecast] = await Promise.all([fetchCurrentWeather(lat, lng), fetchForecast(lat, lng)]);
     const html = buildWeatherHtml(current, forecast);
-    // ... (Weather UI Update Logic)
     const searchPane = getEl('tabPaneSearch');
     if (searchPane) {
       let wEl = getEl('weatherDisplaySearch');
@@ -808,7 +825,6 @@ if (WN.booted) {
     if (!current) return '<div style="font-size:12px;color:#888;padding:8px;">☁️ 天気情報取得中...</div>';
     const curIcon = `https://openweathermap.org/img/wn/${current.weather[0].icon}@2x.png`;
     const curTemp = Math.round(current.main.temp);
-    // ... (Weather HTML Construction)
     const curDesc = current.weather[0].description;
     let curPop = 0;
     if (forecast && forecast.list && forecast.list[0]) curPop = Math.round(forecast.list[0].pop * 100);
@@ -842,7 +858,6 @@ if (WN.booted) {
   }
 
   function bindUI() {
-    // ... (Same Logic)
     const btnSearchFab = getEl('btnSearchFab');
     const btnLocateFab = getEl('btnLocateFab');
     const btnNavFab = getEl('btnNavFab');
@@ -898,20 +913,21 @@ if (WN.booted) {
     addSavedLocation(name, appState.currentPos.lat, appState.currentPos.lng, addr);
   }
 
-  /* === v77 CRITICAL FIX: Display Results using AdvancedMarkerElement with Labels === */
+  /* === v80: Display Results using AdvancedMarkerElement with DOM-based InfoWindow === */
   async function displayResults(places) {
     const div = getEl('results');
     if (!div) return;
     div.innerHTML = '';
     setDisplay('results', 'block');
     
-    // Clear existing
+    // Clear old markers
     appState.searchMarkers.forEach(m => m.map = null);
     appState.searchMarkers = [];
+    // Clear old windows
     appState.searchInfoWindows.forEach(w => w.close());
     appState.searchInfoWindows = [];
 
-    const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
+    const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
 
     places.slice(0, 5).forEach((p, i) => {
       // 1. List Item
@@ -921,8 +937,7 @@ if (WN.booted) {
       item.onclick = () => startNavigation({ name: p.displayName?.text, lat: p.location.latitude, lng: p.location.longitude });
       div.appendChild(item);
 
-      // 2. Custom Marker Content (Pin + Name Label)
-      // これにより、地図上に常に店名が表示されます
+      // 2. Custom Marker Content
       const markerContent = document.createElement('div');
       markerContent.className = 'marker-container';
       markerContent.innerHTML = `
@@ -930,40 +945,62 @@ if (WN.booted) {
         <div class="marker-label">${p.displayName?.text || '名称不明'}</div>
       `;
 
-      // 3. AdvancedMarkerElement
       const m = new AdvancedMarkerElement({
         map: appState.map,
         position: { lat: p.location.latitude, lng: p.location.longitude },
-        content: markerContent, // DOM要素をそのままマーカーにする
+        content: markerContent,
         title: p.displayName?.text
       });
 
-      // 4. Click Action (Start Nav)
-      // マーカー自体をクリックしたらナビ開始（または詳細）
+      // 3. InfoWindow (DOM Creation Method - バグ修正箇所)
+      // 文字列HTMLを使わず、要素を作ってonclickを直接バインドする
+      const infoDiv = document.createElement('div');
+      infoDiv.style.color = '#333';
+      infoDiv.style.padding = '5px';
+      
+      const titleDiv = document.createElement('b');
+      titleDiv.textContent = p.displayName?.text;
+      infoDiv.appendChild(titleDiv);
+      
+      infoDiv.appendChild(document.createElement('br'));
+      
+      const addrSpan = document.createElement('span');
+      addrSpan.style.fontSize = '12px';
+      addrSpan.textContent = p.formattedAddress || '';
+      infoDiv.appendChild(addrSpan);
+      
+      infoDiv.appendChild(document.createElement('br'));
+      
+      const navBtn = document.createElement('button');
+      navBtn.textContent = 'ここへ行く';
+      navBtn.style.background = '#2563eb';
+      navBtn.style.color = 'white';
+      navBtn.style.border = 'none';
+      navBtn.style.padding = '4px 8px';
+      navBtn.style.borderRadius = '4px';
+      navBtn.style.marginTop = '4px';
+      navBtn.style.cursor = 'pointer';
+      
+      // ここで確実にこの場所のデータを渡す
+      navBtn.onclick = () => startNavigation({ name: p.displayName?.text, lat: p.location.latitude, lng: p.location.longitude });
+      
+      infoDiv.appendChild(navBtn);
+
+      const infoWindow = new google.maps.InfoWindow({ content: infoDiv });
+
       m.addListener('click', () => {
-        // InfoWindowも出すが、ラベルが既にあるので、より詳細な情報を出す
-        const infoDiv = document.createElement('div');
-        infoDiv.innerHTML = `
-          <div style="color:black; padding:5px;">
-            <b>${p.displayName?.text}</b><br>
-            <span style="font-size:12px">${p.formattedAddress || ''}</span><br>
-            <button id="btnMapNav" style="background:#2563eb;color:white;border:none;padding:4px 8px;border-radius:4px;margin-top:4px;">ここへ行く</button>
-          </div>
-        `;
-        const infoWindow = new google.maps.InfoWindow({ content: infoDiv });
+        // 他のウィンドウを閉じる
+        appState.searchInfoWindows.forEach(w => w.close());
         infoWindow.open(appState.map, m);
-        setTimeout(() => {
-            const b = document.getElementById('btnMapNav');
-            if(b) b.onclick = () => startNavigation({ name: p.displayName?.text, lat: p.location.latitude, lng: p.location.longitude });
-        }, 100);
       });
 
       appState.searchMarkers.push(m);
+      appState.searchInfoWindows.push(infoWindow); // 配列に追加して管理
     });
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v77 (Visible Labels on Map)...');
+    console.log('[WalkNav] Starting v80 (DOM InfoWindows)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
