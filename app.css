@@ -1,12 +1,14 @@
-/* app.css (v84.2: Error Popup Hidden + AdvancedMarker styles) */
+/* app.css (v84.4: Anti-Zoom Enforced) */
 
 /* ------------------------------------------------------------------
-   基本設定 (Base)
+   基本設定 (Base) - ズーム防止強化
 ------------------------------------------------------------------ */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+  /* 全要素でダブルタップズーム等のジェスチャを抑制 */
+  touch-action: manipulation;
 }
 
 html,
@@ -19,7 +21,8 @@ body {
   overscroll-behavior: none;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
   background: #000;
-  touch-action: manipulation;
+  /* ピンチズームも無効化 */
+  touch-action: none;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -40,6 +43,7 @@ body {
   height: 100dvh;
   overflow: hidden;
   background: #000;
+  touch-action: none; /* アプリ全体でズーム禁止 */
 }
 
 #map {
@@ -47,6 +51,7 @@ body {
   inset: 0;
   width: 100%;
   height: 100dvh;
+  touch-action: none;
 }
 
 /* ★★★ Google Map Error Popup Suppression ★★★ */
@@ -55,7 +60,7 @@ body {
 }
 
 /* ------------------------------------------------------------------
-   パネル (Panel)
+   パネル (Panel) - 操作エリアの挙動制御
 ------------------------------------------------------------------ */
 .panel {
   position: absolute;
@@ -76,7 +81,9 @@ body {
   transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease;
   transform: translateY(0);
   opacity: 1;
-  touch-action: pan-y;
+  /* パネル自体はスクロールなし（中身でスクロール）なので none 推奨だが、
+     中のスクロールを生かすため pan-y。ただしダブルタップは manipulation で殺す */
+  touch-action: pan-y; 
 }
 
 .panel.collapsed {
@@ -95,7 +102,7 @@ body {
   justify-content: center;
   padding: 4px 0 12px;
   cursor: pointer;
-  touch-action: pan-y;
+  touch-action: none; /* ハンドル操作でズームさせない */
 }
 
 .panel-handle {
@@ -103,6 +110,7 @@ body {
   height: 5px;
   border-radius: 999px;
   background: rgba(148, 163, 184, 0.5);
+  pointer-events: none;
 }
 
 /* ------------------------------------------------------------------
@@ -115,7 +123,7 @@ body {
   padding: 0 16px 12px;
   border-bottom: 1px solid var(--stroke-soft);
   margin-bottom: 16px;
-  touch-action: pan-y;
+  touch-action: none; /* タブ連打でズームさせない */
 }
 
 .panel-tabs-body {
@@ -124,7 +132,8 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
+  /* スクロール領域は縦スクロールのみ許可、拡大縮小は禁止 */
+  touch-action: pan-y; 
   max-width: 100%;
 }
 
@@ -210,7 +219,7 @@ body {
   justify-content: center;
   gap: 6px;
   cursor: pointer;
-  touch-action: manipulation;
+  touch-action: manipulation; /* 連打ズーム防止 */
   transition: transform 0.1s ease, background 0.2s;
   padding: 6px 0;
 }
@@ -286,6 +295,7 @@ body {
   justify-content: center;
   gap: 12px;
   margin-bottom: 16px;
+  touch-action: none; /* ヘッダー付近のズーム防止 */
 }
 
 .section-title-inline {
@@ -327,6 +337,7 @@ body {
   white-space: nowrap;
   padding-bottom: 4px;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y; /* スクロールのみ許可 */
 }
 
 .quick-actions-row::-webkit-scrollbar {
@@ -644,7 +655,7 @@ body {
 }
 
 /* ------------------------------------------------------------------
-   検索ボックス
+   検索ボックス (入力ズーム防止: font-size 16px強制)
 ------------------------------------------------------------------ */
 .search-box-container {
   margin: 12px 0 16px;
@@ -669,9 +680,11 @@ body {
   border: none;
   background: transparent;
   color: #fff;
-  font-size: 16px;
+  /* iOSでの入力時ズームを防ぐため16px必須 */
+  font-size: 16px !important;
   outline: none;
   min-width: 0;
+  touch-action: manipulation;
 }
 
 .icon svg {
@@ -690,7 +703,7 @@ body {
   max-height: 35vh;
   overflow-y: auto;
   overflow-x: hidden;
-  touch-action: pan-y;
+  touch-action: pan-y; /* スクロール許可、ズーム禁止 */
   max-width: 100%;
 }
 
@@ -783,6 +796,7 @@ body {
 }
 
 .setting-input {
+  /* iOSでの入力時ズームを防ぐため16px必須 */
   font-size: 16px !important;
   padding: 12px !important;
   height: 48px;
@@ -792,6 +806,7 @@ body {
   border-radius: 8px;
   color: #fff;
   max-width: 100%;
+  touch-action: manipulation;
 }
 
 .map-mode-buttons {
@@ -934,6 +949,7 @@ body {
   align-items: center;
   justify-content: center;
   animation: fadeIn 0.2s ease-out;
+  touch-action: none; /* モーダル背景でのズーム防止 */
 }
 
 .edit-modal-content {
@@ -956,6 +972,7 @@ body {
   color: #fff;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   text-align: center;
+  touch-action: none;
 }
 
 .edit-modal-body {
@@ -973,6 +990,7 @@ body {
   display: flex;
   gap: 10px;
   background: #111827;
+  touch-action: none;
 }
 
 .edit-modal-actions .btn {
@@ -1001,9 +1019,10 @@ body {
   border: none;
   border-bottom: 1px solid #4b5563;
   color: #fff;
-  font-size: 15px;
+  font-size: 15px; /* ここも念のため16px推奨だが、デザイン上15pxならJS防御で補完 */
   padding: 4px 0;
   outline: none;
+  touch-action: manipulation;
 }
 
 .edit-input-name:focus {
