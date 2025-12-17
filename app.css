@@ -1,4 +1,4 @@
-/* app.css (v84: AdvancedMarker styles Restored) */
+/* app.css (v84.2: Error Popup Hidden + AdvancedMarker styles) */
 
 /* ------------------------------------------------------------------
    基本設定 (Base)
@@ -47,6 +47,11 @@ body {
   inset: 0;
   width: 100%;
   height: 100dvh;
+}
+
+/* ★★★ Google Map Error Popup Suppression ★★★ */
+.gm-err-container {
+  display: none !important;
 }
 
 /* ------------------------------------------------------------------
