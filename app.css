@@ -1,7 +1,7 @@
-/* app.css (v84.6: Share fixed, Incidents restored, D-Pad added) */
+/* app.css (v84.7: UI Position Adjustment Support) */
 
 /* ------------------------------------------------------------------
-   基本設定 (Base) - ズーム防止強化
+   基本設定 (Base)
 ------------------------------------------------------------------ */
 *,
 *::before,
@@ -52,7 +52,6 @@ body {
   touch-action: none;
 }
 
-/* ★★★ Google Map Error Popup Suppression ★★★ */
 .gm-err-container {
   display: none !important;
 }
@@ -63,7 +62,7 @@ body {
 .panel {
   position: absolute;
   left: 12px;
-  right: 80px;
+  right: 80px; /* 初期状態では右側にFABがあるため空けておく */
   bottom: 20px;
   height: 50dvh;
   max-height: 50dvh;
@@ -187,6 +186,7 @@ body {
 ------------------------------------------------------------------ */
 .fab-container {
   position: absolute;
+  /* 初期位置: JSで上書きされるため、ここはデフォルト値 */
   right: 12px;
   bottom: 20px;
   display: flex;
@@ -197,6 +197,7 @@ body {
   display: flex !important;
   opacity: 1 !important;
   visibility: visible !important;
+  transition: right 0.2s ease, bottom 0.2s ease; /* 移動時のアニメーション */
 }
 
 .fab-btn {
@@ -827,7 +828,7 @@ body {
   color: #000;
 }
 
-/* --- 十字キー (D-Pad) --- */
+/* --- ボタン位置調整 (FAB Positioner) --- */
 .d-pad-container {
   display: flex;
   flex-direction: column;
