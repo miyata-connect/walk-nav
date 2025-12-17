@@ -1,4 +1,4 @@
-/* app.css (v76: Quick Actions + Photo Styles + InfoWindow) */
+/* app.css (v77: Layout Fixes + Marker Labels + Proper Formatting) */
 
 /* ------------------------------------------------------------------
    基本設定 (Base)
@@ -17,10 +17,10 @@ body {
   width: 100% !important;
   overflow: hidden !important;
   overscroll-behavior: none;
-  -webkit-text-size-adjust: 100%;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
   background: #000;
   touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
 }
 
 :root {
@@ -274,11 +274,13 @@ body {
   padding: 10px 16px;
 }
 
+/* v77: 折り返し対応 */
 .search-header-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 16px;
 }
 
@@ -311,30 +313,7 @@ body {
 }
 
 /* ------------------------------------------------------------------
-   チップ (Chips)
------------------------------------------------------------------- */
-.chip {
-  flex: 0 0 auto;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  background: rgba(30, 30, 35, 0.8);
-  color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 500;
-  padding: 8px 16px;
-  transition: all 0.2s;
-  touch-action: manipulation;
-}
-
-.chip.active {
-  background: var(--text-main);
-  color: #000;
-  border-color: transparent;
-  font-weight: 700;
-}
-
-/* ------------------------------------------------------------------
-   クイックアクション (v76 New)
+   クイックアクション (v77)
 ------------------------------------------------------------------ */
 .quick-actions-row {
   display: flex;
@@ -342,7 +321,7 @@ body {
   margin-bottom: 16px;
   overflow-x: auto;
   white-space: nowrap;
-  padding-bottom: 4px; /* スクロールバーとの干渉避け */
+  padding-bottom: 4px;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -367,8 +346,28 @@ body {
 }
 
 /* ------------------------------------------------------------------
-   ボタン (Buttons)
+   チップ & ボタン
 ------------------------------------------------------------------ */
+.chip {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(30, 30, 35, 0.8);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  transition: all 0.2s;
+  touch-action: manipulation;
+}
+
+.chip.active {
+  background: var(--text-main);
+  color: #000;
+  border-color: transparent;
+  font-weight: 700;
+}
+
 .btn {
   border-radius: 999px;
   border: none;
@@ -443,6 +442,46 @@ body {
 .bottom-actions-row .btn {
   flex: 1;
   min-width: 0;
+}
+
+/* ------------------------------------------------------------------
+   AdvancedMarker Custom Styles (v77)
+   地図上に常時表示される店名ラベル用
+------------------------------------------------------------------ */
+.marker-container {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 20px;
+  padding: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transform: translateY(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  pointer-events: none; /* マーカーへのクリックを邪魔しない */
+}
+
+.marker-pin {
+  width: 24px;
+  height: 24px;
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 12px;
+  margin-right: 6px;
+  border: 2px solid #fff;
+}
+
+.marker-label {
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  padding-right: 6px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 /* ------------------------------------------------------------------
@@ -969,18 +1008,18 @@ body {
 }
 
 /* ------------------------------------------------------------------
-   InfoWindow (v76: 写真 & 店舗情報表示用)
+   InfoWindow (v77: 吹き出し調整)
 ------------------------------------------------------------------ */
 .info-window-content {
   color: #333;
   font-family: -apple-system, sans-serif;
   padding: 4px;
+  min-width: 160px;
 }
 
 .info-window-content img {
   object-fit: cover;
   width: 100%;
-  display: block;
   border-radius: 4px;
   margin-top: 4px;
 }
