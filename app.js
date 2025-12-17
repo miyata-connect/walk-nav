@@ -1,9 +1,9 @@
 'use strict';
 
-// WalkNav app.js - v81: Workflow Fix (No Alert, Auto Scroll, Instant Route)
-// 検索フローを刷新：アラートなし→自動スクロール→タップで即ルート案内＆ズーム
+// WalkNav app.js - v83: Fix Bounds & Destination Logic
+// 検索時に全ピンが見えるようBounds調整＆ルート案内先が自宅になるバグの完全修正
 
-const ISSUE_ID = 'idx20251213_v81_workflow_fix_auto_scroll_route';
+const ISSUE_ID = 'idx20251213_v83_fix_bounds_and_destination';
 
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
@@ -353,7 +353,6 @@ if (WN.booted) {
     reader.readAsDataURL(file);
   }
 
-  /* === Quick Search (v81: Alert Removed) === */
   function quickSearch(keyword) {
     if (!appState.currentPos) return alert('現在地を取得してください');
     const q = getEl('q');
@@ -362,7 +361,6 @@ if (WN.booted) {
       placesTextSearch(keyword, appState.currentPos.lat, appState.currentPos.lng)
         .then(d => {
           displayResults(d.places || []);
-          // アラート削除
         });
     }
   }
@@ -430,7 +428,6 @@ if (WN.booted) {
     } catch (_) {}
   }
 
-  /* === API Calls === */
   async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
     for (let i = 0; i < retries; i++) {
       try {
@@ -497,7 +494,6 @@ if (WN.booted) {
     } catch (_) {}
   }
 
-  /* === Initialization === */
   async function initMap(center) {
     if (appState.map) {
       appState.map.setCenter(center);
@@ -526,7 +522,7 @@ if (WN.booted) {
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
       refreshSavedMarkers();
-      console.log('[WalkNav] Map initialized v81');
+      console.log('[WalkNav] Map initialized v83');
     } catch (e) {
       console.warn('Map Init Failed', e);
     }
@@ -609,6 +605,7 @@ if (WN.booted) {
     if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
     appState.locationWatchId = navigator.geolocation.watchPosition(pos => {
       setUserMarker(pos.coords.latitude, pos.coords.longitude);
+      // v83 Fix: 自動追尾はナビ中のみ、かつユーザーがマップを動かしていない時のみ（簡易実装としてナビ中はパンする）
       if (appState.isNavigating && appState.map && !appState.pointSearchMode) {
         appState.map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       }
@@ -618,8 +615,7 @@ if (WN.booted) {
   function renderRoute(route, destName) {
     if (!route?.legs?.[0]) return;
     const leg = route.legs[0];
-    const startName = leg.start_address ? leg.start_address.replace(/^日本、\s*/, '') : '現在地';
-    const title = appState.pointSearchMode ? `🚩 出発: ${startName}\n🏁 到着: ${destName}` : (destName || '目的地');
+    const title = appState.pointSearchMode ? `🚩 指定地点へ` : (destName || '目的地');
 
     setText('destinationName', title);
     setText('routeDistance', leg.distance?.text || '--');
@@ -645,17 +641,26 @@ if (WN.booted) {
         strokeWeight: 6
       });
     }
+    
+    // v83 Fix: Route rendering should strictly follow polyline bounds
     const b = new google.maps.LatLngBounds();
-    if (appState.currentPos) b.extend(appState.currentPos);
-    if (leg.end_location) b.extend(leg.end_location);
+    // Start and End
+    b.extend(leg.start_location);
+    b.extend(leg.end_location);
+    // Fit bounds to show route
     if (appState.map) appState.map.fitBounds(b, { padding: 50 });
+    
     setDisplay('routeInfoSection', 'block');
   }
 
   async function startNavigation(dest) {
-    if (!appState.currentPos) return;
+    if (!appState.currentPos) return alert("現在地が取得できていません");
     
-    // v81 Fix: 目的地名を確実にセット
+    // v83: データ検証。lat/lngが無い場合は弾く
+    if (!dest || typeof dest.lat !== 'number' || typeof dest.lng !== 'number') {
+      return alert("エラー: 目的地の座標が不正です");
+    }
+
     const finalDestName = dest.name || '選択した場所';
     
     let originLat, originLng;
@@ -666,23 +671,24 @@ if (WN.booted) {
       originLat = appState.currentPos.lat;
       originLng = appState.currentPos.lng;
     }
+    
     appState.currentDestination = dest;
     appState.isNavigating = true;
+    
     const panel = getEl('searchPanel');
     if (panel) { panel.classList.add('collapsed'); panel.classList.add('hidden-force'); }
     restoreFabLabels();
     updateFabVisibility();
+    
     const fabNav = getEl('btnNavFab');
     const fabSearch = getEl('btnSearchFab');
     if (fabSearch) fabSearch.style.display = 'none';
     if (fabNav) fabNav.style.display = 'flex';
+    
     setDisplay('routeControlSection', 'block');
     setDisplay('results', 'none');
     switchPanelTab('nav');
-    if (appState.map) {
-      appState.map.panTo({ lat: dest.lat, lng: dest.lng });
-      appState.map.setZoom(18);
-    }
+
     try {
       const resp = await fetchWithRetry(`${WORKER_ORIGIN}/directions`, {
         method: 'POST',
@@ -695,37 +701,106 @@ if (WN.booted) {
         })
       });
       const json = await resp.json();
+      if(!json.routes || json.routes.length === 0) throw new Error("ルートが見つかりません");
+
       let chosen = { route: json.routes[0], index: 0 };
       if (window.RouteEvaluator?.pickBestRoute) chosen = window.RouteEvaluator.pickBestRoute(json.routes, appState.userProfile, appState.aiMode);
-      appState.currentRouteData = { routes: json.routes, selectedIndex: chosen.index };
       
-      // v81: 修正された名前を渡す
+      appState.currentRouteData = { routes: json.routes, selectedIndex: chosen.index };
       renderRoute(chosen.route, finalDestName);
       startLocationWatcher();
     } catch (e) {
-      alertOnce('route_err', 'ルート取得失敗');
+      alertOnce('route_err', 'ルート取得失敗: ' + e.message);
       stopNavigation();
     }
   }
 
   function stopNavigation() {
+    // v83 Fix: Stop watching but don't clear map center immediately
     if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
+    appState.locationWatchId = null;
     appState.isNavigating = false;
+    
     if (appState.currentPolyline) appState.currentPolyline.setMap(null);
+    
     const panel = getEl('searchPanel');
     if (panel) panel.classList.remove('hidden-force');
     restoreFabLabels();
     updateFabVisibility();
+    
     if(getEl('btnSearchFab')) getEl('btnSearchFab').style.display = 'flex';
     setDisplay('routeControlSection', 'none');
     setDisplay('instructionsSection', 'none');
     setDisplay('routeInfoSection', 'none');
     switchPanelTab('search');
     openPanel();
+    
+    // v83 Fix: 終了時に現在地へ戻り、ズームレベルを歩行用にリセット(16)
     if (appState.currentPos && appState.map) {
       appState.map.panTo(appState.currentPos);
-      appState.map.setZoom(17);
+      appState.map.setZoom(16);
     }
+  }
+
+  function setSearchRadius(km) {
+    appState.searchRadiusMeters = km * 1000;
+    ['r5', 'r10', 'r20'].forEach(id => {
+      const el = getEl(id);
+      if(el) el.classList.toggle('active', id === 'r' + km);
+    });
+    setText('radiusLabel', km + 'km');
+  }
+
+  function bindUI() {
+    const btnSearchFab = getEl('btnSearchFab');
+    const btnLocateFab = getEl('btnLocateFab');
+    const btnNavFab = getEl('btnNavFab');
+    const btnSettingsFab = getEl('btnSettingsFab');
+    const btnStopFab = getEl('btnStopFab');
+
+    if (btnSearchFab) btnSearchFab.onclick = () => togglePanelFromFab('search', 'btnSearchFab');
+    if (btnSettingsFab) btnSettingsFab.onclick = () => togglePanelFromFab('settings', 'btnSettingsFab');
+    if (btnNavFab) btnNavFab.onclick = () => togglePanelFromFab('nav', 'btnNavFab');
+    if (btnLocateFab) btnLocateFab.onclick = acquireLocation;
+    if (btnStopFab) btnStopFab.onclick = stopNavigation;
+
+    const btnCamera = getEl('btnCamera');
+    const cameraInput = getEl('cameraInput');
+    if (btnCamera && cameraInput) {
+      btnCamera.onclick = () => cameraInput.click();
+      cameraInput.onchange = handleCameraInput;
+    }
+
+    if(getEl('btnSearchStation')) getEl('btnSearchStation').onclick = () => quickSearch('駅');
+    if(getEl('btnSearchBus')) getEl('btnSearchBus').onclick = () => quickSearch('バス停');
+    if(getEl('btnSearchTaxi')) getEl('btnSearchTaxi').onclick = () => quickSearch('タクシー乗り場');
+    if(getEl('btnSearchToilet')) getEl('btnSearchToilet').onclick = () => quickSearch('公衆トイレ コンビニ');
+    if(getEl('btnSearchConv')) getEl('btnSearchConv').onclick = () => quickSearch('コンビニ');
+    if(getEl('btnSearchWifi')) getEl('btnSearchWifi').onclick = () => quickSearch('Free Wi-Fi');
+
+    if(getEl('r5')) getEl('r5').onclick = () => setSearchRadius(5);
+    if(getEl('r10')) getEl('r10').onclick = () => setSearchRadius(10);
+    if(getEl('r20')) getEl('r20').onclick = () => setSearchRadius(20);
+
+    if (getEl('btnOpenEditModal')) getEl('btnOpenEditModal').onclick = openEditModal;
+    const ph = document.querySelector('.panel-handle-area');
+    if (ph) ph.onclick = togglePanel;
+
+    if (getEl('btnSearchIcon')) getEl('btnSearchIcon').onclick = () => {
+        const q = getEl('q');
+        if(!q) return;
+        let lat = appState.currentPos ? appState.currentPos.lat : 0;
+        let lng = appState.currentPos ? appState.currentPos.lng : 0;
+        placesTextSearch(q.value, lat, lng).then(d => displayResults(d.places || []));
+    };
+
+    if (getEl('btnSaveCurrent')) getEl('btnSaveCurrent').onclick = handleSaveCurrentLocation;
+    if (getEl('btnSaveEdits')) getEl('btnSaveEdits').onclick = saveEditModalChanges;
+    if (getEl('btnCancelEdit')) getEl('btnCancelEdit').onclick = closeEditModal;
+    
+    bindPanelHeaderTabs();
+    updateFabVisibility();
+    restoreFabLabels();
   }
 
   function changeMapMode(mode) {
@@ -762,134 +837,7 @@ if (WN.booted) {
     } catch (e) { return {}; }
   }
 
-  async function updateAllWeatherUI(lat, lng) {
-    const [current, forecast] = await Promise.all([fetchCurrentWeather(lat, lng), fetchForecast(lat, lng)]);
-    const html = buildWeatherHtml(current, forecast);
-    const searchPane = getEl('tabPaneSearch');
-    if (searchPane) {
-      let wEl = getEl('weatherDisplaySearch');
-      if (!wEl) {
-        wEl = document.createElement('div');
-        wEl.id = 'weatherDisplaySearch';
-        const savedContainer = getEl('savedSectionContainer');
-        if (savedContainer && savedContainer.parentNode === searchPane) {
-          searchPane.insertBefore(wEl, savedContainer.nextSibling);
-        } else {
-          searchPane.appendChild(wEl);
-        }
-      }
-      wEl.innerHTML = html;
-      wEl.style.display = 'block';
-    }
-    const navPane = getEl('tabPaneNav');
-    if (navPane) {
-      let wEl = getEl('weatherDisplayNav');
-      if (!wEl) {
-        wEl = document.createElement('div');
-        wEl.id = 'weatherDisplayNav';
-        const locInfo = navPane.querySelector('.location-info');
-        if (locInfo && locInfo.parentNode) {
-          locInfo.parentNode.insertBefore(wEl, locInfo.nextSibling);
-        }
-      }
-      wEl.innerHTML = html;
-      wEl.style.display = 'block';
-    }
-  }
-  
-  function buildWeatherHtml(current, forecast) {
-    if (!current) return '<div style="font-size:12px;color:#888;padding:8px;">☁️ 天気情報取得中...</div>';
-    const curIcon = `https://openweathermap.org/img/wn/${current.weather[0].icon}@2x.png`;
-    const curTemp = Math.round(current.main.temp);
-    const curDesc = current.weather[0].description;
-    let curPop = 0;
-    if (forecast && forecast.list && forecast.list[0]) curPop = Math.round(forecast.list[0].pop * 100);
-    let forecastItemsHtml = '';
-    if (forecast && forecast.list) {
-      for (let i = 1; i <= 3; i++) {
-        const item = forecast.list[i];
-        if (item) {
-          const fTime = `${i * 3}時間後`;
-          const fIcon = `https://openweathermap.org/img/wn/${item.weather[0].icon}.png`;
-          const fTemp = Math.round(item.main.temp);
-          const fPop = Math.round(item.pop * 100);
-          forecastItemsHtml += `<div class="weather-forecast-item"><span class="wf-time">${fTime}</span><img src="${fIcon}" class="wf-icon" alt=""><span class="wf-temp">${fTemp}℃</span><span class="wf-pop">${fPop}%</span></div>`;
-        }
-      }
-    }
-    return `<div class="weather-unified-card"><div class="weather-current-section"><img src="${curIcon}" class="weather-main-icon" alt="${curDesc}"><div class="weather-main-temp">${curTemp}℃</div><div class="weather-main-desc">${curDesc}</div><div class="weather-pop-badge">☂ ${curPop}%</div></div><div class="weather-forecast-row">${forecastItemsHtml}</div></div>`;
-  }
-
-  function bindPanelHeaderTabs() {
-    document.querySelectorAll('.tab-btn[data-panel-tab]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tab = btn.getAttribute('data-panel-tab') || 'search';
-        if (isPanelHiddenForce()) return;
-        const open = isPanelOpen();
-        const active = getActiveTabNameFromDOM();
-        if (open && active === tab) { collapsePanel(); return; }
-        switchPanelTab(tab); openPanel(); restoreFabLabels();
-      });
-    });
-  }
-
-  function bindUI() {
-    const btnSearchFab = getEl('btnSearchFab');
-    const btnLocateFab = getEl('btnLocateFab');
-    const btnNavFab = getEl('btnNavFab');
-    const btnSettingsFab = getEl('btnSettingsFab');
-    const btnStopFab = getEl('btnStopFab');
-
-    if (btnSearchFab) btnSearchFab.onclick = () => togglePanelFromFab('search', 'btnSearchFab');
-    if (btnSettingsFab) btnSettingsFab.onclick = () => togglePanelFromFab('settings', 'btnSettingsFab');
-    if (btnNavFab) btnNavFab.onclick = () => togglePanelFromFab('nav', 'btnNavFab');
-    if (btnLocateFab) btnLocateFab.onclick = acquireLocation;
-    if (btnStopFab) btnStopFab.onclick = stopNavigation;
-
-    const btnCamera = getEl('btnCamera');
-    const cameraInput = getEl('cameraInput');
-    if (btnCamera && cameraInput) {
-      btnCamera.onclick = () => cameraInput.click();
-      cameraInput.onchange = handleCameraInput;
-    }
-
-    if(getEl('btnSearchStation')) getEl('btnSearchStation').onclick = () => quickSearch('駅');
-    if(getEl('btnSearchBus')) getEl('btnSearchBus').onclick = () => quickSearch('バス停');
-    if(getEl('btnSearchTaxi')) getEl('btnSearchTaxi').onclick = () => quickSearch('タクシー乗り場');
-    if(getEl('btnSearchToilet')) getEl('btnSearchToilet').onclick = () => quickSearch('公衆トイレ コンビニ');
-    if(getEl('btnSearchConv')) getEl('btnSearchConv').onclick = () => quickSearch('コンビニ');
-    if(getEl('btnSearchWifi')) getEl('btnSearchWifi').onclick = () => quickSearch('Free Wi-Fi');
-
-    if (getEl('btnOpenEditModal')) getEl('btnOpenEditModal').onclick = openEditModal;
-    const ph = document.querySelector('.panel-handle-area');
-    if (ph) ph.onclick = togglePanel;
-
-    if (getEl('btnSearchIcon')) getEl('btnSearchIcon').onclick = () => {
-        const q = getEl('q');
-        if(!q) return;
-        let lat = appState.currentPos ? appState.currentPos.lat : 0;
-        let lng = appState.currentPos ? appState.currentPos.lng : 0;
-        placesTextSearch(q.value, lat, lng).then(d => displayResults(d.places || []));
-    };
-
-    if (getEl('btnSaveCurrent')) getEl('btnSaveCurrent').onclick = handleSaveCurrentLocation;
-    if (getEl('btnSaveEdits')) getEl('btnSaveEdits').onclick = saveEditModalChanges;
-    if (getEl('btnCancelEdit')) getEl('btnCancelEdit').onclick = closeEditModal;
-    
-    bindPanelHeaderTabs();
-    updateFabVisibility();
-    restoreFabLabels();
-  }
-
-  function handleSaveCurrentLocation() {
-    if (!appState.currentPos) return alert('現在地が取得できていません');
-    const name = prompt('保存する名前を入力してください（例：自宅）');
-    if (!name) return;
-    const addr = getEl('locAddress')?.textContent || '現在地';
-    addSavedLocation(name, appState.currentPos.lat, appState.currentPos.lng, addr);
-  }
-
-  /* === v81: Auto Scroll + Instant Nav Logic === */
+  /* === v83 Fix: Display Results with Auto-Zoom Bounds === */
   async function displayResults(places) {
     const div = getEl('results');
     if (!div) return;
@@ -902,22 +850,30 @@ if (WN.booted) {
     appState.searchInfoWindows = [];
 
     const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+    // v83 Fix: Create bounds to fit all markers
+    const bounds = new google.maps.LatLngBounds();
+    // Add current position to bounds so the user knows where they are relative to results
+    if (appState.currentPos) bounds.extend(appState.currentPos);
 
     places.slice(0, 5).forEach((p, i) => {
+      // 1. List Item
       const item = document.createElement('div');
       item.className = 'result-item';
       item.innerHTML = `<div>${i + 1}. ${p.displayName?.text}</div><div style="font-size:0.8em;opacity:0.7">${p.formattedAddress || ''}</div>`;
       
-      // v81 Fix: タップしたら即座にルート案内開始
+      // Explicit data passing for navigation
+      const destData = {
+        name: p.displayName?.text || '名称不明',
+        lat: p.location.latitude,
+        lng: p.location.longitude
+      };
+
       item.onclick = () => {
-        startNavigation({ 
-          name: p.displayName?.text || '名称不明', 
-          lat: p.location.latitude, 
-          lng: p.location.longitude 
-        });
+        startNavigation(destData);
       };
       div.appendChild(item);
 
+      // 2. Marker
       const markerContent = document.createElement('div');
       markerContent.className = 'marker-container';
       markerContent.innerHTML = `
@@ -932,31 +888,32 @@ if (WN.booted) {
         title: p.displayName?.text
       });
 
-      // マーカータップ時も同様
+      // Extend bounds to include this marker
+      bounds.extend({ lat: p.location.latitude, lng: p.location.longitude });
+
       m.addListener('click', () => {
-        startNavigation({ 
-          name: p.displayName?.text || '名称不明', 
-          lat: p.location.latitude, 
-          lng: p.location.longitude 
-        });
+        startNavigation(destData);
       });
 
       appState.searchMarkers.push(m);
     });
 
-    // v81: 自動スクロール (パネル内の検索結果へスライド)
+    // v83 Fix: Auto zoom to show all results + current pos
+    if (appState.map && !bounds.isEmpty()) {
+      appState.map.fitBounds(bounds, { padding: 50 });
+    }
+
     const panelBody = getEl('panelScrollContainer');
     if(panelBody && div) {
-      // 少し遅らせてレンダリング完了を待つ
       setTimeout(() => {
-        openPanel(); // パネルを開く
+        openPanel();
         div.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
     }
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v81 (Flow Fix)...');
+    console.log('[WalkNav] Starting v83 (Fix: Destination Bug & Zoom)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
