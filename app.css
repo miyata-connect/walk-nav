@@ -1,4 +1,4 @@
-/* app.css (v83: No changes, keeping v82 structure) */
+/* app.css (v84: AdvancedMarker styles Restored) */
 
 /* ------------------------------------------------------------------
    基本設定 (Base)
@@ -444,7 +444,7 @@ body {
 }
 
 /* ------------------------------------------------------------------
-   AdvancedMarker Custom Styles
+   AdvancedMarker Custom Styles (v84 Restored)
 ------------------------------------------------------------------ */
 .marker-container {
   display: flex;
@@ -748,7 +748,7 @@ body {
 }
 
 /* ------------------------------------------------------------------
-   設定・ルート情報 (v79 Fix)
+   設定・ルート情報 (Navigation Mode)
 ------------------------------------------------------------------ */
 .settings-group {
   margin-bottom: 24px;
