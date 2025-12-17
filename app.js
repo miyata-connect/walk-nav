@@ -1,9 +1,9 @@
 'use strict';
 
-// WalkNav app.js - v75: Photo Memo + Quick Actions + Incident Skeleton
-// カメラ機能、画像圧縮保存、クイック検索ボタンを追加
+// WalkNav app.js - v76: Fix Store Names (InfoWindow) + Transport Buttons
+// 検索結果のピンに店舗名を表示(クリック時)、駅・バス・タクシーボタン追加
 
-const ISSUE_ID = 'idx20251213_v75_photo_memo_quick_actions';
+const ISSUE_ID = 'idx20251213_v76_fix_store_names_transport';
 
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
@@ -57,7 +57,8 @@ if (WN.booted) {
     searchPointMarker: null,
     mapInitialized: false,
     searchMarkers: [],
-    savedLocationMarkers: [], // 保存済み場所のマーカー管理
+    searchInfoWindows: [], // 検索結果の吹き出し管理用
+    savedLocationMarkers: [],
     currentDestination: null,
     currentPolyline: null,
     isNavigating: false,
@@ -217,7 +218,6 @@ if (WN.booted) {
     } catch (_) {
       appState.savedLocations = [];
     }
-    // 地図初期化済みならマーカー再描画
     if(appState.mapInitialized) refreshSavedMarkers();
   }
 
@@ -245,50 +245,42 @@ if (WN.booted) {
     alert(imageData ? '写真を記録しました' : '場所を保存しました');
   }
 
-  // 保存済みマーカーを地図に表示
   function refreshSavedMarkers() {
     if (!appState.map) return;
-    // 既存マーカー削除
     appState.savedLocationMarkers.forEach(m => m.setMap(null));
     appState.savedLocationMarkers = [];
 
     appState.savedLocations.forEach(loc => {
-      // 写真メモの場合はカメラアイコン
       const isPhoto = (loc.type === 'photo');
       const marker = new google.maps.Marker({
         map: appState.map,
         position: { lat: loc.lat, lng: loc.lng },
         title: loc.name,
         icon: isPhoto ? {
-          path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-2-5.5l5-3.5-5-3.5v7z", // 簡易再生マーク
+          path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-2-5.5l5-3.5-5-3.5v7z",
           fillColor: "#25d07a",
           fillOpacity: 1,
           strokeColor: "#fff",
           strokeWeight: 2,
           scale: 1.5
-        } : null, // デフォルトピン
+        } : null,
         label: isPhoto ? '📸' : null
       });
 
-      // クリックで吹き出し表示
       const infoContent = document.createElement('div');
       infoContent.className = 'info-window-content';
       let html = `<div style="font-weight:bold; margin-bottom:4px;">${loc.name}</div>`;
       html += `<div style="font-size:11px; color:#666; margin-bottom:4px;">${loc.address || ''}</div>`;
       if (loc.image) {
         html += `<img src="${loc.image}" style="max-width:200px; max-height:200px; display:block; border-radius:4px; margin-top:4px;">`;
-        html += `<div style="font-size:10px; color:#888;">${new Date(loc.timestamp).toLocaleString()}</div>`;
       }
-      // ナビ開始ボタン
       html += `<button id="btnInfoNav" style="margin-top:8px; padding:4px 10px; background:#2563eb; color:white; border:none; border-radius:4px;">ここへ行く</button>`;
       
       infoContent.innerHTML = html;
-      
       const infoWindow = new google.maps.InfoWindow({ content: infoContent });
       
       marker.addListener('click', () => {
         infoWindow.open(appState.map, marker);
-        // InfoWindow内のボタンイベントはDOM挿入後に設定する必要があるが、簡易的に
         setTimeout(() => {
            const btn = document.querySelector('#btnInfoNav');
            if(btn) btn.onclick = () => startNavigation(loc);
@@ -335,7 +327,6 @@ if (WN.booted) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // 現在地の確認
     let lat, lng;
     if (appState.pointSearchMode && appState.searchPoint) {
       lat = appState.searchPoint.lat;
@@ -352,38 +343,26 @@ if (WN.booted) {
     reader.onload = function(event) {
       const img = new Image();
       img.onload = function() {
-        // Canvasでリサイズ (最大800px)
         const canvas = document.createElement('canvas');
         const MAX_SIZE = 800;
         let width = img.width;
         let height = img.height;
-
         if (width > height) {
-          if (width > MAX_SIZE) {
-            height *= MAX_SIZE / width;
-            width = MAX_SIZE;
-          }
+          if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
         } else {
-          if (height > MAX_SIZE) {
-            width *= MAX_SIZE / height;
-            height = MAX_SIZE;
-          }
+          if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
         }
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-
-        // JPEG圧縮 (品質0.7)
         const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
         
-        // 保存ダイアログ
         const name = prompt('この写真のメモを入力:', '写真メモ');
-        if (name !== null) { // キャンセル以外
+        if (name !== null) {
             const addr = getEl('locAddress')?.textContent || '住所不明';
             addSavedLocation(name || '無題の写真', lat, lng, addr, dataUrl);
         }
-        // Inputリセット
         e.target.value = '';
       };
       img.src = event.target.result;
@@ -452,7 +431,7 @@ if (WN.booted) {
       if (newName) {
         const original = appState.savedLocations[idx];
         if (original) {
-          original.name = newName; // 名前だけ更新、他は維持
+          original.name = newName;
           newLocations.push(original);
         }
       }
@@ -571,8 +550,8 @@ if (WN.booted) {
 
       changeMapMode(appState.mapMode);
       appState.mapInitialized = true;
-      refreshSavedMarkers(); // マップ準備完了後に保存マーカー表示
-      console.log('[WalkNav] Map initialized v75');
+      refreshSavedMarkers();
+      console.log('[WalkNav] Map initialized v76');
     } catch (e) {
       console.warn('Map Init Failed', e);
     }
@@ -744,7 +723,6 @@ if (WN.booted) {
     const fabSearch = getEl('btnSearchFab');
     if (fabSearch) fabSearch.style.display = 'none';
     if (fabNav) fabNav.style.display = 'flex';
-    // 他のボタン制御は省略
 
     setDisplay('routeControlSection', 'block');
     setDisplay('results', 'none');
@@ -844,21 +822,61 @@ if (WN.booted) {
   }
 
   async function updateAllWeatherUI(lat, lng) {
-    // 天気UI更新（省略可）
     const [current, forecast] = await Promise.all([fetchCurrentWeather(lat, lng), fetchForecast(lat, lng)]);
-    // HTML構築ロジックはv74と同じなので簡略化のために省略しません（完全版提供のため）
-    // ... (Weather UI Logic same as v74)
-    // ここでは冗長さを避けるため既存ロジックがそのまま入っていると仮定してください。
-    // v74のbuildWeatherHtml関数が必要です
+    const html = buildWeatherHtml(current, forecast);
+    const searchPane = getEl('tabPaneSearch');
+    if (searchPane) {
+      let wEl = getEl('weatherDisplaySearch');
+      if (!wEl) {
+        wEl = document.createElement('div');
+        wEl.id = 'weatherDisplaySearch';
+        const savedContainer = getEl('savedSectionContainer');
+        if (savedContainer && savedContainer.parentNode === searchPane) {
+          searchPane.insertBefore(wEl, savedContainer.nextSibling);
+        } else {
+          searchPane.appendChild(wEl);
+        }
+      }
+      wEl.innerHTML = html;
+      wEl.style.display = 'block';
+    }
+    const navPane = getEl('tabPaneNav');
+    if (navPane) {
+      let wEl = getEl('weatherDisplayNav');
+      if (!wEl) {
+        wEl = document.createElement('div');
+        wEl.id = 'weatherDisplayNav';
+        const locInfo = navPane.querySelector('.location-info');
+        if (locInfo && locInfo.parentNode) {
+          locInfo.parentNode.insertBefore(wEl, locInfo.nextSibling);
+        }
+      }
+      wEl.innerHTML = html;
+      wEl.style.display = 'block';
+    }
   }
   
-  // v74と同等の天気HTML生成関数（再掲）
   function buildWeatherHtml(current, forecast) {
     if (!current) return '<div style="font-size:12px;color:#888;padding:8px;">☁️ 天気情報取得中...</div>';
     const curIcon = `https://openweathermap.org/img/wn/${current.weather[0].icon}@2x.png`;
     const curTemp = Math.round(current.main.temp);
-    // ... (以下略さず記述)
-    return `<div class="weather-unified-card"><div class="weather-current-section"><img src="${curIcon}" class="weather-main-icon"><div class="weather-main-temp">${curTemp}℃</div></div></div>`; 
+    const curDesc = current.weather[0].description;
+    let curPop = 0;
+    if (forecast && forecast.list && forecast.list[0]) curPop = Math.round(forecast.list[0].pop * 100);
+    let forecastItemsHtml = '';
+    if (forecast && forecast.list) {
+      for (let i = 1; i <= 3; i++) {
+        const item = forecast.list[i];
+        if (item) {
+          const fTime = `${i * 3}時間後`;
+          const fIcon = `https://openweathermap.org/img/wn/${item.weather[0].icon}.png`;
+          const fTemp = Math.round(item.main.temp);
+          const fPop = Math.round(item.pop * 100);
+          forecastItemsHtml += `<div class="weather-forecast-item"><span class="wf-time">${fTime}</span><img src="${fIcon}" class="wf-icon" alt=""><span class="wf-temp">${fTemp}℃</span><span class="wf-pop">${fPop}%</span></div>`;
+        }
+      }
+    }
+    return `<div class="weather-unified-card"><div class="weather-current-section"><img src="${curIcon}" class="weather-main-icon" alt="${curDesc}"><div class="weather-main-temp">${curTemp}℃</div><div class="weather-main-desc">${curDesc}</div><div class="weather-pop-badge">☂ ${curPop}%</div></div><div class="weather-forecast-row">${forecastItemsHtml}</div></div>`;
   }
 
   function bindPanelHeaderTabs() {
@@ -888,7 +906,7 @@ if (WN.booted) {
     if (btnLocateFab) btnLocateFab.onclick = acquireLocation;
     if (btnStopFab) btnStopFab.onclick = stopNavigation;
 
-    // Camera Logic (v75)
+    // Camera Logic
     const btnCamera = getEl('btnCamera');
     const cameraInput = getEl('cameraInput');
     if (btnCamera && cameraInput) {
@@ -896,12 +914,13 @@ if (WN.booted) {
       cameraInput.onchange = handleCameraInput;
     }
 
-    // Quick Actions (v75)
+    // Quick Actions (v76: Station, Bus, Taxi, Toilet, Conv, Wifi)
+    if(getEl('btnSearchStation')) getEl('btnSearchStation').onclick = () => quickSearch('駅', '周辺の駅を表示しました');
+    if(getEl('btnSearchBus')) getEl('btnSearchBus').onclick = () => quickSearch('バス停', '周辺のバス停を表示しました');
+    if(getEl('btnSearchTaxi')) getEl('btnSearchTaxi').onclick = () => quickSearch('タクシー乗り場', '周辺のタクシー乗り場を表示しました');
     if(getEl('btnSearchToilet')) getEl('btnSearchToilet').onclick = () => quickSearch('公衆トイレ コンビニ', '周辺のトイレを表示しました');
     if(getEl('btnSearchConv')) getEl('btnSearchConv').onclick = () => quickSearch('コンビニ', '周辺のコンビニを表示しました');
-    if(getEl('btnSearchVending')) getEl('btnSearchVending').onclick = () => quickSearch('自動販売機', '周辺の自販機を表示しました');
     if(getEl('btnSearchWifi')) getEl('btnSearchWifi').onclick = () => quickSearch('Free Wi-Fi', '周辺のWi-Fiを表示しました');
-    if(getEl('btnSearch100')) getEl('btnSearch100').onclick = () => quickSearch('100円ショップ', '周辺の100均を表示しました');
 
     // Others
     if (getEl('btnOpenEditModal')) getEl('btnOpenEditModal').onclick = openEditModal;
@@ -938,27 +957,82 @@ if (WN.booted) {
     if (!div) return;
     div.innerHTML = '';
     setDisplay('results', 'block');
+    
+    // 既存マーカー & InfoWindow 削除
     appState.searchMarkers.forEach(m => m.setMap(null));
     appState.searchMarkers = [];
+    appState.searchInfoWindows.forEach(w => w.close());
+    appState.searchInfoWindows = [];
 
     places.slice(0, 5).forEach((p, i) => {
+      // 1. リスト項目の生成
       const item = document.createElement('div');
       item.className = 'result-item';
       item.innerHTML = `<div>${i + 1}. ${p.displayName?.text}</div><div style="font-size:0.8em;opacity:0.7">${p.formattedAddress || ''}</div>`;
       item.onclick = () => startNavigation({ name: p.displayName?.text, lat: p.location.latitude, lng: p.location.longitude });
       div.appendChild(item);
+
+      // 2. マーカーの生成
       const m = new google.maps.Marker({
         map: appState.map,
         position: { lat: p.location.latitude, lng: p.location.longitude },
         label: String(i + 1),
-        title: p.displayName?.text
+        title: p.displayName?.text // PC用ツールチップ
       });
+
+      // 3. InfoWindow (店舗名表示) の生成
+      // ここでDOM要素を作ってボタンにイベントを仕込む
+      const infoDiv = document.createElement('div');
+      infoDiv.style.color = '#333';
+      infoDiv.style.padding = '4px';
+      
+      const titleDiv = document.createElement('div');
+      titleDiv.style.fontWeight = 'bold';
+      titleDiv.style.fontSize = '14px';
+      titleDiv.style.marginBottom = '4px';
+      titleDiv.textContent = `${i + 1}. ${p.displayName?.text}`;
+      
+      const addrDiv = document.createElement('div');
+      addrDiv.style.fontSize = '12px';
+      addrDiv.style.color = '#666';
+      addrDiv.style.marginBottom = '8px';
+      addrDiv.textContent = p.formattedAddress || '';
+      
+      const navBtn = document.createElement('button');
+      navBtn.textContent = 'ここへ行く';
+      navBtn.style.background = '#2563eb';
+      navBtn.style.color = 'white';
+      navBtn.style.border = 'none';
+      navBtn.style.padding = '6px 12px';
+      navBtn.style.borderRadius = '4px';
+      navBtn.style.cursor = 'pointer';
+      
+      navBtn.onclick = () => {
+         startNavigation({ name: p.displayName?.text, lat: p.location.latitude, lng: p.location.longitude });
+      };
+      
+      infoDiv.appendChild(titleDiv);
+      infoDiv.appendChild(addrDiv);
+      infoDiv.appendChild(navBtn);
+      
+      const infoWindow = new google.maps.InfoWindow({
+        content: infoDiv
+      });
+
+      // マーカークリックで開く
+      m.addListener('click', () => {
+        // 他のウィンドウを閉じる
+        appState.searchInfoWindows.forEach(w => w.close());
+        infoWindow.open(appState.map, m);
+      });
+
       appState.searchMarkers.push(m);
+      appState.searchInfoWindows.push(infoWindow);
     });
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v75 (Photo Memo & Quick Actions)...');
+    console.log('[WalkNav] Starting v76 (InfoWindows & Transport Actions)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
