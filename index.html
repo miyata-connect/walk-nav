@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>WalkNav</title>
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
-  <link rel="stylesheet" href="app.css?v=75" />
+  <link rel="stylesheet" href="app.css?v=76" />
 </head>
 <body id="appBody">
 <div class="app">
@@ -40,11 +40,12 @@
         </div>
 
         <div class="quick-actions-row">
+          <button class="chip quick-chip" id="btnSearchStation">🚉 駅</button>
+          <button class="chip quick-chip" id="btnSearchBus">🚏 バス停</button>
+          <button class="chip quick-chip" id="btnSearchTaxi">🚕 タクシー</button>
           <button class="chip quick-chip" id="btnSearchToilet">🚻 トイレ</button>
           <button class="chip quick-chip" id="btnSearchConv">🏪 コンビニ</button>
-          <button class="chip quick-chip" id="btnSearchVending">🧃 自販機</button>
           <button class="chip quick-chip" id="btnSearchWifi">📶 Wi-Fi</button>
-          <button class="chip quick-chip" id="btnSearch100">🪙 100均</button>
         </div>
 
         <div class="address-card" id="pointAddressBlock" style="display:none;">
@@ -229,7 +230,7 @@
 </div>
 
 <script src="RouteEvaluator.js"></script>
-<script src="app.js?v=75"></script>
+<script src="app.js?v=76"></script>
 <script src="https://maps.googleapis.com/maps/api/js?language=ja&region=JP&key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&loading=async" async defer></script>
 
 <script>
@@ -241,7 +242,7 @@
       if (e.cancelable) e.preventDefault();
       return;
     }
-    if (scrollable.classList.contains('quick-actions-row')) return; // 横スクロール許可
+    if (scrollable.classList.contains('quick-actions-row')) return;
     if (scrollable.scrollHeight <= scrollable.clientHeight && e.target.tagName !== 'INPUT') {
       if (e.cancelable) e.preventDefault();
     }
