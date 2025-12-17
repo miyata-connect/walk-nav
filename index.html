@@ -23,16 +23,18 @@
 
     <div class="panel-tabs-body" id="panelScrollContainer">
       <div class="tab-pane active" id="tabPaneSearch">
-        <div class="point-search-wrapper">
+        <div class="point-search-wrapper" style="margin-bottom:8px;">
           <button class="chip point-select full-width" id="btnPointSearch" type="button">📍 ポイント選択</button>
         </div>
-
-        <div class="search-header-row">
-          <div class="section-title-inline">近くを検索 (5件 / <span id="radiusLabel">10km</span>)</div>
-          <div class="distance-chips-row">
-            <button class="chip" id="r5" type="button">5km</button>
-            <button class="chip active" id="r10" type="button">10km</button>
-            <button class="chip" id="r20" type="button">20km</button>
+        
+        <div class="search-header-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:nowrap; gap:8px; margin-bottom:12px;">
+          <div class="section-title-inline" style="margin:0; font-size:13px; white-space:nowrap;">
+            近くを検索 <span style="font-weight:normal; color:#9ca3af; font-size:11px;">(5件/<span id="radiusLabel">10km</span>)</span>
+          </div>
+          <div class="distance-chips-row" style="margin:0; gap:4px;">
+            <button class="chip" id="r5" type="button" style="padding:6px 10px; font-size:12px; height:auto;">5km</button>
+            <button class="chip active" id="r10" type="button" style="padding:6px 10px; font-size:12px; height:auto;">10km</button>
+            <button class="chip" id="r20" type="button" style="padding:6px 10px; font-size:12px; height:auto;">20km</button>
           </div>
         </div>
 
@@ -145,7 +147,6 @@
             </div>
           </div>
         </div>
-
         <div class="settings-group">
           <div class="settings-label">地図表示モード</div>
           <div class="map-mode-buttons">
@@ -154,7 +155,6 @@
             <button id="btnMap3D" class="map-mode-btn" data-mode="3d" type="button">3D</button>
           </div>
         </div>
-
         <div id="routeControlSection" style="display:none;" class="settings-group">
           <div class="settings-label">ナビゲーション操作</div>
           <div class="nav-controls-stack">
@@ -216,15 +216,8 @@
 </div>
 
 <script src="RouteEvaluator.js"></script>
-<script src="app.js?v=86"></script>
-
-<!-- Maps API: callback + onerror を追加 -->
-<script
-  src="https://maps.googleapis.com/maps/api/js?language=ja&region=JP&key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&callback=__WN_onMapsReady"
-  async
-  defer
-  onerror="window.__WN_onMapsFail && window.__WN_onMapsFail()"></script>
-
+<script src="app.js?v=84"></script>
+<script src="https://maps.googleapis.com/maps/api/js?language=ja&region=JP&key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&loading=async" async defer></script>
 <script>
 (function () {
   document.addEventListener('touchmove', function(e) {
