@@ -155,6 +155,19 @@
             <button id="btnMap3D" class="map-mode-btn" data-mode="3d" type="button">3D</button>
           </div>
         </div>
+
+        <div class="settings-group">
+          <div class="settings-label">マップ微調整</div>
+          <div class="d-pad-container">
+            <button class="d-pad-btn" id="btnPanUp" type="button">▲</button>
+            <div class="d-pad-row">
+              <button class="d-pad-btn" id="btnPanLeft" type="button">◀</button>
+              <button class="d-pad-btn" id="btnPanDown" type="button">▼</button>
+              <button class="d-pad-btn" id="btnPanRight" type="button">▶</button>
+            </div>
+          </div>
+        </div>
+
         <div id="routeControlSection" style="display:none;" class="settings-group">
           <div class="settings-label">ナビゲーション操作</div>
           <div class="nav-controls-stack">
@@ -220,17 +233,12 @@
 <script src="https://maps.googleapis.com/maps/api/js?language=ja&region=JP&key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&loading=async" async defer></script>
 <script>
 (function () {
-  // ■ ピンチズーム（2本指操作）を完全に無効化
   document.addEventListener('gesturestart', function(e) {
     e.preventDefault();
   }, { passive: false });
-
-  // ■ ダブルタップでのズームを防止
   document.addEventListener('dblclick', function(e) {
     e.preventDefault();
   }, { passive: false });
-
-  // ■ スクロール制御（変更なし）
   document.addEventListener('touchmove', function(e) {
     if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
     var scrollable = e.target.closest('.panel-tabs-body') || e.target.closest('.edit-modal-body') || e.target.closest('.quick-actions-row');
