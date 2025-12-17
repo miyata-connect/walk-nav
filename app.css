@@ -1,4 +1,4 @@
-/* app.css (v75: Photo Memo + Quick Actions + Incident Skeleton) */
+/* app.css (v76: Quick Actions + Photo Styles + InfoWindow) */
 
 /* ------------------------------------------------------------------
    基本設定 (Base)
@@ -334,7 +334,7 @@ body {
 }
 
 /* ------------------------------------------------------------------
-   クイックアクション (v75 New)
+   クイックアクション (v76 New)
 ------------------------------------------------------------------ */
 .quick-actions-row {
   display: flex;
@@ -969,7 +969,7 @@ body {
 }
 
 /* ------------------------------------------------------------------
-   InfoWindow (v75: 写真表示用)
+   InfoWindow (v76: 写真 & 店舗情報表示用)
 ------------------------------------------------------------------ */
 .info-window-content {
   color: #333;
@@ -980,4 +980,7 @@ body {
 .info-window-content img {
   object-fit: cover;
   width: 100%;
+  display: block;
+  border-radius: 4px;
+  margin-top: 4px;
 }
