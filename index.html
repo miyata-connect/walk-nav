@@ -220,12 +220,17 @@
 <script src="https://maps.googleapis.com/maps/api/js?language=ja&region=JP&key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&loading=async" async defer></script>
 <script>
 (function () {
-  // ダブルタップでのズームを完全に防止
-  document.addEventListener('dblclick', function(event) {
-    event.preventDefault();
+  // ■ ピンチズーム（2本指操作）を完全に無効化
+  document.addEventListener('gesturestart', function(e) {
+    e.preventDefault();
   }, { passive: false });
 
-  // スクロール制御（変更なし）
+  // ■ ダブルタップでのズームを防止
+  document.addEventListener('dblclick', function(e) {
+    e.preventDefault();
+  }, { passive: false });
+
+  // ■ スクロール制御（変更なし）
   document.addEventListener('touchmove', function(e) {
     if (e.target.closest('.gm-style') || e.target.closest('#map')) return;
     var scrollable = e.target.closest('.panel-tabs-body') || e.target.closest('.edit-modal-body') || e.target.closest('.quick-actions-row');
