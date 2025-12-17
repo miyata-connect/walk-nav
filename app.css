@@ -1,1056 +1,936 @@
-/* app.css (v81: Style Stability) */
+'use strict';
 
-/* ------------------------------------------------------------------
-   基本設定 (Base)
------------------------------------------------------------------- */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+// WalkNav app.js - v83: Fix Bounds & Destination Logic
+// 検索時に全ピンが見えるようBounds調整＆ルート案内先が自宅になるバグの完全修正
+
+const ISSUE_ID = 'idx20251213_v83_fix_bounds_and_destination';
+
+const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
+const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
+const MAP_ID_KEY = 'walknav_map_id';
+const MAP_ID = (window.WALKNAV_MAP_ID || localStorage.getItem(MAP_ID_KEY) || '9110fb2763169e9d8f2b317e');
+
+const DEFAULT_MASK = 'places.displayName,places.formattedAddress,places.location,places.id,places.types';
+const MAX_RETRY = 3;
+const RETRY_DELAY = 1000;
+const LOCATION_OPTIONS = {
+  enableHighAccuracy: true,
+  timeout: 15000,
+  maximumAge: 0
+};
+const SAVED_LOCATIONS_KEY = 'walknav_saved_locations';
+const MAP_MODE_KEY = 'walknav_map_mode';
+const PROFILE_KEY = 'walknav_user_profile';
+
+const WN = (window.__WN_GLOBAL__ = window.__WN_GLOBAL__ || {
+  booted: false,
+  locks: Object.create(null),
+  alerts: Object.create(null)
+});
+
+function lock(key, ms) {
+  const now = Date.now();
+  if (now < (WN.locks[key] || 0)) return false;
+  WN.locks[key] = now + ms;
+  return true;
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  height: 100dvh !important;
-  width: 100% !important;
-  overflow: hidden !important;
-  overscroll-behavior: none;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
-  background: #000;
-  touch-action: manipulation;
-  -webkit-text-size-adjust: 100%;
+function alertOnce(key, msg, ms = 1200) {
+  const now = Date.now();
+  if (now - (WN.alerts[key] || 0) < ms) return;
+  WN.alerts[key] = now;
+  alert(msg);
 }
 
-:root {
-  --primary: #2563eb;
-  --secondary: #4b5563;
-  --accent: #25d07a;
-  --text-main: #f9fafb;
-  --text-muted: #9ca3af;
-  --panel-bg: rgba(20, 20, 24, 0.98);
-  --panel-elevated: rgba(35, 35, 40, 1);
-  --stroke-soft: rgba(255, 255, 255, 0.15);
-}
+if (WN.booted) {
+  console.warn('[WalkNav] duplicate app.js blocked:', ISSUE_ID);
+} else {
+  WN.booted = true;
 
-.app {
-  position: relative;
-  width: 100%;
-  height: 100dvh;
-  overflow: hidden;
-  background: #000;
-}
+  const appState = {
+    map: null,
+    userMarker: null,
+    currentPos: null,
+    pointSearchMode: false,
+    searchPoint: null,
+    searchPointMarker: null,
+    mapInitialized: false,
+    searchMarkers: [],
+    searchInfoWindows: [],
+    savedLocationMarkers: [],
+    currentDestination: null,
+    currentPolyline: null,
+    isNavigating: false,
+    locationWatchId: null,
+    compassWatchId: null,
+    currentHeading: 0,
+    isSimulation: false,
+    currentRouteData: null,
+    userProfile: {
+      luggage: 'None',
+      condition: 'Normal',
+      companion: 'None'
+    },
+    savedLocations: [],
+    mapMode: 'roadmap',
+    searchInFlight: false,
+    searchRadiusMeters: 10000,
+    aiMode: 'normal',
+    incidentData: null,
+    cachedWeatherData: null,
+    lastFabSourceId: null
+  };
 
-#map {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100dvh;
-}
+  function getEl(id) { return document.getElementById(id); }
+  function setDisplay(id, displayVal) { const el = getEl(id); if (el) el.style.display = displayVal; }
+  function setText(id, text) { const el = getEl(id); if (el) el.textContent = text; }
 
-/* ------------------------------------------------------------------
-   パネル (Panel)
------------------------------------------------------------------- */
-.panel {
-  position: absolute;
-  left: 12px;
-  right: 80px;
-  bottom: 20px;
-  height: 50dvh;
-  max-height: 50dvh;
-  background: linear-gradient(to bottom, rgba(20, 20, 25, 0.98), rgba(15, 15, 20, 1));
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
-  border: 1px solid var(--stroke-soft);
-  border-radius: 20px;
-  padding: 16px 0 calc(16px + env(safe-area-inset-bottom, 0px));
-  color: var(--text-main);
-  display: flex;
-  flex-direction: column;
-  z-index: 1000;
-  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease;
-  transform: translateY(0);
-  opacity: 1;
-  touch-action: pan-y;
-}
-
-.panel.collapsed {
-  transform: translateY(120%);
-  opacity: 0;
-  pointer-events: none;
-}
-
-.panel.hidden-force {
-  display: none !important;
-  pointer-events: none !important;
-}
-
-.panel-handle-area {
-  display: flex;
-  justify-content: center;
-  padding: 4px 0 12px;
-  cursor: pointer;
-  touch-action: pan-y;
-}
-
-.panel-handle {
-  width: 48px;
-  height: 5px;
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.5);
-}
-
-/* ------------------------------------------------------------------
-   タブ (Tabs)
------------------------------------------------------------------- */
-.panel-tabs-header {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  padding: 0 16px 12px;
-  border-bottom: 1px solid var(--stroke-soft);
-  margin-bottom: 16px;
-  touch-action: pan-y;
-}
-
-.panel-tabs-body {
-  flex: 1;
-  padding: 0 16px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
-  max-width: 100%;
-}
-
-.tab-btn {
-  flex: 1;
-  text-align: center;
-  padding: 10px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-muted);
-  position: relative;
-  background: transparent;
-  border: none;
-  outline: none;
-  touch-action: manipulation;
-}
-
-.tab-btn.active {
-  color: var(--text-main);
-}
-
-.tab-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 24px;
-  height: 3px;
-  background: var(--accent);
-  border-radius: 2px;
-}
-
-.tab-pane {
-  display: none;
-}
-
-.tab-pane.active {
-  display: block;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
+  function isPanelHiddenForce() {
+    const panel = getEl('searchPanel');
+    return !!(panel && panel.classList.contains('hidden-force'));
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  function isPanelOpen() {
+    const panel = getEl('searchPanel');
+    if (!panel) return false;
+    if (panel.classList.contains('hidden-force')) return false;
+    return !panel.classList.contains('collapsed');
   }
-}
 
-/* ------------------------------------------------------------------
-   FAB (Floating Action Button)
------------------------------------------------------------------- */
-.fab-container {
-  position: absolute;
-  right: 12px;
-  bottom: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  z-index: 2000;
-  pointer-events: auto !important;
-  display: flex !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-.fab-btn {
-  width: 56px;
-  height: 66px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(30, 30, 35, 0.95);
-  backdrop-filter: blur(10px);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: transform 0.1s ease, background 0.2s;
-  padding: 6px 0;
-}
-
-.fab-btn:active {
-  transform: scale(0.94);
-  background: rgba(50, 50, 60, 1);
-}
-
-.fab-icon {
-  font-size: 22px;
-  line-height: 1;
-}
-
-.fab-label {
-  font-size: 11px;
-  line-height: 1;
-  color: rgba(255, 255, 255, 0.85);
-  font-weight: 600;
-}
-
-.fab-btn.is-close .fab-label {
-  color: #fca5a5;
-}
-
-.fab-btn.destination {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-}
-
-.fab-btn.voice-btn {
-  background: #e5e7eb;
-  color: #111;
-}
-
-.fab-btn.stop-btn {
-  background: #ef4444;
-  color: #fff;
-  border: none;
-}
-
-/* ------------------------------------------------------------------
-   検索ヘッダー・UIコンポーネント
------------------------------------------------------------------- */
-.section-title {
-  margin: 12px 0 16px;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-main);
-  text-align: center;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.point-search-wrapper {
-  margin-bottom: 16px;
-  width: 100%;
-}
-
-.chip.full-width {
-  width: 100%;
-  justify-content: center;
-  font-size: 15px;
-  padding: 10px 16px;
-}
-
-.search-header-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.section-title-inline {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-main);
-  white-space: nowrap;
-}
-
-.distance-chips-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.filter-chips-row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-  overflow-x: hidden;
-  width: 100%;
-  touch-action: pan-y;
-}
-
-.filter-chips-row::-webkit-scrollbar {
-  display: none;
-}
-
-/* ------------------------------------------------------------------
-   クイックアクション
------------------------------------------------------------------- */
-.quick-actions-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  overflow-x: auto;
-  white-space: nowrap;
-  padding-bottom: 4px;
-  -webkit-overflow-scrolling: touch;
-}
-
-.quick-actions-row::-webkit-scrollbar {
-  display: none;
-}
-
-.quick-chip {
-  flex: 0 0 auto;
-  padding: 8px 12px;
-  font-size: 13px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #e5e7eb;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.quick-chip:active {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* ------------------------------------------------------------------
-   チップ & ボタン
------------------------------------------------------------------- */
-.chip {
-  flex: 0 0 auto;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  background: rgba(30, 30, 35, 0.8);
-  color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 500;
-  padding: 8px 16px;
-  transition: all 0.2s;
-  touch-action: manipulation;
-}
-
-.chip.active {
-  background: var(--text-main);
-  color: #000;
-  border-color: transparent;
-  font-weight: 700;
-}
-
-.btn {
-  border-radius: 999px;
-  border: none;
-  min-height: 42px;
-  padding: 0 18px;
-  font-size: 14px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: opacity 0.2s;
-  touch-action: manipulation;
-}
-
-.btn:active {
-  opacity: 0.8;
-}
-
-.btn-primary {
-  background: var(--primary);
-  color: #fff;
-}
-
-.btn-secondary {
-  background: var(--panel-elevated);
-  color: var(--text-muted);
-  border: 1px solid var(--stroke-soft);
-}
-
-.btn-outline {
-  background: transparent;
-  color: var(--text-main);
-  border: 1px solid var(--stroke-soft);
-}
-
-.btn-danger {
-  background: rgba(239, 68, 68, 0.2);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.4);
-}
-
-.btn-danger-block {
-  width: 100%;
-  background: #ef4444;
-  color: #fff;
-}
-
-.action-buttons-row {
-  display: flex;
-  gap: 10px;
-  margin: 12px 0 16px;
-  width: 100%;
-  max-width: 100%;
-}
-
-.action-buttons-row .btn {
-  flex: 1;
-  font-size: 13px;
-  min-width: 0;
-}
-
-.bottom-actions-row {
-  display: flex;
-  gap: 10px;
-  margin-top: 24px;
-  margin-bottom: 8px;
-  width: 100%;
-  max-width: 100%;
-}
-
-.bottom-actions-row .btn {
-  flex: 1;
-  min-width: 0;
-}
-
-/* ------------------------------------------------------------------
-   AdvancedMarker Custom Styles
------------------------------------------------------------------- */
-.marker-container {
-  display: flex;
-  align-items: center;
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: 20px;
-  padding: 4px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  transform: translateY(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  pointer-events: none;
-}
-
-.marker-pin {
-  width: 24px;
-  height: 24px;
-  background: #ef4444;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 12px;
-  margin-right: 6px;
-  border: 2px solid #fff;
-}
-
-.marker-label {
-  color: white;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  padding-right: 6px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-}
-
-/* ------------------------------------------------------------------
-   天気情報カード
------------------------------------------------------------------- */
-.weather-unified-card {
-  display: grid;
-  grid-template-columns: 0.8fr 2.2fr;
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  border-radius: 16px;
-  padding: 16px;
-  margin-top: 28px;
-  margin-bottom: 20px;
-  gap: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  align-items: stretch;
-  max-width: 100%;
-}
-
-.weather-current-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  padding-right: 12px;
-}
-
-.weather-main-icon {
-  width: 56px;
-  height: 56px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-}
-
-.weather-main-temp {
-  font-size: 26px;
-  font-weight: 700;
-  color: #fff;
-  margin: 4px 0;
-  line-height: 1;
-}
-
-.weather-main-desc {
-  font-size: 11px;
-  color: #94a3b8;
-}
-
-.weather-pop-badge {
-  margin-top: 6px;
-  font-size: 11px;
-  background: rgba(37, 99, 235, 0.25);
-  color: #93c5fd;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-weight: 600;
-}
-
-.weather-forecast-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-}
-
-.weather-forecast-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 10px;
-  padding: 10px 4px;
-  justify-content: space-between;
-  min-width: 0;
-}
-
-.wf-time {
-  font-size: 11px;
-  font-weight: 600;
-  color: #cbd5e1;
-}
-
-.wf-icon {
-  width: 36px;
-  height: 36px;
-  margin: 4px 0;
-}
-
-.wf-temp {
-  font-size: 15px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.wf-pop {
-  font-size: 11px;
-  font-weight: 600;
-  color: #60a5fa;
-  margin-top: 2px;
-}
-
-/* ------------------------------------------------------------------
-   住所カード・位置情報
------------------------------------------------------------------- */
-.address-card,
-.location-info {
-  display: block;
-  flex-direction: column;
-  padding: 18px;
-  border-radius: 14px;
-  background: var(--panel-elevated);
-  border: 1px solid var(--stroke-soft);
-  user-select: text;
-  -webkit-user-select: text;
-  max-width: 100%;
-}
-
-.address-card {
-  display: none;
-  margin-bottom: 12px;
-  touch-action: manipulation;
-}
-
-.address-title {
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  word-wrap: break-word;
-}
-
-.address-coords {
-  font-size: 12px;
-  color: var(--text-muted);
-  word-wrap: break-word;
-}
-
-.loc-coords {
-  font-family: monospace;
-  color: #facc15;
-  font-weight: 600;
-  font-size: 13px;
-  background: rgba(250, 204, 21, 0.15);
-  padding: 4px 10px;
-  border-radius: 6px;
-  display: inline-block;
-  margin-bottom: 10px;
-  word-wrap: break-word;
-}
-
-.loc-address {
-  font-size: 14px;
-  line-height: 1.6;
-  color: #e5e7eb;
-  word-wrap: break-word;
-}
-
-/* ------------------------------------------------------------------
-   検索ボックス
------------------------------------------------------------------- */
-.search-box-container {
-  margin: 12px 0 16px;
-  width: 100%;
-  max-width: 100%;
-}
-
-.input-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 14px;
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--stroke-soft);
-  height: 46px;
-  max-width: 100%;
-}
-
-.input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  color: #fff;
-  font-size: 16px;
-  outline: none;
-  min-width: 0;
-}
-
-.icon svg {
-  width: 22px;
-  height: 22px;
-  fill: #e5e7eb;
-}
-
-/* ------------------------------------------------------------------
-   検索結果リスト
------------------------------------------------------------------- */
-.results-list {
-  padding: 0;
-  border-radius: 12px;
-  background: var(--panel-elevated);
-  max-height: 35vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  touch-action: pan-y;
-  max-width: 100%;
-}
-
-.result-item {
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  font-size: 14px;
-  word-wrap: break-word;
-}
-
-/* ------------------------------------------------------------------
-   保存リスト
------------------------------------------------------------------- */
-.saved-section {
-  margin-top: 36px;
-  border-top: 1px solid var(--stroke-soft);
-  padding-top: 18px;
-  max-width: 100%;
-}
-
-.saved-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 18px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  margin-bottom: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  cursor: pointer;
-  touch-action: manipulation;
-  max-width: 100%;
-}
-
-.saved-item:active {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.saved-info {
-  overflow: hidden;
-  min-width: 0;
-  flex: 1;
-}
-
-.saved-name {
-  font-weight: bold;
-  font-size: 16px;
-  color: #fff;
-  margin-bottom: 4px;
-  word-wrap: break-word;
-}
-
-.saved-address {
-  font-size: 11px;
-  color: #9ca3af;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ------------------------------------------------------------------
-   設定・ルート情報 (Navigation Mode)
------------------------------------------------------------------- */
-.settings-group {
-  margin-bottom: 24px;
-  max-width: 100%;
-}
-
-.settings-label {
-  font-size: 15px;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-  font-weight: 600;
-}
-
-.nav-section-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-}
-
-.setting-sub-label {
-  font-size: 15px !important;
-  color: #e5e7eb !important;
-  display: block;
-  margin-bottom: 8px !important;
-  font-weight: 500;
-}
-
-.setting-input {
-  font-size: 16px !important;
-  padding: 12px !important;
-  height: 48px;
-  width: 100%;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--stroke-soft);
-  border-radius: 8px;
-  color: #fff;
-  max-width: 100%;
-}
-
-.map-mode-buttons {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-  max-width: 100%;
-}
-
-.map-mode-btn {
-  flex: 1;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.6);
-  background: rgba(31, 41, 55, 0.9);
-  color: #e5e7eb;
-  min-height: 42px;
-  font-size: 14px;
-  font-weight: 600;
-  touch-action: manipulation;
-  min-width: 0;
-}
-
-.map-mode-btn.active {
-  background: #fff;
-  color: #000;
-}
-
-.route-summary-card {
-  padding: 16px;
-  border-radius: 16px;
-  background: rgba(37, 99, 235, 0.1);
-  border: 1px solid rgba(37, 99, 235, 0.3);
-  margin-bottom: 16px;
-  max-width: 100%;
-}
-
-.route-dest {
-  font-size: 16px;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 8px;
-}
-
-.route-stats {
-  font-size: 22px;
-  font-weight: 800;
-  color: #fff;
-  display: flex;
-  gap: 14px;
-  align-items: baseline;
-  flex-wrap: wrap;
-}
-
-.stat-dist {
-  color: #facc15;
-}
-
-.stat-time {
-  color: #fff;
-}
-
-.nav-instruction-item {
-  padding: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 14px;
-  line-height: 1.5;
-  color: #e5e7eb;
-}
-
-.incident-alert {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #fca5a5;
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 14px;
-  margin-top: 8px;
-}
-
-/* ------------------------------------------------------------------
-   ローディング
------------------------------------------------------------------- */
-.loading-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 3000;
-  color: #fff;
-  flex-direction: column;
-}
-
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+  function getActiveTabNameFromDOM() {
+    const paneSearch = getEl('tabPaneSearch');
+    const paneNav = getEl('tabPaneNav');
+    const paneSettings = getEl('tabPaneSettings');
+    if (paneSettings && paneSettings.classList.contains('active')) return 'settings';
+    if (paneNav && paneNav.classList.contains('active')) return 'nav';
+    if (paneSearch && paneSearch.classList.contains('active')) return 'search';
+    return 'search';
   }
-}
 
-/* ------------------------------------------------------------------
-   マーカー
------------------------------------------------------------------- */
-.wn-user-marker {
-  width: 20px;
-  height: 20px;
-  background: #3b82f6;
-  border: 3px solid #fff;
-  border-radius: 50%;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-}
+  /* === FAB Logic === */
+  function getFabBtnIds() {
+    return ['btnSearchFab', 'btnLocateFab', 'btnDestFab', 'btnSettingsFab', 'btnNavFab', 'btnShareFab', 'btnStopFab'];
+  }
 
-.wn-point-marker {
-  width: 24px;
-  height: 24px;
-  background: #ef4444;
-  border: 3px solid #fff;
-  border-radius: 50%;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-}
+  function setFabLabel(btnId, text, isClose = false) {
+    const btn = getEl(btnId);
+    if (!btn) return;
+    const label = btn.querySelector('.fab-label');
+    if (label) label.textContent = text;
+    btn.classList.toggle('is-close', !!isClose);
+  }
 
-/* ------------------------------------------------------------------
-   編集モーダル
------------------------------------------------------------------- */
-.edit-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: fadeIn 0.2s ease-out;
-}
+  function restoreFabLabels() {
+    getFabBtnIds().forEach(id => {
+      const btn = getEl(id);
+      if (!btn) return;
+      const def = btn.getAttribute('data-label') || '';
+      if (def) setFabLabel(id, def, false);
+      else btn.classList.remove('is-close');
+    });
+    appState.lastFabSourceId = null;
+  }
 
-.edit-modal-content {
-  background: #1f2937;
-  width: 90%;
-  max-width: 400px;
-  max-height: 80vh;
-  border-radius: 16px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
+  function showCloseHintOn(btnId) {
+    restoreFabLabels();
+    setFabLabel(btnId, '閉じる', true);
+    appState.lastFabSourceId = btnId;
+  }
 
-.edit-modal-title {
-  padding: 16px;
-  margin: 0;
-  font-size: 16px;
-  color: #fff;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  text-align: center;
-}
+  function updateFabVisibility() {
+    const fab = getEl('fabStack');
+    if (fab) {
+      fab.classList.remove('initial-hidden');
+      fab.style.display = 'flex';
+      fab.style.visibility = 'visible';
+      fab.style.opacity = '1';
+    }
+  }
 
-.edit-modal-body {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 16px;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
-}
+  function togglePanel() {
+    const panel = getEl('searchPanel');
+    if (!panel) return;
+    panel.classList.toggle('collapsed');
+    if (!isPanelOpen()) restoreFabLabels();
+  }
 
-.edit-modal-actions {
-  padding: 12px 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  gap: 10px;
-  background: #111827;
-}
+  function collapsePanel() {
+    const panel = getEl('searchPanel');
+    if (!panel) return;
+    panel.classList.add('collapsed');
+    restoreFabLabels();
+  }
 
-.edit-modal-actions .btn {
-  flex: 1;
-}
+  function openPanel() {
+    const panel = getEl('searchPanel');
+    if (!panel) return;
+    panel.classList.remove('collapsed');
+  }
 
-.edit-list-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-  background: rgba(0, 0, 0, 0.2);
-  padding: 8px 10px;
-  border-radius: 8px;
-}
+  function switchPanelTab(mode) {
+    const panel = getEl('searchPanel');
+    const s = getEl('tabPaneSearch');
+    const n = getEl('tabPaneNav');
+    const st = getEl('tabPaneSettings');
 
-.edit-item-inputs {
-  flex: 1;
-  overflow: hidden;
-  min-width: 0;
-}
+    if (s) s.classList.toggle('active', mode === 'search');
+    if (n) n.classList.toggle('active', mode === 'nav');
+    if (st) st.classList.toggle('active', mode === 'settings');
 
-.edit-input-name {
-  width: 100%;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid #4b5563;
-  color: #fff;
-  font-size: 15px;
-  padding: 4px 0;
-  outline: none;
-}
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      const t = b.getAttribute('data-panel-tab');
+      b.classList.toggle('active', t === mode);
+    });
 
-.edit-input-name:focus {
-  border-bottom-color: var(--accent);
-}
+    if (panel) panel.setAttribute('data-current-tab', mode);
+  }
 
-.edit-text-addr {
-  font-size: 11px;
-  color: #9ca3af;
-  margin-top: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+  function togglePanelFromFab(targetTab, sourceBtnId) {
+    if (isPanelHiddenForce()) return;
+    const open = isPanelOpen();
+    const active = getActiveTabNameFromDOM();
+    if (open && active === targetTab) {
+      collapsePanel();
+      return;
+    }
+    switchPanelTab(targetTab);
+    openPanel();
+    showCloseHintOn(sourceBtnId);
+  }
 
-.edit-text-coords {
-  font-size: 11px;
-  color: #facc15;
-  margin-top: 4px;
-  font-family: monospace;
-  word-wrap: break-word;
-}
+  /* === Save/Load Logic === */
+  function loadSavedLocations() {
+    try {
+      const raw = localStorage.getItem(SAVED_LOCATIONS_KEY);
+      if (raw) appState.savedLocations = JSON.parse(raw);
+    } catch (_) {
+      appState.savedLocations = [];
+    }
+    if (appState.mapInitialized) refreshSavedMarkers();
+  }
 
-.btn-delete-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(239, 68, 68, 0.2);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  cursor: pointer;
-  touch-action: manipulation;
-  flex-shrink: 0;
-}
+  function saveLocations() {
+    try {
+      localStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(appState.savedLocations));
+      renderSavedLocations();
+      refreshSavedMarkers();
+    } catch (e) {
+      alert('保存容量がいっぱいです。古い写真メモ等を削除してください。');
+    }
+  }
 
-/* ------------------------------------------------------------------
-   InfoWindow (吹き出し)
------------------------------------------------------------------- */
-.info-window-content {
-  color: #333;
-  font-family: -apple-system, sans-serif;
-  padding: 4px;
-  min-width: 160px;
-}
+  function addSavedLocation(name, lat, lng, address, imageData = null) {
+    const newItem = { name, lat, lng, address, timestamp: Date.now() };
+    if (imageData) {
+      newItem.image = imageData;
+      newItem.type = 'photo';
+    } else {
+      newItem.type = 'location';
+    }
+    appState.savedLocations.unshift(newItem);
+    saveLocations();
+    alert(imageData ? '写真を記録しました' : '場所を保存しました');
+  }
 
-.info-window-content img {
-  object-fit: cover;
-  width: 100%;
-  border-radius: 4px;
-  margin-top: 4px;
+  async function refreshSavedMarkers() {
+    if (!appState.map) return;
+    appState.savedLocationMarkers.forEach(m => m.setMap(null));
+    appState.savedLocationMarkers = [];
+
+    const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
+
+    appState.savedLocations.forEach(loc => {
+      const isPhoto = (loc.type === 'photo');
+      const pin = new PinElement({
+        glyph: isPhoto ? '📷' : '★',
+        background: isPhoto ? '#25d07a' : '#f59e0b',
+        borderColor: '#ffffff',
+      });
+
+      const marker = new AdvancedMarkerElement({
+        map: appState.map,
+        position: { lat: loc.lat, lng: loc.lng },
+        content: pin.element,
+        title: loc.name
+      });
+
+      const infoContent = document.createElement('div');
+      infoContent.className = 'info-window-content';
+      let html = `<div style="font-weight:bold; margin-bottom:4px;">${loc.name}</div>`;
+      html += `<div style="font-size:11px; color:#666; margin-bottom:4px;">${loc.address || ''}</div>`;
+      if (loc.image) {
+        html += `<img src="${loc.image}" style="max-width:200px; max-height:200px; display:block; border-radius:4px; margin-top:4px;">`;
+      }
+      html += `<button id="btnInfoNav" style="margin-top:8px; padding:4px 10px; background:#2563eb; color:white; border:none; border-radius:4px;">ここへ行く</button>`;
+      
+      infoContent.innerHTML = html;
+      const infoWindow = new google.maps.InfoWindow({ content: infoContent });
+      
+      marker.addListener('click', () => {
+        infoWindow.open(appState.map, marker);
+        setTimeout(() => {
+           const btn = document.querySelector('#btnInfoNav');
+           if(btn) btn.onclick = () => startNavigation(loc);
+        }, 200);
+      });
+
+      appState.savedLocationMarkers.push(marker);
+    });
+  }
+
+  function renderSavedLocations() {
+    let listContainer = getEl('savedSectionContainer');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+    const section = document.createElement('div');
+    section.className = 'saved-section';
+    section.innerHTML = `<div class="nav-section-title">📂 保存した場所・メモ</div><div id="savedLocationsList"></div>`;
+    listContainer.appendChild(section);
+    const listEl = section.querySelector('#savedLocationsList');
+    if (appState.savedLocations.length === 0) {
+      listEl.innerHTML = '<div style="font-size:12px; color:#888; text-align:center;">保存された場所はありません</div>';
+      return;
+    }
+    appState.savedLocations.forEach((loc) => {
+      const item = document.createElement('div');
+      item.className = 'saved-item';
+      const icon = (loc.type === 'photo') ? '📸' : '📍';
+      item.innerHTML = `
+        <div class="saved-info">
+          <div class="saved-name">${icon} ${loc.name}</div>
+          <div class="saved-address">${loc.address || ''}</div>
+        </div>
+        <div style="font-size:20px; color:#555;">›</div>
+      `;
+      item.onclick = () => {
+        startNavigation({ name: loc.name, lat: loc.lat, lng: loc.lng });
+      };
+      listEl.appendChild(item);
+    });
+  }
+
+  function handleCameraInput(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    let lat, lng;
+    if (appState.pointSearchMode && appState.searchPoint) {
+      lat = appState.searchPoint.lat;
+      lng = appState.searchPoint.lng;
+    } else if (appState.currentPos) {
+      lat = appState.currentPos.lat;
+      lng = appState.currentPos.lng;
+    } else {
+      alert('現在地が不明なため記録できません');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 800;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+        } else {
+          if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        const name = prompt('この写真のメモを入力:', '写真メモ');
+        if (name !== null) {
+            const addr = getEl('locAddress')?.textContent || '住所不明';
+            addSavedLocation(name || '無題の写真', lat, lng, addr, dataUrl);
+        }
+        e.target.value = '';
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function quickSearch(keyword) {
+    if (!appState.currentPos) return alert('現在地を取得してください');
+    const q = getEl('q');
+    if (q) {
+      q.value = keyword;
+      placesTextSearch(keyword, appState.currentPos.lat, appState.currentPos.lng)
+        .then(d => {
+          displayResults(d.places || []);
+        });
+    }
+  }
+
+  function openEditModal() {
+    const modal = getEl('editSavedModal');
+    const list = getEl('editModalList');
+    if (!modal || !list) return;
+    list.innerHTML = '';
+    if (appState.savedLocations.length === 0) {
+      list.innerHTML = '<div style="text-align:center; color:#888; margin-top:20px;">保存された場所はありません</div>';
+    } else {
+      appState.savedLocations.forEach((loc, idx) => {
+        const item = document.createElement('div');
+        item.className = 'edit-list-item';
+        item.innerHTML = `
+          <div class="edit-item-inputs">
+            <input type="text" class="edit-input-name" value="${loc.name}" data-idx="${idx}">
+            <div class="edit-text-addr">${loc.type === 'photo' ? '📸 写真メモ' : ''} ${loc.address || '住所不明'}</div>
+          </div>
+          <button class="btn-delete-icon" data-delete-idx="${idx}" type="button">×</button>
+        `;
+        list.appendChild(item);
+      });
+      list.querySelectorAll('.btn-delete-icon').forEach(btn => {
+        btn.onclick = (e) => {
+          e.target.closest('.edit-list-item').remove();
+        };
+      });
+    }
+    modal.style.display = 'flex';
+  }
+
+  function closeEditModal() {
+    const modal = getEl('editSavedModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function saveEditModalChanges() {
+    const list = getEl('editModalList');
+    if (!list) return;
+    const newLocations = [];
+    const items = list.querySelectorAll('.edit-list-item');
+    items.forEach(item => {
+      const input = item.querySelector('.edit-input-name');
+      const idx = parseInt(input.dataset.idx);
+      const newName = input.value.trim();
+      if (newName) {
+        const original = appState.savedLocations[idx];
+        if (original) {
+          original.name = newName;
+          newLocations.push(original);
+        }
+      }
+    });
+    appState.savedLocations = newLocations;
+    saveLocations();
+    closeEditModal();
+  }
+
+  function loadUserProfile() {
+    try {
+      const raw = localStorage.getItem(PROFILE_KEY);
+      if (raw) appState.userProfile = JSON.parse(raw);
+    } catch (_) {}
+  }
+
+  async function fetchWithRetry(url, options = {}, retries = MAX_RETRY) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch(url, options);
+        if (!response.ok && i < retries - 1) {
+          await new Promise(r => setTimeout(r, RETRY_DELAY * (i + 1)));
+          continue;
+        }
+        return response;
+      } catch (error) {
+        if (i === retries - 1) throw error;
+        await new Promise(r => setTimeout(r, RETRY_DELAY * (i + 1)));
+      }
+    }
+  }
+
+  async function fetchWeatherProxy(endpoint, lat, lng) {
+    try {
+      const resp = await fetchWithRetry(`${WORKER_ORIGIN}/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lng, language: 'ja', units: 'metric' })
+      });
+      if (!resp.ok) throw new Error('Proxy Error');
+      return await resp.json();
+    } catch (e) { return null; }
+  }
+  async function fetchCurrentWeather(lat, lng) { return fetchWeatherProxy('weather', lat, lng); }
+  async function fetchForecast(lat, lng) { return fetchWeatherProxy('forecast', lat, lng); }
+
+  async function geocode(lat, lng) {
+    try {
+      const resp = await fetchWithRetry(`${WORKER_ORIGIN}/geocode`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latlng: { lat, lng }, language: 'ja' })
+      });
+      if (!resp.ok) throw new Error('Worker Error');
+      return await resp.json();
+    } catch (e) {
+      const resp = await fetchWithRetry(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=ja&key=${API_KEY}`);
+      return await resp.json();
+    }
+  }
+
+  async function fetchIncidentsAround(lat, lng) {
+    try {
+      const resp = await fetchWithRetry(`${WORKER_ORIGIN}/incidents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lng, radiusKm: 10 })
+      });
+      const json = await resp.json();
+      const sec = getEl('incidentSection');
+      const box = getEl('incidentText');
+      if (sec && box) {
+        if (!json) { sec.style.display = 'none'; return; }
+        const parts = [];
+        if (json.traffic?.length) parts.push('交通:' + json.traffic.map(x => x.title).join(','));
+        if (json.events?.length) parts.push('事故:' + json.events.map(x => x.title).join(','));
+        sec.style.display = 'block';
+        box.textContent = parts.length ? parts.join(' / ') : '特になし';
+      }
+    } catch (_) {}
+  }
+
+  async function initMap(center) {
+    if (appState.map) {
+      appState.map.setCenter(center);
+      return;
+    }
+    const mapEl = getEl('map');
+    if (!mapEl) return;
+
+    try {
+      const { Map } = await google.maps.importLibrary("maps");
+      const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
+
+      appState.map = new Map(mapEl, {
+        center,
+        zoom: 17,
+        gestureHandling: 'greedy',
+        clickableIcons: true,
+        disableDefaultUI: true,
+        mapId: MAP_ID
+      });
+
+      appState.map.addListener('click', (e) => {
+        if (appState.pointSearchMode && e.latLng) setSearchPoint(e.latLng.lat(), e.latLng.lng());
+      });
+
+      changeMapMode(appState.mapMode);
+      appState.mapInitialized = true;
+      refreshSavedMarkers();
+      console.log('[WalkNav] Map initialized v83');
+    } catch (e) {
+      console.warn('Map Init Failed', e);
+    }
+  }
+
+  async function setUserMarker(lat, lng) {
+    appState.currentPos = { lat, lng };
+    if (!appState.map) return;
+
+    const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
+
+    if (appState.userMarker) {
+      appState.userMarker.position = { lat, lng };
+    } else {
+      const pin = new PinElement({
+        glyph: '',
+        background: '#3aa0ff',
+        borderColor: '#ffffff',
+        scale: 1.2
+      });
+      appState.userMarker = new AdvancedMarkerElement({
+        map: appState.map,
+        position: { lat, lng },
+        content: pin.element
+      });
+    }
+  }
+
+  async function setSearchPoint(lat, lng) {
+    appState.searchPoint = { lat, lng };
+    if (!appState.map) return;
+
+    const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+
+    if (appState.searchPointMarker) {
+      appState.searchPointMarker.map = null;
+    }
+
+    appState.searchPointMarker = new AdvancedMarkerElement({
+      map: appState.map,
+      position: { lat, lng },
+      zIndex: 999
+    });
+
+    setText('pointAddress', '取得中…');
+    setDisplay('pointAddressBlock', 'flex');
+    setText('pointCoords', `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`);
+    geocode(lat, lng).then(d => {
+      const addr = d.results?.[0]?.formatted_address ? d.results[0].formatted_address.replace(/^日本、\s*/, '') : '不明';
+      setText('pointAddress', addr);
+    });
+  }
+
+  function acquireLocation() {
+    navigator.geolocation.getCurrentPosition(pos => {
+      const { latitude, longitude } = pos.coords;
+      getEl('loading')?.remove();
+      if (!appState.mapInitialized) {
+        initMap({ lat: latitude, lng: longitude });
+      } else {
+        appState.map.panTo({ lat: latitude, lng: longitude });
+        appState.map.setZoom(19);
+      }
+      setUserMarker(latitude, longitude);
+      const latStr = latitude.toFixed(5);
+      const lngStr = longitude.toFixed(5);
+      setText('locCoords', `📍 ${latStr}, ${lngStr}`);
+      geocode(latitude, longitude).then(d => {
+        const addr = d.results?.[0]?.formatted_address ? d.results[0].formatted_address.replace(/^日本、\s*/, '') : '';
+        setText('locAddress', addr);
+      });
+      updateAllWeatherUI(latitude, longitude);
+    }, () => {
+      getEl('loading')?.remove();
+      initMap({ lat: 35.0, lng: 135.0 });
+    }, LOCATION_OPTIONS);
+  }
+
+  function startLocationWatcher() {
+    if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
+    appState.locationWatchId = navigator.geolocation.watchPosition(pos => {
+      setUserMarker(pos.coords.latitude, pos.coords.longitude);
+      // v83 Fix: 自動追尾はナビ中のみ、かつユーザーがマップを動かしていない時のみ（簡易実装としてナビ中はパンする）
+      if (appState.isNavigating && appState.map && !appState.pointSearchMode) {
+        appState.map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      }
+    }, null, LOCATION_OPTIONS);
+  }
+
+  function renderRoute(route, destName) {
+    if (!route?.legs?.[0]) return;
+    const leg = route.legs[0];
+    const title = appState.pointSearchMode ? `🚩 指定地点へ` : (destName || '目的地');
+
+    setText('destinationName', title);
+    setText('routeDistance', leg.distance?.text || '--');
+    setText('routeTime', `徒歩 ${leg.duration?.text || '--'}`);
+
+    const list = getEl('navPanelInstructions');
+    if (list) {
+      list.innerHTML = '';
+      (leg.steps || []).forEach(s => {
+        const d = document.createElement('div');
+        d.className = 'nav-instruction-item';
+        d.textContent = (s.html_instructions || '').replace(/<[^>]+>/g, '') + (s.distance?.text ? ` (${s.distance.text})` : '');
+        list.appendChild(d);
+      });
+    }
+    setDisplay('instructionsSection', 'block');
+    if (appState.currentPolyline) appState.currentPolyline.setMap(null);
+    if (google.maps.geometry && route.overview_polyline?.points) {
+      appState.currentPolyline = new google.maps.Polyline({
+        path: google.maps.geometry.encoding.decodePath(route.overview_polyline.points),
+        map: appState.map,
+        strokeColor: '#62b5ff',
+        strokeWeight: 6
+      });
+    }
+    
+    // v83 Fix: Route rendering should strictly follow polyline bounds
+    const b = new google.maps.LatLngBounds();
+    // Start and End
+    b.extend(leg.start_location);
+    b.extend(leg.end_location);
+    // Fit bounds to show route
+    if (appState.map) appState.map.fitBounds(b, { padding: 50 });
+    
+    setDisplay('routeInfoSection', 'block');
+  }
+
+  async function startNavigation(dest) {
+    if (!appState.currentPos) return alert("現在地が取得できていません");
+    
+    // v83: データ検証。lat/lngが無い場合は弾く
+    if (!dest || typeof dest.lat !== 'number' || typeof dest.lng !== 'number') {
+      return alert("エラー: 目的地の座標が不正です");
+    }
+
+    const finalDestName = dest.name || '選択した場所';
+    
+    let originLat, originLng;
+    if (appState.pointSearchMode && appState.searchPoint) {
+      originLat = appState.searchPoint.lat;
+      originLng = appState.searchPoint.lng;
+    } else {
+      originLat = appState.currentPos.lat;
+      originLng = appState.currentPos.lng;
+    }
+    
+    appState.currentDestination = dest;
+    appState.isNavigating = true;
+    
+    const panel = getEl('searchPanel');
+    if (panel) { panel.classList.add('collapsed'); panel.classList.add('hidden-force'); }
+    restoreFabLabels();
+    updateFabVisibility();
+    
+    const fabNav = getEl('btnNavFab');
+    const fabSearch = getEl('btnSearchFab');
+    if (fabSearch) fabSearch.style.display = 'none';
+    if (fabNav) fabNav.style.display = 'flex';
+    
+    setDisplay('routeControlSection', 'block');
+    setDisplay('results', 'none');
+    switchPanelTab('nav');
+
+    try {
+      const resp = await fetchWithRetry(`${WORKER_ORIGIN}/directions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          origin: `${originLat},${originLng}`,
+          destination: `${dest.lat},${dest.lng}`,
+          mode: 'walking',
+          language: 'ja'
+        })
+      });
+      const json = await resp.json();
+      if(!json.routes || json.routes.length === 0) throw new Error("ルートが見つかりません");
+
+      let chosen = { route: json.routes[0], index: 0 };
+      if (window.RouteEvaluator?.pickBestRoute) chosen = window.RouteEvaluator.pickBestRoute(json.routes, appState.userProfile, appState.aiMode);
+      
+      appState.currentRouteData = { routes: json.routes, selectedIndex: chosen.index };
+      renderRoute(chosen.route, finalDestName);
+      startLocationWatcher();
+    } catch (e) {
+      alertOnce('route_err', 'ルート取得失敗: ' + e.message);
+      stopNavigation();
+    }
+  }
+
+  function stopNavigation() {
+    // v83 Fix: Stop watching but don't clear map center immediately
+    if (appState.locationWatchId) navigator.geolocation.clearWatch(appState.locationWatchId);
+    appState.locationWatchId = null;
+    appState.isNavigating = false;
+    
+    if (appState.currentPolyline) appState.currentPolyline.setMap(null);
+    
+    const panel = getEl('searchPanel');
+    if (panel) panel.classList.remove('hidden-force');
+    restoreFabLabels();
+    updateFabVisibility();
+    
+    if(getEl('btnSearchFab')) getEl('btnSearchFab').style.display = 'flex';
+    setDisplay('routeControlSection', 'none');
+    setDisplay('instructionsSection', 'none');
+    setDisplay('routeInfoSection', 'none');
+    switchPanelTab('search');
+    openPanel();
+    
+    // v83 Fix: 終了時に現在地へ戻り、ズームレベルを歩行用にリセット(16)
+    if (appState.currentPos && appState.map) {
+      appState.map.panTo(appState.currentPos);
+      appState.map.setZoom(16);
+    }
+  }
+
+  function setSearchRadius(km) {
+    appState.searchRadiusMeters = km * 1000;
+    ['r5', 'r10', 'r20'].forEach(id => {
+      const el = getEl(id);
+      if(el) el.classList.toggle('active', id === 'r' + km);
+    });
+    setText('radiusLabel', km + 'km');
+  }
+
+  function bindUI() {
+    const btnSearchFab = getEl('btnSearchFab');
+    const btnLocateFab = getEl('btnLocateFab');
+    const btnNavFab = getEl('btnNavFab');
+    const btnSettingsFab = getEl('btnSettingsFab');
+    const btnStopFab = getEl('btnStopFab');
+
+    if (btnSearchFab) btnSearchFab.onclick = () => togglePanelFromFab('search', 'btnSearchFab');
+    if (btnSettingsFab) btnSettingsFab.onclick = () => togglePanelFromFab('settings', 'btnSettingsFab');
+    if (btnNavFab) btnNavFab.onclick = () => togglePanelFromFab('nav', 'btnNavFab');
+    if (btnLocateFab) btnLocateFab.onclick = acquireLocation;
+    if (btnStopFab) btnStopFab.onclick = stopNavigation;
+
+    const btnCamera = getEl('btnCamera');
+    const cameraInput = getEl('cameraInput');
+    if (btnCamera && cameraInput) {
+      btnCamera.onclick = () => cameraInput.click();
+      cameraInput.onchange = handleCameraInput;
+    }
+
+    if(getEl('btnSearchStation')) getEl('btnSearchStation').onclick = () => quickSearch('駅');
+    if(getEl('btnSearchBus')) getEl('btnSearchBus').onclick = () => quickSearch('バス停');
+    if(getEl('btnSearchTaxi')) getEl('btnSearchTaxi').onclick = () => quickSearch('タクシー乗り場');
+    if(getEl('btnSearchToilet')) getEl('btnSearchToilet').onclick = () => quickSearch('公衆トイレ コンビニ');
+    if(getEl('btnSearchConv')) getEl('btnSearchConv').onclick = () => quickSearch('コンビニ');
+    if(getEl('btnSearchWifi')) getEl('btnSearchWifi').onclick = () => quickSearch('Free Wi-Fi');
+
+    if(getEl('r5')) getEl('r5').onclick = () => setSearchRadius(5);
+    if(getEl('r10')) getEl('r10').onclick = () => setSearchRadius(10);
+    if(getEl('r20')) getEl('r20').onclick = () => setSearchRadius(20);
+
+    if (getEl('btnOpenEditModal')) getEl('btnOpenEditModal').onclick = openEditModal;
+    const ph = document.querySelector('.panel-handle-area');
+    if (ph) ph.onclick = togglePanel;
+
+    if (getEl('btnSearchIcon')) getEl('btnSearchIcon').onclick = () => {
+        const q = getEl('q');
+        if(!q) return;
+        let lat = appState.currentPos ? appState.currentPos.lat : 0;
+        let lng = appState.currentPos ? appState.currentPos.lng : 0;
+        placesTextSearch(q.value, lat, lng).then(d => displayResults(d.places || []));
+    };
+
+    if (getEl('btnSaveCurrent')) getEl('btnSaveCurrent').onclick = handleSaveCurrentLocation;
+    if (getEl('btnSaveEdits')) getEl('btnSaveEdits').onclick = saveEditModalChanges;
+    if (getEl('btnCancelEdit')) getEl('btnCancelEdit').onclick = closeEditModal;
+    
+    bindPanelHeaderTabs();
+    updateFabVisibility();
+    restoreFabLabels();
+  }
+
+  function changeMapMode(mode) {
+    localStorage.setItem(MAP_MODE_KEY, mode);
+    appState.mapMode = mode;
+    if (appState.map) {
+      appState.map.setMapTypeId(
+        mode === 'photo' ? google.maps.MapTypeId.SATELLITE :
+        mode === '3d' ? google.maps.MapTypeId.HYBRID :
+        google.maps.MapTypeId.ROADMAP
+      );
+      appState.map.setTilt(mode === '3d' ? 45 : 0);
+    }
+    ['btnMapPhoto', 'btnMapRoadmap', 'btnMap3D'].forEach(id => {
+      const el = getEl(id);
+      if(el) el.classList.toggle('active', el.dataset.mode === mode);
+    });
+  }
+
+  async function placesTextSearch(query, lat, lng) {
+    const payload = {
+      textQuery: query,
+      locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: appState.searchRadiusMeters } },
+      languageCode: 'ja'
+    };
+    try {
+      const resp = await fetchWithRetry(`${WORKER_ORIGIN}/places:searchText`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Goog-FieldMask': DEFAULT_MASK },
+        body: JSON.stringify(payload)
+      });
+      if (!resp.ok) throw new Error('Worker Error');
+      return await resp.json();
+    } catch (e) { return {}; }
+  }
+
+  /* === v83 Fix: Display Results with Auto-Zoom Bounds === */
+  async function displayResults(places) {
+    const div = getEl('results');
+    if (!div) return;
+    div.innerHTML = '';
+    setDisplay('results', 'block');
+    
+    appState.searchMarkers.forEach(m => m.map = null);
+    appState.searchMarkers = [];
+    appState.searchInfoWindows.forEach(w => w.close());
+    appState.searchInfoWindows = [];
+
+    const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+    // v83 Fix: Create bounds to fit all markers
+    const bounds = new google.maps.LatLngBounds();
+    // Add current position to bounds so the user knows where they are relative to results
+    if (appState.currentPos) bounds.extend(appState.currentPos);
+
+    places.slice(0, 5).forEach((p, i) => {
+      // 1. List Item
+      const item = document.createElement('div');
+      item.className = 'result-item';
+      item.innerHTML = `<div>${i + 1}. ${p.displayName?.text}</div><div style="font-size:0.8em;opacity:0.7">${p.formattedAddress || ''}</div>`;
+      
+      // Explicit data passing for navigation
+      const destData = {
+        name: p.displayName?.text || '名称不明',
+        lat: p.location.latitude,
+        lng: p.location.longitude
+      };
+
+      item.onclick = () => {
+        startNavigation(destData);
+      };
+      div.appendChild(item);
+
+      // 2. Marker
+      const markerContent = document.createElement('div');
+      markerContent.className = 'marker-container';
+      markerContent.innerHTML = `
+        <div class="marker-pin">${i + 1}</div>
+        <div class="marker-label">${p.displayName?.text || '名称不明'}</div>
+      `;
+
+      const m = new AdvancedMarkerElement({
+        map: appState.map,
+        position: { lat: p.location.latitude, lng: p.location.longitude },
+        content: markerContent,
+        title: p.displayName?.text
+      });
+
+      // Extend bounds to include this marker
+      bounds.extend({ lat: p.location.latitude, lng: p.location.longitude });
+
+      m.addListener('click', () => {
+        startNavigation(destData);
+      });
+
+      appState.searchMarkers.push(m);
+    });
+
+    // v83 Fix: Auto zoom to show all results + current pos
+    if (appState.map && !bounds.isEmpty()) {
+      appState.map.fitBounds(bounds, { padding: 50 });
+    }
+
+    const panelBody = getEl('panelScrollContainer');
+    if(panelBody && div) {
+      setTimeout(() => {
+        openPanel();
+        div.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }
+
+  function startApp() {
+    console.log('[WalkNav] Starting v83 (Fix: Destination Bug & Zoom)...');
+    loadUserProfile();
+    loadSavedLocations();
+    bindUI();
+    renderSavedLocations();
+    appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
+    switchPanelTab('search');
+    acquireLocation();
+  }
+
+  function initializeWhenReady() {
+    if (typeof google !== 'undefined' && google.maps && google.maps.Map) {
+      startApp();
+    } else {
+      setTimeout(initializeWhenReady, 200);
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initializeWhenReady);
+  else initializeWhenReady();
 }
