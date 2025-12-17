@@ -7,10 +7,10 @@ const CUSTOM_MAP_ID = '9110fb2763169e9d8f2b317e';
 // ===============================================================================
 
 
-// WalkNav app.js - v84.3
-// Configurable Map ID at the top
+// WalkNav app.js - v84.6
+// Share Fix, Incidents Restore, D-Pad added
 
-const ISSUE_ID = 'idx20251213_v84_3_config_top';
+const ISSUE_ID = 'idx20251213_v84_6_updates';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
 const WORKER_ORIGIN = 'https://ors-proxy.miyata-connect-jp.workers.dev';
 
@@ -203,6 +203,42 @@ if (WN.booted) {
     switchPanelTab(targetTab);
     openPanel();
     showCloseHintOn(sourceBtnId);
+  }
+
+  /* === Share Logic === */
+  async function shareLocation() {
+    // 目的地があれば目的地、なければ現在地
+    const target = appState.currentDestination || appState.currentPos;
+    if (!target) return alert('場所が特定されていません');
+    
+    // 座標の抽出
+    let lat, lng, name;
+    if (target.lat && target.lng) {
+      lat = target.lat; lng = target.lng; name = target.name || '選択地点';
+    } else if (target.location) {
+      lat = target.location.latitude; lng = target.location.longitude; name = target.displayName?.text || '地点';
+    } else {
+      // fallback
+      lat = appState.currentPos.lat; lng = appState.currentPos.lng; name = '現在地';
+    }
+
+    const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    const text = `WalkNav: ${name} ${url}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'WalkNav 場所共有',
+          text: text,
+          url: url
+        });
+      } catch (e) {
+        console.warn('Share canceled or failed', e);
+      }
+    } else {
+      navigator.clipboard.writeText(text);
+      alert('共有リンクをクリップボードにコピーしました');
+    }
   }
 
   /* === Save/Load Logic === */
@@ -527,7 +563,7 @@ if (WN.booted) {
     } catch (_) {}
   }
 
-  /* === Initialization (MAP_ID used here) === */
+  /* === Initialization === */
   async function initMap(center) {
     if (appState.map) {
       appState.map.setCenter(center);
@@ -712,6 +748,10 @@ if (WN.booted) {
       appState.map.panTo({ lat: dest.lat, lng: dest.lng });
       appState.map.setZoom(18);
     }
+
+    // Incidentsの取得をここに追加
+    fetchIncidentsAround(dest.lat, dest.lng);
+
     try {
       const resp = await fetchWithRetry(`${WORKER_ORIGIN}/directions`, {
         method: 'POST',
@@ -876,12 +916,14 @@ if (WN.booted) {
     const btnNavFab = getEl('btnNavFab');
     const btnSettingsFab = getEl('btnSettingsFab');
     const btnStopFab = getEl('btnStopFab');
+    const btnShareFab = getEl('btnShareFab'); // 共有ボタン
 
     if (btnSearchFab) btnSearchFab.onclick = () => togglePanelFromFab('search', 'btnSearchFab');
     if (btnSettingsFab) btnSettingsFab.onclick = () => togglePanelFromFab('settings', 'btnSettingsFab');
     if (btnNavFab) btnNavFab.onclick = () => togglePanelFromFab('nav', 'btnNavFab');
     if (btnLocateFab) btnLocateFab.onclick = acquireLocation;
     if (btnStopFab) btnStopFab.onclick = stopNavigation;
+    if (btnShareFab) btnShareFab.onclick = shareLocation; // バインド追加
 
     const btnCamera = getEl('btnCamera');
     const cameraInput = getEl('cameraInput');
@@ -916,6 +958,18 @@ if (WN.booted) {
     if (getEl('btnSaveCurrent')) getEl('btnSaveCurrent').onclick = handleSaveCurrentLocation;
     if (getEl('btnSaveEdits')) getEl('btnSaveEdits').onclick = saveEditModalChanges;
     if (getEl('btnCancelEdit')) getEl('btnCancelEdit').onclick = closeEditModal;
+
+    // D-Pad Bindings
+    const btnPanUp = getEl('btnPanUp');
+    const btnPanDown = getEl('btnPanDown');
+    const btnPanLeft = getEl('btnPanLeft');
+    const btnPanRight = getEl('btnPanRight');
+    const PAN_AMOUNT = 80;
+
+    if (btnPanUp) btnPanUp.onclick = () => { if(appState.map) appState.map.panBy(0, -PAN_AMOUNT); };
+    if (btnPanDown) btnPanDown.onclick = () => { if(appState.map) appState.map.panBy(0, PAN_AMOUNT); };
+    if (btnPanLeft) btnPanLeft.onclick = () => { if(appState.map) appState.map.panBy(-PAN_AMOUNT, 0); };
+    if (btnPanRight) btnPanRight.onclick = () => { if(appState.map) appState.map.panBy(PAN_AMOUNT, 0); };
     
     bindPanelHeaderTabs();
     updateFabVisibility();
@@ -992,7 +1046,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v84.3 (Configurable ID)...');
+    console.log('[WalkNav] Starting v84.6 (Share/Incident/DPad)...');
     loadUserProfile();
     loadSavedLocations();
     bindUI();
