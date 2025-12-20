@@ -1,4 +1,4 @@
-/* app.css (v85.1: Ripple Effect Fix - Animated User Marker) */
+/* app.css (v85.2: Point Selection Ripple Effect) */
 
 /* ------------------------------------------------------------------
    基本設定 (Base)
@@ -507,7 +507,7 @@ body {
 }
 
 /* ------------------------------------------------------------------
-   現在地波紋エフェクト (User Ripple Marker)
+   現在地波紋エフェクト (User Ripple Marker) - 青色
 ------------------------------------------------------------------ */
 .user-ripple-container {
   position: relative;
@@ -568,6 +568,78 @@ body {
 }
 
 @keyframes ripple-animation {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(6);
+    opacity: 0;
+  }
+}
+
+/* ------------------------------------------------------------------
+   ポイント選択波紋エフェクト (Point Ripple Marker) - 赤色
+------------------------------------------------------------------ */
+.point-ripple-container {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.point-ripple-dot {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  background: #ef4444;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  z-index: 100;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 1), 0 2px 12px rgba(0, 0, 0, 0.4);
+  animation: pulse-point-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-point-dot {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+.point-ripple-wave {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.4);
+  border: 2px solid rgba(239, 68, 68, 0.6);
+  animation: point-ripple-animation 3s ease-out infinite;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.point-ripple-wave:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.point-ripple-wave:nth-child(2) {
+  animation-delay: 1s;
+}
+
+.point-ripple-wave:nth-child(3) {
+  animation-delay: 2s;
+}
+
+@keyframes point-ripple-animation {
   0% {
     transform: scale(1);
     opacity: 1;

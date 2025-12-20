@@ -1,12 +1,12 @@
 'use strict';
 
 /**
- * WalkNav app.js - v85.1 (Ripple Effect Fix - Animated User Marker)
+ * WalkNav app.js - v85.2 (Point Selection Ripple Effect)
  * 修正内容:
- * 1. 重複マーカー問題を解決（既存マーカーを完全に削除してから再作成）
- * 2. 波紋エフェクトのアニメーションを強化（3秒周期、3層の波紋）
- * 3. 中央ドットに脈動アニメーションを追加
- * 4. 位置ずれの原因だったtransformを削除し、正確な位置表示を実現
+ * 1. ポイント選択マーカーに波紋エフェクトを追加（赤色）
+ * 2. 現在地（青色）とポイント選択（赤色）を色で明確に区別
+ * 3. 両マーカーとも3層の波紋アニメーション付き
+ * 4. ポイント選択マーカーは少し大きめのドット（20px）で視認性向上
  */
 
 // ===============================================================================
@@ -693,9 +693,20 @@ if (WN.booted) {
       appState.searchPointMarker.map = null;
     }
 
+    // 波紋エフェクト付きポイント選択マーカーを作成（赤色）
+    const rippleContainer = document.createElement('div');
+    rippleContainer.className = 'point-ripple-container';
+    rippleContainer.innerHTML = `
+      <div class="point-ripple-wave"></div>
+      <div class="point-ripple-wave"></div>
+      <div class="point-ripple-wave"></div>
+      <div class="point-ripple-dot"></div>
+    `;
+
     appState.searchPointMarker = new AdvancedMarkerElement({
       map: appState.map,
       position: { lat, lng },
+      content: rippleContainer,
       zIndex: 999
     });
 
@@ -1107,7 +1118,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v85.1 (Ripple Effect Fix - Animated User Marker)...');
+    console.log('[WalkNav] Starting v85.2 (Point Selection Ripple Effect)...');
     loadUserProfile();
     loadSavedLocations();
     loadSavedFabPosition(); 
