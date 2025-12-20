@@ -1,14 +1,17 @@
 'use strict';
 
+/**
+ * WalkNav app.js - v84.8 (Bug Fix & Separate File Version)
+ * 修正内容:
+ * 1. PinElement の非推奨プロパティ 'glyph' を 'glyphText' に変更。
+ * 2. 外部ファイルの整合性を維持し、HTMLからの呼び出しに対応。
+ */
+
 // ===============================================================================
 // ▼▼▼ 設定エリア: ここに Map ID をコピペしてください ▼▼▼
 // ===============================================================================
 const CUSTOM_MAP_ID = '9110fb2763169e9d8f2b317e';
 // ===============================================================================
-
-
-// WalkNav app.js - v84.7
-// FAB Position Adjustment
 
 const ISSUE_ID = 'idx20251213_v84_7_fab_pos';
 const API_KEY = 'AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0';
@@ -35,6 +38,9 @@ const WN = (window.__WN_GLOBAL__ = window.__WN_GLOBAL__ || {
   alerts: Object.create(null)
 });
 
+/**
+ * 二重動作防止用ロック
+ */
 function lock(key, ms) {
   const now = Date.now();
   if (now < (WN.locks[key] || 0)) return false;
@@ -42,6 +48,9 @@ function lock(key, ms) {
   return true;
 }
 
+/**
+ * 連続アラート防止用
+ */
 function alertOnce(key, msg, ms = 1200) {
   const now = Date.now();
   if (now - (WN.alerts[key] || 0) < ms) return;
@@ -81,12 +90,12 @@ if (WN.booted) {
     savedLocations: [],
     mapMode: 'roadmap',
     searchInFlight: false,
-    searchRadiusMeters: 10000, // Default 10km
+    searchRadiusMeters: 10000, // デフォルト 10km
     aiMode: 'normal',
     incidentData: null,
     cachedWeatherData: null,
     lastFabSourceId: null,
-    fabPosition: { right: 12, bottom: 20 } // Default FAB pos
+    fabPosition: { right: 12, bottom: 20 } // デフォルト位置
   };
 
   function getEl(id) { return document.getElementById(id); }
@@ -155,7 +164,7 @@ if (WN.booted) {
     }
   }
 
-  /* --- FAB Position Logic --- */
+  /* --- FAB Position Logic (v84.7+) --- */
   function loadSavedFabPosition() {
     try {
       const raw = localStorage.getItem(FAB_POS_KEY);
@@ -183,11 +192,11 @@ if (WN.booted) {
   }
 
   function adjustFabPosition(dx, dy) {
-    // dx: right adjustment (positive = move left), dy: bottom adjustment
+    // dx: 右からの距離 (プラスで左へ移動), dy: 下からの距離
     appState.fabPosition.right += dx;
     appState.fabPosition.bottom += dy;
     
-    // Bounds check (minimal)
+    // 境界チェック (最小値)
     if (appState.fabPosition.right < 0) appState.fabPosition.right = 0;
     if (appState.fabPosition.bottom < 0) appState.fabPosition.bottom = 0;
     
@@ -272,7 +281,13 @@ if (WN.booted) {
         console.warn('Share canceled or failed', e);
       }
     } else {
-      navigator.clipboard.writeText(text);
+      // フォールバック: クリップボード
+      const dummy = document.createElement('textarea');
+      dummy.value = text;
+      document.body.appendChild(dummy);
+      dummy.select();
+      document.execCommand('copy');
+      document.body.removeChild(dummy);
       alert('共有リンクをクリップボードにコピーしました');
     }
   }
@@ -320,8 +335,9 @@ if (WN.booted) {
 
     appState.savedLocations.forEach(loc => {
       const isPhoto = (loc.type === 'photo');
+      // 修正: 'glyph' プロパティを非推奨警告に従い 'glyphText' へ変更
       const pin = new PinElement({
-        glyph: isPhoto ? '📷' : '★',
+        glyphText: isPhoto ? '📷' : '★',
         background: isPhoto ? '#25d07a' : '#f59e0b',
         borderColor: '#ffffff',
       });
@@ -573,6 +589,7 @@ if (WN.booted) {
       if (!resp.ok) throw new Error('Worker Error');
       return await resp.json();
     } catch (e) {
+      // フォールバック
       const resp = await fetchWithRetry(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=ja&key=${API_KEY}`);
       return await resp.json();
     }
@@ -618,7 +635,7 @@ if (WN.booted) {
         gestureHandling: 'greedy',
         clickableIcons: true,
         disableDefaultUI: true,
-        mapId: MAP_ID // Uses CUSTOM_MAP_ID from top
+        mapId: MAP_ID
       });
 
       appState.map.addListener('click', (e) => {
@@ -643,8 +660,9 @@ if (WN.booted) {
     if (appState.userMarker) {
       appState.userMarker.position = { lat, lng };
     } else {
+      // 修正: 'glyph' -> 'glyphText'
       const pin = new PinElement({
-        glyph: '',
+        glyphText: '',
         background: '#3aa0ff',
         borderColor: '#ffffff',
         scale: 1.2
@@ -1001,10 +1019,8 @@ if (WN.booted) {
     const btnFabRight = getEl('btnFabRight');
     const MOVE_STEP = 20;
 
-    // Up increases bottom, Down decreases bottom
     if (btnFabUp) btnFabUp.onclick = () => adjustFabPosition(0, MOVE_STEP);
     if (btnFabDown) btnFabDown.onclick = () => adjustFabPosition(0, -MOVE_STEP);
-    // Left increases right (moves away from right edge), Right decreases right (moves towards right edge)
     if (btnFabLeft) btnFabLeft.onclick = () => adjustFabPosition(MOVE_STEP, 0);
     if (btnFabRight) btnFabRight.onclick = () => adjustFabPosition(-MOVE_STEP, 0);
     
@@ -1083,10 +1099,10 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v84.7 (FAB Positioner)...');
+    console.log('[WalkNav] Starting v84.8 (Separate Files)...');
     loadUserProfile();
     loadSavedLocations();
-    loadSavedFabPosition(); // Load saved position
+    loadSavedFabPosition(); 
     bindUI();
     renderSavedLocations();
     appState.mapMode = localStorage.getItem(MAP_MODE_KEY) || 'roadmap';
