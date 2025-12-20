@@ -1,4 +1,4 @@
-/* app.css (v84.9: User Marker Ripple Effect & Position Accuracy Fix) */
+/* app.css (v85.0: UI Layout Fix, Ripple Effect & Position Accuracy) */
 
 /* ------------------------------------------------------------------
    基本設定 (Base)
@@ -285,37 +285,38 @@ body {
 
 .search-header-row {
   display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
   margin-bottom: 16px;
   touch-action: none;
   width: 100%;
 }
 
 .section-title-inline {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-main);
   white-space: nowrap;
-  flex-shrink: 1;
-  min-width: 0;
+  text-align: left;
 }
 
 .distance-chips-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 8px;
   flex-shrink: 0;
 }
 
 .distance-chips-row .chip {
-  padding: 6px 8px;
-  font-size: 12px;
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 13px;
   height: auto;
-  min-width: 44px;
+  min-height: 40px;
   text-align: center;
+  font-weight: 600;
 }
 
 .filter-chips-row {
@@ -509,50 +510,61 @@ body {
    現在地波紋エフェクト (User Ripple Marker)
 ------------------------------------------------------------------ */
 .user-ripple-container {
-  width: 50px;
-  height: 50px;
+  position: relative;
+  width: 60px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* 座標のズレを修正するため、要素自体は中央配置を前提とする */
   pointer-events: none;
+  /* マーカーの中心を正確に位置に合わせる */
+  transform: translate(-50%, -50%);
 }
 
 .ripple-dot {
-  width: 14px;
-  height: 14px;
-  background: var(--primary);
-  border: 2px solid #fff;
+  position: relative;
+  width: 16px;
+  height: 16px;
+  background: #2563eb;
+  border: 3px solid #fff;
   border-radius: 50%;
   z-index: 10;
-  box-shadow: 0 0 10px rgba(37, 99, 235, 0.8);
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.9), 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .ripple-wave {
   position: absolute;
-  width: 14px;
-  height: 14px;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
   border-radius: 50%;
-  background: rgba(37, 99, 235, 0.4);
-  animation: ripple-animation 2.4s ease-out infinite;
+  background: rgba(37, 99, 235, 0.5);
+  border: 2px solid rgba(37, 99, 235, 0.3);
+  animation: ripple-animation 2.5s ease-out infinite;
   z-index: 5;
+  pointer-events: none;
 }
 
 .ripple-wave:nth-child(2) {
-  animation-delay: 0.8s;
+  animation-delay: 0.83s;
 }
 
 .ripple-wave:nth-child(3) {
-  animation-delay: 1.6s;
+  animation-delay: 1.66s;
 }
 
 @keyframes ripple-animation {
   0% {
     transform: scale(1);
-    opacity: 0.8;
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.5;
   }
   100% {
-    transform: scale(4.5);
+    transform: scale(5);
     opacity: 0;
   }
 }

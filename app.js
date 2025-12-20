@@ -1,10 +1,12 @@
 'use strict';
 
 /**
- * WalkNav app.js - v84.8 (Bug Fix & Separate File Version)
+ * WalkNav app.js - v85.0 (UI Layout Fix, Ripple Effect & Position Accuracy)
  * 修正内容:
- * 1. PinElement の非推奨プロパティ 'glyph' を 'glyphText' に変更。
- * 2. 外部ファイルの整合性を維持し、HTMLからの呼び出しに対応。
+ * 1. 検索ヘッダーのレイアウトを2行に変更し、文字被りを解消
+ * 2. 現在地マーカーを波紋エフェクトに変更（動的で視認性向上）
+ * 3. マーカー位置の精度を向上（transform: translate(-50%, -50%)で中心調整）
+ * 4. 距離選択ボタンのサイズとタップ領域を拡大
  */
 
 // ===============================================================================
@@ -655,22 +657,26 @@ if (WN.booted) {
     appState.currentPos = { lat, lng };
     if (!appState.map) return;
 
-    const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
+    const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
 
     if (appState.userMarker) {
       appState.userMarker.position = { lat, lng };
     } else {
-      // 修正: 'glyph' -> 'glyphText'
-      const pin = new PinElement({
-        glyphText: '',
-        background: '#3aa0ff',
-        borderColor: '#ffffff',
-        scale: 1.2
-      });
+      // 波紋エフェクト付き現在地マーカーを作成
+      const rippleContainer = document.createElement('div');
+      rippleContainer.className = 'user-ripple-container';
+      rippleContainer.innerHTML = `
+        <div class="ripple-wave"></div>
+        <div class="ripple-wave"></div>
+        <div class="ripple-wave"></div>
+        <div class="ripple-dot"></div>
+      `;
+
       appState.userMarker = new AdvancedMarkerElement({
         map: appState.map,
         position: { lat, lng },
-        content: pin.element
+        content: rippleContainer,
+        zIndex: 1000
       });
     }
   }
@@ -1099,7 +1105,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v84.8 (Separate Files)...');
+    console.log('[WalkNav] Starting v85.0 (UI Layout Fix, Ripple Effect & Position Accuracy)...');
     loadUserProfile();
     loadSavedLocations();
     loadSavedFabPosition(); 

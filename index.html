@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>WalkNav v84.8</title>
+  <title>WalkNav v85.0</title>
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
   <!-- Faviconのリクエストによる404エラーを防止するためのダミー指定 -->
   <link rel="icon" href="data:,">
-  <!-- 外部CSSファイルの読み込み (v84.8) -->
-  <link rel="stylesheet" href="app.css?v=84.8">
+  <!-- 外部CSSファイルの読み込み (v85.0) -->
+  <link rel="stylesheet" href="app.css?v=85.0">
 </head>
 <body id="appBody">
 <div class="app">
@@ -31,14 +31,14 @@
           <button class="chip point-select full-width" id="btnPointSearch" type="button">📍 ポイント選択</button>
         </div>
         
-        <div class="search-header-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:nowrap; gap:8px; margin-bottom:12px;">
-          <div class="section-title-inline" style="margin:0; font-size:13px; white-space:nowrap;">
-            近くを検索 <span style="font-weight:normal; color:#9ca3af; font-size:11px;">(5件/<span id="radiusLabel">10km</span>)</span>
+        <div class="search-header-row">
+          <div class="section-title-inline">
+            近くを検索 <span style="font-weight:normal; color:#9ca3af; font-size:12px;">(5件/<span id="radiusLabel">10km</span>)</span>
           </div>
-          <div class="distance-chips-row" style="margin:0; gap:4px;">
-            <button class="chip" id="r5" type="button" style="padding:6px 10px; font-size:12px; height:auto;">5km</button>
-            <button class="chip active" id="r10" type="button" style="padding:6px 10px; font-size:12px; height:auto;">10km</button>
-            <button class="chip" id="r20" type="button" style="padding:6px 10px; font-size:12px; height:auto;">20km</button>
+          <div class="distance-chips-row">
+            <button class="chip" id="r5" type="button">5km</button>
+            <button class="chip active" id="r10" type="button">10km</button>
+            <button class="chip" id="r20" type="button">20km</button>
           </div>
         </div>
 
@@ -238,7 +238,7 @@
 </div>
 
 <script src="RouteEvaluator.js"></script>
-<script src="app.js?v=84.8"></script>
+<script src="app.js?v=85.0"></script>
 <script src="https://maps.googleapis.com/maps/api/js?language=ja&region=JP&key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&loading=async" async defer></script>
 <script>
 (function () {
