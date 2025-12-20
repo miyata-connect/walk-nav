@@ -1,12 +1,12 @@
 'use strict';
 
 /**
- * WalkNav app.js - v85.0 (UI Layout Fix, Ripple Effect & Position Accuracy)
+ * WalkNav app.js - v85.1 (Ripple Effect Fix - Animated User Marker)
  * 修正内容:
- * 1. 検索ヘッダーのレイアウトを2行に変更し、文字被りを解消
- * 2. 現在地マーカーを波紋エフェクトに変更（動的で視認性向上）
- * 3. マーカー位置の精度を向上（transform: translate(-50%, -50%)で中心調整）
- * 4. 距離選択ボタンのサイズとタップ領域を拡大
+ * 1. 重複マーカー問題を解決（既存マーカーを完全に削除してから再作成）
+ * 2. 波紋エフェクトのアニメーションを強化（3秒周期、3層の波紋）
+ * 3. 中央ドットに脈動アニメーションを追加
+ * 4. 位置ずれの原因だったtransformを削除し、正確な位置表示を実現
  */
 
 // ===============================================================================
@@ -659,26 +659,28 @@ if (WN.booted) {
 
     const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
 
+    // 既存のマーカーを完全に削除
     if (appState.userMarker) {
-      appState.userMarker.position = { lat, lng };
-    } else {
-      // 波紋エフェクト付き現在地マーカーを作成
-      const rippleContainer = document.createElement('div');
-      rippleContainer.className = 'user-ripple-container';
-      rippleContainer.innerHTML = `
-        <div class="ripple-wave"></div>
-        <div class="ripple-wave"></div>
-        <div class="ripple-wave"></div>
-        <div class="ripple-dot"></div>
-      `;
-
-      appState.userMarker = new AdvancedMarkerElement({
-        map: appState.map,
-        position: { lat, lng },
-        content: rippleContainer,
-        zIndex: 1000
-      });
+      appState.userMarker.map = null;
+      appState.userMarker = null;
     }
+
+    // 波紋エフェクト付き現在地マーカーを作成
+    const rippleContainer = document.createElement('div');
+    rippleContainer.className = 'user-ripple-container';
+    rippleContainer.innerHTML = `
+      <div class="ripple-wave"></div>
+      <div class="ripple-wave"></div>
+      <div class="ripple-wave"></div>
+      <div class="ripple-dot"></div>
+    `;
+
+    appState.userMarker = new AdvancedMarkerElement({
+      map: appState.map,
+      position: { lat, lng },
+      content: rippleContainer,
+      zIndex: 1000
+    });
   }
 
   async function setSearchPoint(lat, lng) {
@@ -1105,7 +1107,7 @@ if (WN.booted) {
   }
 
   function startApp() {
-    console.log('[WalkNav] Starting v85.0 (UI Layout Fix, Ripple Effect & Position Accuracy)...');
+    console.log('[WalkNav] Starting v85.1 (Ripple Effect Fix - Animated User Marker)...');
     loadUserProfile();
     loadSavedLocations();
     loadSavedFabPosition(); 
