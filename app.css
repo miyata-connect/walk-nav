@@ -1,4 +1,4 @@
-/* app.css (v84.7: UI Position Adjustment Support) */
+/* app.css (v84.8: UI Position Adjustment Support - Full Restored) */
 
 /* ------------------------------------------------------------------
    基本設定 (Base)
@@ -62,7 +62,7 @@ body {
 .panel {
   position: absolute;
   left: 12px;
-  right: 80px; /* 初期状態では右側にFABがあるため空けておく */
+  right: 80px; 
   bottom: 20px;
   height: 50dvh;
   max-height: 50dvh;
@@ -186,7 +186,6 @@ body {
 ------------------------------------------------------------------ */
 .fab-container {
   position: absolute;
-  /* 初期位置: JSで上書きされるため、ここはデフォルト値 */
   right: 12px;
   bottom: 20px;
   display: flex;
@@ -197,7 +196,7 @@ body {
   display: flex !important;
   opacity: 1 !important;
   visibility: visible !important;
-  transition: right 0.2s ease, bottom 0.2s ease; /* 移動時のアニメーション */
+  transition: right 0.2s ease, bottom 0.2s ease;
 }
 
 .fab-btn {
@@ -867,7 +866,7 @@ body {
 }
 
 /* ------------------------------------------------------------------
-   その他
+   ルート詳細・ナビゲーション表示
 ------------------------------------------------------------------ */
 .route-summary-card {
   padding: 16px;
@@ -948,6 +947,9 @@ body {
   }
 }
 
+/* ------------------------------------------------------------------
+   カスタムマーカー・アイコン
+------------------------------------------------------------------ */
 .wn-user-marker {
   width: 20px;
   height: 20px;
@@ -966,6 +968,9 @@ body {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
+/* ------------------------------------------------------------------
+   編集モーダル (Edit Modal)
+------------------------------------------------------------------ */
 .edit-modal-overlay {
   position: fixed;
   inset: 0;
