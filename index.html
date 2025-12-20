@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>WalkNav</title>
+  <title>WalkNav v84.8</title>
   <meta name="description" content="WalkNav - 近くを検索 & ルート案内" />
-  <link rel="stylesheet" href="app.css?v=84" />
+  <!-- Faviconのリクエストによる404エラーを防止するためのダミー指定 -->
+  <link rel="icon" href="data:,">
+  <!-- 外部CSSファイルの読み込み (v84.8) -->
+  <link rel="stylesheet" href="app.css?v=84.8">
 </head>
 <body id="appBody">
 <div class="app">
@@ -22,6 +25,7 @@
     </div>
 
     <div class="panel-tabs-body" id="panelScrollContainer">
+      <!-- 操作タブ -->
       <div class="tab-pane active" id="tabPaneSearch">
         <div class="point-search-wrapper" style="margin-bottom:8px;">
           <button class="chip point-select full-width" id="btnPointSearch" type="button">📍 ポイント選択</button>
@@ -81,6 +85,7 @@
         <div id="savedSectionContainer"></div>
       </div>
 
+      <!-- 案内タブ -->
       <div class="tab-pane" id="tabPaneNav">
         <div class="nav-section">
           <div class="nav-section-title">📍 現在地情報</div>
@@ -114,6 +119,7 @@
         </div>
       </div>
 
+      <!-- 設定タブ -->
       <div class="tab-pane" id="tabPaneSettings">
         <h2 class="section-title">アプリケーション設定</h2>
         <div class="settings-group">
@@ -232,7 +238,7 @@
 </div>
 
 <script src="RouteEvaluator.js"></script>
-<script src="app.js?v=84"></script>
+<script src="app.js?v=84.8"></script>
 <script src="https://maps.googleapis.com/maps/api/js?language=ja&region=JP&key=AIzaSyBuX-4y1Cgl6jdKcHZWWlsoosDWK_RGqF0&v=weekly&libraries=places,marker,geometry&loading=async" async defer></script>
 <script>
 (function () {
