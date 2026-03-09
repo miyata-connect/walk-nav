@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>WalkNav Offline</title>
+  <link rel="icon" href="data:,">
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b1220;
+      --glass: rgba(20,28,44,.82);
+      --stroke: rgba(255,255,255,.12);
+      --text: #eaf2ff;
+      --muted: #a7b8ce;
+      --primary: #62b5ff;
+      --ok: #25d07a;
+      --danger: #ff6565;
+      --warn: #ffb84d;
+      --radius: 16px;
+      --shadow: 0 8px 32px rgba(0,0,0,.4);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, 'Noto Sans JP', sans-serif; }
+    #map { position: absolute; inset: 0; }
+
+    /* ===== トップバー ===== */
+    #topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      padding: env(safe-area-inset-top, 12px) 12px 10px;
+      background: var(--glass);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--stroke);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .search-row {
+      display: flex; gap: 8px; align-items: center;
+    }
+    #searchInput {
+      flex: 1; padding: 10px 14px; border-radius: 12px;
+      background: rgba(255,255,255,.08); border: 1px solid var(--stroke);
+      color: var(--text); font-size: 15px; outline: none;
+    }
+    #searchInput::placeholder { color: var(--muted); }
+    .btn {
+      padding: 10px 14px; border-radius: 12px; border: none;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: opacity .15s;
+    }
+    .btn:active { opacity: .7; }
+    .btn-primary { background: var(--primary); color: #051828; }
+    .btn-ok     { background: var(--ok);      color: #05260e; }
+    .btn-danger { background: var(--danger);  color: #fff; }
+    .btn-glass  {
+      background: rgba(255,255,255,.1); border: 1px solid var(--stroke);
+      color: var(--text);
+    }
+    .status-row {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    #onlineBadge {
+      font-size: 12px; font-weight: 700; padding: 4px 10px;
+      border-radius: 99px; background: var(--ok); color: #05260e;
+    }
+    #onlineBadge.offline { background: var(--danger); color: #fff; }
+    #statusMsg { font-size: 12px; color: var(--muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #cacheBtn { font-size: 12px; padding: 4px 12px; }
+
+    /* ===== 検索結果 ===== */
+    #results {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+      margin-top: 110px;
+      background: var(--glass); backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--stroke);
+      max-height: 40vh; overflow-y: auto;
+      display: none;
+    }
+    .result-item {
+      padding: 12px 16px; border-bottom: 1px solid var(--stroke);
+      cursor: pointer;
+    }
+    .result-item:active { background: rgba(255,255,255,.08); }
+    .result-name { font-size: 14px; font-weight: 600; }
+    .result-addr { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* ===== ボトムパネル ===== */
+    #panel {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000;
+      padding: 12px 14px calc(env(safe-area-inset-bottom, 12px) + 10px);
+      background: var(--glass);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid var(--stroke);
+      display: none; flex-direction: column; gap: 10px;
+    }
+    #routeInfo { font-size: 14px; font-weight: 700; }
+    #routeDetail { font-size: 12px; color: var(--muted); }
+    .panel-btns { display: flex; gap: 8px; }
+
+    /* ===== FABボタン ===== */
+    #fabLocate {
+      position: fixed; right: 16px; bottom: 80px; z-index: 1000;
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--primary); color: #051828;
+      border: none; font-size: 22px; cursor: pointer;
+      box-shadow: var(--shadow);
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ===== オフラインバナー ===== */
+    #offlineBanner {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      z-index: 2000; background: var(--glass); border: 1px solid var(--stroke);
+      border-radius: var(--radius); padding: 24px 28px;
+      text-align: center; backdrop-filter: blur(20px);
+      box-shadow: var(--shadow); max-width: 300px; width: 90%;
+      display: none;
+    }
+    #offlineBanner .icon { font-size: 40px; margin-bottom: 10px; }
+    #offlineBanner h3 { font-size: 17px; margin-bottom: 8px; }
+    #offlineBanner p { font-size: 13px; color: var(--muted); }
+
+    /* ===== キャッシュ進捗 ===== */
+    #cacheProgress {
+      position: fixed; bottom: 140px; left: 16px; right: 16px; z-index: 2000;
+      background: var(--glass); border: 1px solid var(--stroke);
+      border-radius: var(--radius); padding: 14px 16px;
+      backdrop-filter: blur(14px); display: none;
+    }
+    #cacheProgressLabel { font-size: 13px; margin-bottom: 8px; }
+    #cacheProgressBar {
+      height: 6px; border-radius: 3px; background: rgba(255,255,255,.1);
+      overflow: hidden;
+    }
+    #cacheProgressFill {
+      height: 100%; background: var(--ok); border-radius: 3px;
+      width: 0%; transition: width .3s;
+    }
+
+    /* ===== ローディング ===== */
+    #loading {
+      position: fixed; inset: 0; z-index: 3000;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+    }
+    .spinner {
+      width: 40px; height: 40px; border: 3px solid rgba(255,255,255,.1);
+      border-top-color: var(--primary); border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .maplibregl-ctrl-bottom-left,
+    .maplibregl-ctrl-bottom-right { display: none; }
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div style="font-size:14px;color:var(--muted)">📍 現在地取得中...</div>
+</div>
+
+<div id="map"></div>
+
+<!-- トップバー -->
+<div id="topbar">
+  <div class="search-row">
+    <input id="searchInput" type="search" placeholder="目的地を検索..." autocomplete="off">
+    <button class="btn btn-primary" id="searchBtn">🔍</button>
+    <button class="btn btn-glass" id="locateBtn">📍</button>
+  </div>
+  <div class="status-row">
+    <div id="onlineBadge">ONLINE</div>
+    <div id="statusMsg">地図読み込み中...</div>
+    <button class="btn btn-ok btn-glass" id="cacheBtn" style="font-size:12px;padding:4px 12px;">📥 保存</button>
+  </div>
+</div>
+
+<!-- 検索結果 -->
+<div id="results"></div>
+
+<!-- ボトムパネル（ルート表示） -->
+<div id="panel">
+  <div id="routeInfo">目的地を選択してください</div>
+  <div id="routeDetail"></div>
+  <div class="panel-btns">
+    <button class="btn btn-danger" id="clearBtn" style="flex:1">✖ クリア</button>
+  </div>
+</div>
+
+<!-- オフラインバナー -->
+<div id="offlineBanner">
+  <div class="icon">📡</div>
+  <h3>オフラインモード</h3>
+  <p>保存済みの地図を使用しています。ルート検索にはネット接続が必要です。</p>
+</div>
+
+<!-- キャッシュ進捗 -->
+<div id="cacheProgress">
+  <div id="cacheProgressLabel">📥 タイルをダウンロード中...</div>
+  <div id="cacheProgressBar"><div id="cacheProgressFill"></div></div>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
+<script>
+'use strict';
+
+// ===== 設定 =====
+const WORKER_URL = 'https://walknav-offline-proxy.miyata-connect-jp.workers.dev';
+const PMTILES_URL = 'https://r2-maps-api.protomaps.com/planet-20250307.pmtiles';
+const DEFAULT_POS  = { lat: 34.0658, lng: 134.5593 }; // 徳島市
+const TILE_CACHE_NAME = 'walknav-tiles-v1';
+const ROUTE_CACHE_KEY = 'walknav-last-route';
+
+// ===== 状態 =====
+const state = {
+  map: null,
+  currentPos: null,
+  destMarker: null,
+  routeLayerAdded: false,
+  isOnline: navigator.onLine,
+};
+
+// ===== UI要素 =====
+const $ = id => document.getElementById(id);
+const loading      = $('loading');
+const onlineBadge  = $('onlineBadge');
+const statusMsg    = $('statusMsg');
+const resultsDiv   = $('results');
+const panel        = $('panel');
+const routeInfo    = $('routeInfo');
+const routeDetail  = $('routeDetail');
+const cacheProgress     = $('cacheProgress');
+const cacheProgressFill = $('cacheProgressFill');
+const cacheProgressLabel= $('cacheProgressLabel');
+const offlineBanner= $('offlineBanner');
+
+// ===== Service Worker 登録 =====
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./offline-sw.js').catch(() => {});
+}
+
+// ===== オンライン状態監視 =====
+function updateOnlineStatus() {
+  state.isOnline = navigator.onLine;
+  onlineBadge.textContent = state.isOnline ? 'ONLINE' : 'OFFLINE';
+  onlineBadge.classList.toggle('offline', !state.isOnline);
+  offlineBanner.style.display = (!state.isOnline && !state.currentPos) ? 'block' : 'none';
+}
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+
+// ===== 実接続確認 =====
+async function checkConnection() {
+  try {
+    const r = await fetch(`${WORKER_URL}/health`, { cache: 'no-store', signal: AbortSignal.timeout(3000) });
+    return r.ok;
+  } catch { return false; }
+}
+
+// ===== MapLibre 初期化 =====
+function initMap(center) {
+  // PMTiles プロトコル登録
+  const protocol = new pmtiles.Protocol();
+  maplibregl.addProtocol('pmtiles', protocol.tile.bind(protocol));
+
+  state.map = new maplibregl.Map({
+    container: 'map',
+    style: {
+      version: 8,
+      glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+      sources: {
+        protomaps: {
+          type: 'vector',
+          url: `pmtiles://${PMTILES_URL}`,
+          attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+        },
+      },
+      layers: buildStyleLayers(),
+    },
+    center: [center.lng, center.lat],
+    zoom: 16,
+    maxZoom: 18,
+  });
+
+  state.map.on('load', () => {
+    setStatus('地図を読み込みました');
+    loading.style.display = 'none';
+    // 前回のルートを復元
+    restoreCachedRoute();
+  });
+
+  state.map.on('error', e => {
+    console.warn('[WalkNav Offline] Map error:', e);
+  });
+}
+
+// ===== 地図スタイル定義（Protomaps basemap） =====
+function buildStyleLayers() {
+  const land   = '#1a2235';
+  const water  = '#0d1824';
+  const road   = '#2a3a50';
+  const roadHi = '#3d5268';
+  const bldg   = '#1e2d42';
+  const park   = '#1a2d1e';
+  const text   = '#c8d8e8';
+  const textSm = '#8aa0b8';
+
+  return [
+    { id: 'background',    type: 'background', paint: { 'background-color': land } },
+    { id: 'water',         type: 'fill',   source: 'protomaps', 'source-layer': 'water',         paint: { 'fill-color': water } },
+    { id: 'natural',       type: 'fill',   source: 'protomaps', 'source-layer': 'natural',       paint: { 'fill-color': park,  'fill-opacity': .6 } },
+    { id: 'landuse',       type: 'fill',   source: 'protomaps', 'source-layer': 'landuse',       paint: { 'fill-color': land,  'fill-opacity': .4 } },
+    { id: 'buildings',     type: 'fill',   source: 'protomaps', 'source-layer': 'buildings',     paint: { 'fill-color': bldg,  'fill-opacity': .9 } },
+    { id: 'roads-low',     type: 'line',   source: 'protomaps', 'source-layer': 'roads',
+      filter: ['in', ['get', 'pmap:kind'], ['literal', ['minor_road', 'path', 'track']]],
+      paint: { 'line-color': road, 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 1, 18, 4] } },
+    { id: 'roads-high',    type: 'line',   source: 'protomaps', 'source-layer': 'roads',
+      filter: ['in', ['get', 'pmap:kind'], ['literal', ['highway', 'major_road', 'medium_road']]],
+      paint: { 'line-color': roadHi, 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 2, 18, 8] } },
+    { id: 'water-labels',  type: 'symbol', source: 'protomaps', 'source-layer': 'water_labels',
+      layout: { 'text-field': ['coalesce', ['get', 'name:ja'], ['get', 'name']], 'text-size': 11, 'text-font': ['Noto Sans Regular'] },
+      paint: { 'text-color': textSm, 'text-halo-color': water, 'text-halo-width': 1 } },
+    { id: 'place-labels',  type: 'symbol', source: 'protomaps', 'source-layer': 'places',
+      layout: { 'text-field': ['coalesce', ['get', 'name:ja'], ['get', 'name']], 'text-size': ['interpolate', ['linear'], ['zoom'], 10, 11, 16, 14], 'text-font': ['Noto Sans Regular'] },
+      paint: { 'text-color': text, 'text-halo-color': '#0b1220', 'text-halo-width': 1.5 } },
+    { id: 'road-labels',   type: 'symbol', source: 'protomaps', 'source-layer': 'roads',
+      minzoom: 15,
+      layout: { 'text-field': ['coalesce', ['get', 'name:ja'], ['get', 'name']], 'text-size': 11, 'text-font': ['Noto Sans Regular'], 'symbol-placement': 'line', 'text-max-angle': 30 },
+      paint: { 'text-color': textSm, 'text-halo-color': '#0b1220', 'text-halo-width': 1 } },
+  ];
+}
+
+// ===== 現在地取得 =====
+function locateUser() {
+  setStatus('📍 現在地取得中...');
+  navigator.geolocation.getCurrentPosition(pos => {
+    const { latitude: lat, longitude: lng } = pos.coords;
+    state.currentPos = { lat, lng };
+    if (state.map) {
+      state.map.flyTo({ center: [lng, lat], zoom: 16 });
+    } else {
+      initMap({ lat, lng });
+    }
+    setUserMarker(lat, lng);
+    setStatus('現在地を取得しました');
+    loading.style.display = 'none';
+  }, () => {
+    setStatus('⚠ 現在地が取得できません。徳島市を表示中');
+    if (!state.map) initMap(DEFAULT_POS);
+    loading.style.display = 'none';
+  }, { enableHighAccuracy: true, timeout: 10000 });
+}
+
+// ===== 現在地マーカー =====
+function setUserMarker(lat, lng) {
+  if (state.userMarkerEl) {
+    state.userMarkerEl.setLngLat([lng, lat]);
+    return;
+  }
+  const el = document.createElement('div');
+  el.style.cssText = 'width:20px;height:20px;border-radius:50%;background:#62b5ff;border:3px solid #fff;box-shadow:0 0 0 4px rgba(98,181,255,.3)';
+  state.userMarkerEl = new maplibregl.Marker({ element: el })
+    .setLngLat([lng, lat])
+    .addTo(state.map);
+}
+
+// ===== 目的地マーカー =====
+function setDestMarker(lat, lng, name) {
+  if (state.destMarker) state.destMarker.remove();
+  const el = document.createElement('div');
+  el.style.cssText = 'width:28px;height:28px;border-radius:50% 50% 50% 0;background:#ff6565;border:3px solid #fff;transform:rotate(-45deg);box-shadow:0 2px 8px rgba(0,0,0,.4)';
+  state.destMarker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+    .setLngLat([lng, lat])
+    .setPopup(new maplibregl.Popup({ offset: 25 }).setText(name))
+    .addTo(state.map);
+}
+
+// ===== テキスト検索（ORS Geocoding） =====
+async function searchPlaces(query) {
+  if (!query.trim()) return;
+  const online = await checkConnection();
+  if (!online) {
+    setStatus('⚠ オフライン中：検索できません');
+    return;
+  }
+  setStatus('🔍 検索中...');
+  try {
+    const lat = state.currentPos?.lat || DEFAULT_POS.lat;
+    const lng = state.currentPos?.lng || DEFAULT_POS.lng;
+    const res = await fetch(`${WORKER_URL}/search?q=${encodeURIComponent(query)}&lat=${lat}&lng=${lng}`);
+    const data = await res.json();
+    const features = data.features || [];
+    showResults(features);
+    if (features.length === 0) setStatus('検索結果がありません');
+    else setStatus(`${features.length}件見つかりました`);
+  } catch (e) {
+    setStatus('❌ 検索失敗: ' + e.message);
+  }
+}
+
+function showResults(features) {
+  resultsDiv.innerHTML = '';
+  if (features.length === 0) { resultsDiv.style.display = 'none'; return; }
+  features.forEach(f => {
+    const name = f.properties.name || f.properties.label || '名称不明';
+    const addr = f.properties.label || '';
+    const [lng, lat] = f.geometry.coordinates;
+    const item = document.createElement('div');
+    item.className = 'result-item';
+    item.innerHTML = `<div class="result-name">${name}</div><div class="result-addr">${addr}</div>`;
+    item.onclick = () => {
+      resultsDiv.style.display = 'none';
+      state.map.flyTo({ center: [lng, lat], zoom: 16 });
+      setDestMarker(lat, lng, name);
+      fetchRoute(lat, lng, name);
+    };
+    resultsDiv.appendChild(item);
+  });
+  resultsDiv.style.display = 'block';
+}
+
+// ===== ルート取得（ORS Directions） =====
+async function fetchRoute(destLat, destLng, destName) {
+  const online = await checkConnection();
+  if (!online) {
+    showPanel(`🏁 ${destName}`, 'オフライン中：ルート取得不可。地図は表示中');
+    setStatus('📡 オフライン：ルート検索には接続が必要');
+    return;
+  }
+  if (!state.currentPos) {
+    setStatus('⚠ 現在地が不明です');
+    return;
+  }
+  setStatus('🧭 ルート計算中...');
+  try {
+    const res = await fetch(`${WORKER_URL}/directions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        start: [state.currentPos.lng, state.currentPos.lat],
+        end:   [destLng, destLat],
+      }),
+    });
+    const data = await res.json();
+    if (!data.features?.length) {
+      setStatus('❌ ルートが見つかりません');
+      return;
+    }
+    drawRoute(data);
+    const seg = data.features[0].properties.segments?.[0];
+    const dist = (data.features[0].properties.summary.distance / 1000).toFixed(1);
+    const mins = Math.ceil(data.features[0].properties.summary.duration / 60);
+    showPanel(`🏁 ${destName}`, `📏 ${dist} km　⏱ 約 ${mins} 分`);
+    setStatus('ルートを取得しました');
+    // キャッシュに保存
+    saveRouteCache(data, destName, destLat, destLng);
+  } catch (e) {
+    setStatus('❌ ルート失敗: ' + e.message);
+  }
+}
+
+// ===== ルートを地図に描画 =====
+function drawRoute(geojson) {
+  if (state.map.getSource('route')) {
+    state.map.getSource('route').setData(geojson);
+    return;
+  }
+  state.map.addSource('route', { type: 'geojson', data: geojson });
+  state.map.addLayer({
+    id: 'route-line',
+    type: 'line',
+    source: 'route',
+    layout: { 'line-join': 'round', 'line-cap': 'round' },
+    paint: { 'line-color': '#62b5ff', 'line-width': 6, 'line-opacity': .9 },
+  });
+}
+
+// ===== ルートキャッシュ 保存/復元 =====
+function saveRouteCache(geojson, name, lat, lng) {
+  try {
+    localStorage.setItem(ROUTE_CACHE_KEY, JSON.stringify({ geojson, name, lat, lng, ts: Date.now() }));
+  } catch (_) {}
+}
+
+function restoreCachedRoute() {
+  try {
+    const raw = localStorage.getItem(ROUTE_CACHE_KEY);
+    if (!raw) return;
+    const { geojson, name, lat, lng, ts } = JSON.parse(raw);
+    const ageH = (Date.now() - ts) / 3600000;
+    if (ageH > 12) return; // 12時間以上古いルートは復元しない
+    drawRoute(geojson);
+    setDestMarker(lat, lng, name);
+    const dist = (geojson.features[0].properties.summary.distance / 1000).toFixed(1);
+    const mins = Math.ceil(geojson.features[0].properties.summary.duration / 60);
+    showPanel(`🏁 ${name}（キャッシュ）`, `📏 ${dist} km　⏱ 約 ${mins} 分`);
+    setStatus('前回のルートを復元しました');
+  } catch (_) {}
+}
+
+// ===== パネル表示 =====
+function showPanel(title, detail) {
+  routeInfo.textContent = title;
+  routeDetail.textContent = detail;
+  panel.style.display = 'flex';
+}
+
+function clearRoute() {
+  if (state.map.getLayer('route-line')) state.map.removeLayer('route-line');
+  if (state.map.getSource('route'))     state.map.removeSource('route');
+  if (state.destMarker) { state.destMarker.remove(); state.destMarker = null; }
+  localStorage.removeItem(ROUTE_CACHE_KEY);
+  panel.style.display = 'none';
+  setStatus('クリアしました');
+}
+
+// ===== タイルキャッシュ（Service Worker経由） =====
+async function cacheCurrentArea() {
+  if (!state.currentPos) {
+    alert('先に現在地を取得してください');
+    return;
+  }
+  const online = await checkConnection();
+  if (!online) {
+    alert('タイル保存にはネット接続が必要です');
+    return;
+  }
+
+  const { lat, lng } = state.currentPos;
+  const zoom = Math.round(state.map.getZoom());
+  const minZ = 10, maxZ = Math.min(zoom + 1, 16);
+
+  // キャッシュするタイル座標を列挙（半径約5km相当）
+  const tiles = [];
+  for (let z = minZ; z <= maxZ; z++) {
+    const delta = Math.max(1, Math.floor(1.5 * Math.pow(2, z - 14)));
+    const tx = lng2tile(lng, z);
+    const ty = lat2tile(lat, z);
+    for (let x = tx - delta; x <= tx + delta; x++) {
+      for (let y = ty - delta; y <= ty + delta; y++) {
+        tiles.push({ z, x, y: Math.max(0, y) });
+      }
+    }
+  }
+
+  cacheProgress.style.display = 'block';
+  let done = 0;
+  const total = tiles.length;
+  cacheProgressLabel.textContent = `📥 ${total} タイルをダウンロード中...`;
+
+  const cache = await caches.open(TILE_CACHE_NAME);
+
+  // 10並列でキャッシュ
+  const chunks = [];
+  for (let i = 0; i < tiles.length; i += 10) chunks.push(tiles.slice(i, i + 10));
+
+  for (const chunk of chunks) {
+    await Promise.allSettled(chunk.map(async ({ z, x, y }) => {
+      const url = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+      try {
+        const res = await fetch(url, { mode: 'no-cors' });
+        await cache.put(url, res);
+      } catch (_) {}
+      done++;
+      const pct = Math.round(done / total * 100);
+      cacheProgressFill.style.width = pct + '%';
+      cacheProgressLabel.textContent = `📥 ${done}/${total} タイル保存中...`;
+    }));
+  }
+
+  cacheProgress.style.display = 'none';
+  setStatus(`✅ ${total} タイルをオフライン保存しました`);
+}
+
+// ===== タイル座標計算 =====
+function lng2tile(lng, z) { return Math.floor((lng + 180) / 360 * Math.pow(2, z)); }
+function lat2tile(lat, z) {
+  const r = lat * Math.PI / 180;
+  return Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * Math.pow(2, z));
+}
+
+// ===== ステータス表示 =====
+function setStatus(msg) { statusMsg.textContent = msg; }
+
+// ===== イベントバインド =====
+$('searchBtn').onclick = () => searchPlaces($('searchInput').value);
+$('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') searchPlaces(e.target.value); });
+$('locateBtn').onclick = locateUser;
+$('cacheBtn').onclick  = cacheCurrentArea;
+$('clearBtn').onclick  = clearRoute;
+
+document.addEventListener('click', e => {
+  if (!resultsDiv.contains(e.target) && e.target !== $('searchInput') && e.target !== $('searchBtn')) {
+    resultsDiv.style.display = 'none';
+  }
+});
+
+// ===== 起動 =====
+locateUser();
+</script>
+</body>
+</html>
