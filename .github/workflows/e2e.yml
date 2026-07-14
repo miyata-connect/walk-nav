@@ -15,13 +15,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # ← ここが「Node セットアップ」。lock ファイルが無い環境でもコケない設定にしてある
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '24'
         # ※ cache は lockfile が無いと失敗しがちなので明示的に使わない
 
       - name: Install dependencies
